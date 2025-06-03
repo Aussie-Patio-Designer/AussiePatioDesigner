@@ -27,7 +27,7 @@ const getColorFromName = (colorName: string): string => {
     "SURFMIST / BASALT": "#4b4f52",
     "SURFMIST / CLASSIC CREAM": "#f9e9c2",
     "SURFMIST / DUNE": "#a89f91",
-    "SURFMIST / MANOR RED": "#8B0000", // Original deep red
+    "SURFMIST / MANOR RED": "#6A2E1F", // Original deep red
     "SURFMIST / PALE EUCALYPT": "#8c9c74",
     "SURFMIST / PAPERBARK": "#d3c6a6",
     "SURFMIST / SHALE GREY": "#c1c2be",
@@ -49,7 +49,7 @@ const getColorFromName = (colorName: string): string => {
     "CLASSIC CREAM": "#f9e9c2",
     DUNE: "#a89f91",
     GALVANISED: "#B0B4B8", // Metallic grey
-    MONUMENT: "#3A3A3A", // Original medium dark grey
+    MONUMENT: "#313233", // Original medium dark grey
     PAPERBARK: "#d3c6a6",
     "DOVER WHITE": "#F8F8F4",
     "WOODLAND GREY": "#4d4f45",
