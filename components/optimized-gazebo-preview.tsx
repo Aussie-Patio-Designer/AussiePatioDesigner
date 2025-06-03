@@ -132,11 +132,11 @@ const OptimizedLighting = memo(() => (
   <>
     <ambientLight intensity={0.6} color="#ffffff" />
     <directionalLight
-      position={[5, 10, 5]}
-      intensity={0.9}
+      position={[-5, 10, -5]} // Changed to opposite side
+      intensity={0.8} // Slightly reduced for less gloss
       color="#f8f8f8"
       castShadow
-      shadow-mapSize-width={1024} // Reduced for better performance
+      shadow-mapSize-width={1024}
       shadow-mapSize-height={1024}
       shadow-camera-far={50}
       shadow-camera-left={-20}
@@ -145,7 +145,7 @@ const OptimizedLighting = memo(() => (
       shadow-camera-bottom={-20}
       shadow-bias={-0.0001}
     />
-    <directionalLight position={[-5, 8, -3]} intensity={0.4} color="#e0e8ff" />
+    <directionalLight position={[5, 8, 3]} intensity={0.3} color="#e0e8ff" />
     <hemisphereLight skyColor="#a7c5ff" groundColor="#d2c4a5" intensity={0.7} />
   </>
 ))
@@ -169,8 +169,8 @@ const OptimizedGazeboPreview = forwardRef<any, GazeboPreviewProps>((props, ref) 
   const canvasProps = useMemo(
     () => ({
       camera: {
-        position: [8, 6, 8] as [number, number, number],
-        fov: 50,
+        position: [-8, 6, -8] as [number, number, number], // Changed to opposite side
+        fov: 35, // Reduced FOV for more isometric-like view
       },
       shadows: true,
       gl: {
@@ -184,7 +184,7 @@ const OptimizedGazeboPreview = forwardRef<any, GazeboPreviewProps>((props, ref) 
         gl.shadowMap.enabled = true
         gl.shadowMap.type = THREE.PCFSoftShadowMap
         gl.toneMapping = THREE.ACESFilmicToneMapping
-        gl.toneMappingExposure = 1.2
+        gl.toneMappingExposure = 1.0 // Reduced from 1.2 for less gloss
         gl.outputColorSpace = THREE.SRGBColorSpace
 
         // Performance optimizations
@@ -214,7 +214,7 @@ const OptimizedGazeboPreview = forwardRef<any, GazeboPreviewProps>((props, ref) 
             maxDistance={20}
             minPolarAngle={Math.PI / 6}
             maxPolarAngle={Math.PI / 2.5}
-            target={[0, 2, 0]}
+            target={[0, 1.5, 0]} // Slightly higher target for better view
             enableDamping={true}
             dampingFactor={0.05}
             rotateSpeed={0.7}

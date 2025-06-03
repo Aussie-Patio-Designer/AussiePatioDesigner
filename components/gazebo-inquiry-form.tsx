@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -15,44 +15,44 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle, AlertCircle, ChevronRight } from "lucide-react"
 import GazeboPreview from "@/components/gazebo-preview"
+import type { GazeboPreviewRef } from "./gazebo-preview"
 
-// Form schema with simplified roof cladding options
-const formSchema = z.object({
-  customerName: z.string().min(2, {
-    message: "Customer Name must be at least 2 characters.",
-  }),
-  siteAddress: z.string().min(10, {
-    message: "Site Address must be at least 10 characters.",
-  }),
-  customerEmail: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  roofType: z.enum(["Gable", "Skillion"]).default("Gable"),
-  roofCladding: z.enum(["Corrugated", "Trimclad"]).default("Corrugated"),
-  roofPitch: z
-    .number()
-    .min(2)
-    .max(20)
-    .default(10)
-    .refine(
-      (val, ctx) => {
-        const roofType = ctx.parent?.roofType || "Gable"
-        if (roofType === "Gable") {
-          return val >= 10 && val <= 20
-        } else {
-          return val >= 2 && val <= 5
-        }
-      },
-      {
-        message: "Invalid pitch for selected roof type",
-      },
-    ),
-  length: z.number().min(1000).max(20000).default(3000),
-  width: z.number().min(1000).max(20000).default(3000),
-  height: z.number().min(1000).max(5000).default(2400),
-  roofColor: z.string().min(1, "Roof color is required").default("SURFMIST / BASALT"),
-  postBeamColor: z.string().min(1, "Frame color is required").default("MONUMENT"),
-})
+// Fixed form schema with proper validation
+const formSchema = z
+  .object({
+    customerName: z.string().min(2, {
+      message: "Customer Name must be at least 2 characters.",
+    }),
+    siteAddress: z.string().min(10, {
+      message: "Site Address must be at least 10 characters.",
+    }),
+    customerEmail: z.string().email({
+      message: "Please enter a valid email address.",
+    }),
+    roofType: z.enum(["Gable", "Skillion"]).default("Gable"),
+    roofCladding: z.enum(["Corrugated", "Trimclad"]).default("Corrugated"),
+    roofPitch: z.number().min(2).max(20).default(10),
+    length: z.number().min(1000).max(20000).default(3000),
+    width: z.number().min(1000).max(20000).default(3000),
+    height: z.number().min(1000).max(5000).default(2400),
+    roofColor: z.string().min(1, "Roof color is required").default("SURFMIST / BASALT"),
+    postBeamColor: z.string().min(1, "Frame color is required").default("MONUMENT"),
+  })
+  .refine(
+    (data) => {
+      // Validate roof pitch based on roof type
+      if (data.roofType === "Gable") {
+        return data.roofPitch >= 10 && data.roofPitch <= 20
+      } else if (data.roofType === "Skillion") {
+        return data.roofPitch >= 2 && data.roofPitch <= 5
+      }
+      return true
+    },
+    {
+      message: "Invalid roof pitch for selected roof type. Gable: 10-20°, Skillion: 2-5°",
+      path: ["roofPitch"],
+    },
+  )
 
 // Color options - Updated with exact colors from the color chart
 const roofColors = [
@@ -100,6 +100,8 @@ export default function GazeboInquiryForm() {
   const [submitStatus, setSubmitStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [currentStep, setCurrentStep] = useState<"design" | "customer">("design")
 
+  const gazeboPreviewRef = useRef<GazeboPreviewRef>(null)
+
   // Update the form default values
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -118,13 +120,14 @@ export default function GazeboInquiryForm() {
     },
   })
 
-  // Handle roof type changes
+  // Handle roof type changes with proper validation
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === "roofType") {
         const currentPitch = form.getValues("roofPitch")
         const roofType = value.roofType
 
+        // Auto-adjust pitch when roof type changes
         if (roofType === "Gable") {
           if (currentPitch < 10 || currentPitch > 20) {
             form.setValue("roofPitch", 10)
@@ -134,20 +137,52 @@ export default function GazeboInquiryForm() {
             form.setValue("roofPitch", 5)
           }
         }
+
+        // Clear any existing validation errors
+        form.clearErrors("roofPitch")
       }
     })
 
     return () => subscription.unsubscribe()
   }, [form])
 
+  // Custom validation function for roof pitch
+  const validateRoofPitch = (pitch: number, roofType: string) => {
+    if (roofType === "Gable") {
+      return pitch >= 10 && pitch <= 20
+    } else if (roofType === "Skillion") {
+      return pitch >= 2 && pitch <= 5
+    }
+    return true
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
     setSubmitStatus(null)
 
     try {
+      // Additional client-side validation
+      if (!validateRoofPitch(values.roofPitch, values.roofType)) {
+        const errorMessage =
+          values.roofType === "Gable"
+            ? "Gable roof pitch must be between 10° and 20°"
+            : "Skillion roof pitch must be between 2° and 5°"
+
+        form.setError("roofPitch", { message: errorMessage })
+        setIsSubmitting(false)
+        return
+      }
+
+      // Capture screenshot before submission
+      let screenshot: string | null = null
+      if (gazeboPreviewRef.current) {
+        screenshot = await gazeboPreviewRef.current.captureScreenshot()
+        console.log("📸 Screenshot captured:", screenshot ? "Success" : "Failed")
+      }
+
       const submissionData = {
         ...values,
-        screenshot: null,
+        screenshot: screenshot,
       }
 
       console.log("🚀 Submitting inquiry:", submissionData.customerEmail)
@@ -202,11 +237,29 @@ export default function GazeboInquiryForm() {
     setCurrentStep("design")
   }
 
+  // Get available pitch options based on roof type
+  const getPitchOptions = (roofType: string) => {
+    if (roofType === "Gable") {
+      return [
+        { value: "10", label: "10°" },
+        { value: "15", label: "15°" },
+        { value: "20", label: "20°" },
+      ]
+    } else {
+      return [
+        { value: "2", label: "2°" },
+        { value: "3.5", label: "3.5°" },
+        { value: "5", label: "5°" },
+      ]
+    }
+  }
+
   return (
     <div className="min-h-screen relative">
       {/* Full-screen 3D Background */}
       <div className="fixed inset-0 z-0">
         <GazeboPreview
+          ref={gazeboPreviewRef}
           length={form.watch("length") || 3000}
           width={form.watch("width") || 3000}
           height={form.watch("height") || 2400}
@@ -242,12 +295,19 @@ export default function GazeboInquiryForm() {
         </div>
       )}
 
+      {/* Credit Footer - Bottom Right Corner */}
+      <div className="fixed bottom-4 right-4 z-50 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-gray-200/50">
+        <p className="text-xs text-gray-600 font-medium">
+          Generated by <span className="text-blue-600 font-semibold">Gazi OGUTCU</span> 2025
+        </p>
+      </div>
+
       {/* Fixed Left Sidebar Form */}
       <div className="fixed left-0 top-0 z-10 w-96 h-screen bg-white/95 backdrop-blur-sm shadow-2xl flex flex-col">
         {/* Header - Fixed */}
         <div className="flex-shrink-0 p-6 border-b border-gray-200/50">
-          <h1 className="text-2xl font-bold text-gray-900">Gazebo Designer</h1>
-          <p className="text-sm text-gray-600">Design your perfect gazebo</p>
+          <h1 className="text-2xl font-bold text-gray-900">Aussie Patio Designer</h1>
+          <p className="text-sm text-gray-600">Design your perfect patio/gazebo</p>
         </div>
 
         {/* Scrollable Content */}
@@ -255,7 +315,6 @@ export default function GazeboInquiryForm() {
           <div className="p-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Rest of the form content remains the same */}
                 {currentStep === "design" ? (
                   <>
                     {/* Design Configuration */}
@@ -351,38 +410,23 @@ export default function GazeboInquiryForm() {
                           name="roofPitch"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">Roof Pitch</FormLabel>
+                              <FormLabel className="text-sm font-medium">
+                                Roof Pitch
+                                <span className="text-xs text-gray-500 ml-1">
+                                  ({form.watch("roofType") === "Gable" ? "10-20°" : "2-5°"})
+                                </span>
+                              </FormLabel>
                               <FormControl>
                                 <Tabs
                                   value={field.value?.toString() || (form.watch("roofType") === "Gable" ? "10" : "5")}
                                   onValueChange={(value) => field.onChange(Number(value))}
                                 >
                                   <TabsList className="grid grid-cols-3 w-full">
-                                    {form.watch("roofType") === "Gable" ? (
-                                      <>
-                                        <TabsTrigger value="10" className="text-sm">
-                                          10°
-                                        </TabsTrigger>
-                                        <TabsTrigger value="15" className="text-sm">
-                                          15°
-                                        </TabsTrigger>
-                                        <TabsTrigger value="20" className="text-sm">
-                                          20°
-                                        </TabsTrigger>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <TabsTrigger value="2" className="text-sm">
-                                          2°
-                                        </TabsTrigger>
-                                        <TabsTrigger value="3.5" className="text-sm">
-                                          3.5°
-                                        </TabsTrigger>
-                                        <TabsTrigger value="5" className="text-sm">
-                                          5°
-                                        </TabsTrigger>
-                                      </>
-                                    )}
+                                    {getPitchOptions(form.watch("roofType") || "Gable").map((option) => (
+                                      <TabsTrigger key={option.value} value={option.value} className="text-sm">
+                                        {option.label}
+                                      </TabsTrigger>
+                                    ))}
                                   </TabsList>
                                 </Tabs>
                               </FormControl>

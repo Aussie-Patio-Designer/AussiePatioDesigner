@@ -5,6 +5,12 @@ import { OrbitControls, Plane, Environment } from "@react-three/drei"
 import { Suspense, useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect, useMemo } from "react"
 import { TextureLoader, RepeatWrapping, BackSide } from "three"
 import * as THREE from "three"
+import {
+  getEnhancedColorHex,
+  getMaterialProperties,
+  getGutterMaterialProperties,
+  getOutletMaterialProperties,
+} from "@/lib/colorbond-colors"
 
 interface GazeboPreviewProps {
   length: number
@@ -20,63 +26,8 @@ interface GazeboPreviewProps {
   postBeamColor?: string
 }
 
-// Color mapping for 3D preview - EXACT colors from the official Colorbond chart
-const getColorFromName = (colorName: string): string => {
-  const colorMap: { [key: string]: string } = {
-    // Roof colors - ORIGINAL CORRECT COLORS
-    "SURFMIST / BASALT": "#4b4f52",
-    "SURFMIST / CLASSIC CREAM": "#f9e9c2",
-    "SURFMIST / DUNE": "#a89f91",
-    "SURFMIST / MANOR RED": "#8B0000", // Original deep red
-    "SURFMIST / PALE EUCALYPT": "#8c9c74",
-    "SURFMIST / PAPERBARK": "#d3c6a6",
-    "SURFMIST / SHALE GREY": "#c1c2be",
-    "SURFMIST / SURFMIST": "#e4e3dc",
-    "SURFMIST / WOODLAND GREY": "#4d4f45",
-
-    // Individual external colors (for roof color parsing)
-    BASALT: "#4b4f52",
-    "CLASSIC CREAM": "#f9e9c2",
-    DUNE: "#a89f91",
-    "MANOR RED": "#8B0000", // Original deep red
-    "PALE EUCALYPT": "#8c9c74",
-    PAPERBARK: "#d3c6a6",
-    "SHALE GREY": "#c1c2be",
-    SURFMIST: "#e4e3dc",
-    "WOODLAND GREY": "#4d4f45",
-
-    // Post/beam colors - ORIGINAL CORRECT COLORS
-    "CLASSIC CREAM": "#f9e9c2",
-    DUNE: "#a89f91",
-    GALVANISED: "#B0B4B8", // Metallic grey
-    MONUMENT: "#3A3A3A", // Original medium dark grey
-    PAPERBARK: "#d3c6a6",
-    "DOVER WHITE": "#F8F8F4",
-    "WOODLAND GREY": "#4d4f45",
-
-    // Internal/external colors from chart
-    Surfmist: "#e4e3dc",
-    Basalt: "#4b4f52",
-  }
-
-  return colorMap[colorName] || "#CCCCCC"
-}
-
-// Enhance colors to make them more distinguishable
-const enhanceColorVisibility = (hexColor: string): string => {
-  const color = new THREE.Color(hexColor)
-
-  // Increase saturation by 15%
-  const hsl = { h: 0, s: 0, l: 0 }
-  color.getHSL(hsl)
-  hsl.s = Math.min(1, hsl.s * 1.15)
-
-  // Adjust lightness to optimal range (not too dark, not too light)
-  if (hsl.l < 0.3) hsl.l = 0.3 // Brighten dark colors
-  if (hsl.l > 0.8) hsl.l = 0.8 // Darken light colors
-
-  color.setHSL(hsl.h, hsl.s, hsl.l)
-  return "#" + color.getHexString()
+export interface GazeboPreviewRef {
+  captureScreenshot: () => Promise<string | null>
 }
 
 // Replace the entire CustomSkybox function with this:
@@ -294,12 +245,20 @@ function GutterOutlet({
   position: [number, number, number]
   color: string
 }) {
+  // Use centralized material properties for outlets
+  const outletMaterial = getOutletMaterialProperties(color)
+
   return (
     <group position={position}>
       {/* Outlet spout */}
       <mesh position={[0, 0.02, 0]} castShadow>
         <cylinderGeometry args={[0.015, 0.02, 0.04, 8]} />
-        <meshStandardMaterial color={color} metalness={0.3} roughness={0.7} />
+        <meshStandardMaterial
+          color={outletMaterial.color}
+          metalness={outletMaterial.metalness}
+          roughness={outletMaterial.roughness}
+          envMapIntensity={outletMaterial.envMapIntensity}
+        />
       </mesh>
 
       {/* Water drip effect */}
@@ -325,20 +284,17 @@ function GazeboStructure(props: GazeboPreviewProps) {
     roofColor,
     postBeamColor,
   } = props
+
   // Convert mm to meters for 3D scene
   const scaleLength = length / 1000
   const scaleWidth = width / 1000
   const scaleHeight = height / 1000
   const scaleOverhang = overhangSize / 1000
 
-  // Parse the roof color to get the external color (second part after the slash)
-  const roofParts = (roofColor || "SURFMIST / BASALT").split(" / ")
-  const externalRoofColor = roofParts.length > 1 ? roofParts[1] : roofParts[0]
-
-  const frameColor = enhanceColorVisibility(getColorFromName(postBeamColor || "MONUMENT"))
-  const roofColorHex = enhanceColorVisibility(
-    getColorFromName(externalRoofColor) || getColorFromName(roofColor || "SURFMIST / BASALT"),
-  )
+  // Use centralized color system - NO LOCAL COLOR LOGIC
+  const frameMaterial = getMaterialProperties(postBeamColor || "MONUMENT")
+  const gutterMaterial = getGutterMaterialProperties(postBeamColor || "MONUMENT")
+  const roofColorHex = getEnhancedColorHex(roofColor || "SURFMIST / BASALT")
 
   // Enhanced roof texture creation with dynamic color (back to procedural)
   const createRoofTexture = useCallback((claddingType: string, color: string) => {
@@ -580,10 +536,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
         <mesh key={`post-${index}`} position={[post.position[0], post.height / 2, post.position[2]]} castShadow>
           <boxGeometry args={[postSize, post.height, postSize]} />
           <meshStandardMaterial
-            color={frameColor}
-            metalness={0.2} // Dramatically reduced from 0.8
-            roughness={0.8} // Increased from 0.2
-            envMapIntensity={0.4} // Dramatically reduced from 1.5
+            color={frameMaterial.color}
+            metalness={frameMaterial.metalness}
+            roughness={frameMaterial.roughness}
+            envMapIntensity={frameMaterial.envMapIntensity}
           />
         </mesh>
       ))}
@@ -596,10 +552,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
             <mesh key={`beam-fb-${index}`} position={[0, scaleHeight - beamHeight / 2, z]} castShadow>
               <boxGeometry args={[scaleLength, beamHeight, beamWidth]} />
               <meshStandardMaterial
-                color={frameColor}
-                metalness={0.2} // Dramatically reduced from 0.8
-                roughness={0.8} // Increased from 0.2
-                envMapIntensity={0.4} // Dramatically reduced from 1.5
+                color={frameMaterial.color}
+                metalness={frameMaterial.metalness}
+                roughness={frameMaterial.roughness}
+                envMapIntensity={frameMaterial.envMapIntensity}
               />
             </mesh>
           ))}
@@ -608,10 +564,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
             <mesh key={`beam-lr-${index}`} position={[x, scaleHeight - beamHeight / 2, 0]} castShadow>
               <boxGeometry args={[beamWidth, beamHeight, scaleWidth]} />
               <meshStandardMaterial
-                color={frameColor}
-                metalness={0.2} // Dramatically reduced from 0.8
-                roughness={0.8} // Increased from 0.2
-                envMapIntensity={0.4} // Dramatically reduced from 1.5
+                color={frameMaterial.color}
+                metalness={frameMaterial.metalness}
+                roughness={frameMaterial.roughness}
+                envMapIntensity={frameMaterial.envMapIntensity}
               />
             </mesh>
           ))}
@@ -623,10 +579,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
           <mesh position={[0, roofHighSide - beamHeight / 2, -scaleWidth / 2]} castShadow>
             <boxGeometry args={[scaleLength, beamHeight, beamWidth]} />
             <meshStandardMaterial
-              color={frameColor}
-              metalness={0.2} // Dramatically reduced from 0.8
-              roughness={0.8} // Increased from 0.2
-              envMapIntensity={0.4} // Dramatically reduced from 1.5
+              color={frameMaterial.color}
+              metalness={frameMaterial.metalness}
+              roughness={frameMaterial.roughness}
+              envMapIntensity={frameMaterial.envMapIntensity}
             />
           </mesh>
 
@@ -634,10 +590,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
           <mesh position={[0, scaleHeight - beamHeight / 2, scaleWidth / 2]} castShadow>
             <boxGeometry args={[scaleLength, beamHeight, beamWidth]} />
             <meshStandardMaterial
-              color={frameColor}
-              metalness={0.2} // Dramatically reduced from 0.8
-              roughness={0.8} // Increased from 0.2
-              envMapIntensity={0.4} // Dramatically reduced from 1.5
+              color={frameMaterial.color}
+              metalness={frameMaterial.metalness}
+              roughness={frameMaterial.roughness}
+              envMapIntensity={frameMaterial.envMapIntensity}
             />
           </mesh>
 
@@ -651,10 +607,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
               <mesh key={`beam-lr-${index}`} position={[x, beamCenterY, 0]} rotation={[beamAngle, 0, 0]} castShadow>
                 <boxGeometry args={[beamWidth, beamHeight, beamLength]} />
                 <meshStandardMaterial
-                  color={frameColor}
-                  metalness={0.2} // Dramatically reduced from 0.8
-                  roughness={0.8} // Increased from 0.2
-                  envMapIntensity={0.4} // Dramatically reduced from 1.5
+                  color={frameMaterial.color}
+                  metalness={frameMaterial.metalness}
+                  roughness={frameMaterial.roughness}
+                  envMapIntensity={frameMaterial.envMapIntensity}
                 />
               </mesh>
             )
@@ -673,10 +629,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
                 <mesh key={`internal-beam-${i}`} position={[x, scaleHeight - beamHeight / 2, 0]} castShadow>
                   <boxGeometry args={[beamWidth, beamHeight, scaleWidth]} />
                   <meshStandardMaterial
-                    color={frameColor}
-                    metalness={0.2} // Dramatically reduced from 0.8
-                    roughness={0.8} // Increased from 0.2
-                    envMapIntensity={0.4} // Dramatically reduced from 1.5
+                    color={frameMaterial.color}
+                    metalness={frameMaterial.metalness}
+                    roughness={frameMaterial.roughness}
+                    envMapIntensity={frameMaterial.envMapIntensity}
                   />
                 </mesh>
               )
@@ -690,10 +646,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
                 <mesh key={`internal-beam-${i}`} position={[x, beamCenterY, 0]} rotation={[beamAngle, 0, 0]} castShadow>
                   <boxGeometry args={[beamWidth, beamHeight, beamLength]} />
                   <meshStandardMaterial
-                    color={frameColor}
-                    metalness={0.2} // Dramatically reduced from 0.8
-                    roughness={0.8} // Increased from 0.2
-                    envMapIntensity={0.4} // Dramatically reduced from 1.5
+                    color={frameMaterial.color}
+                    metalness={frameMaterial.metalness}
+                    roughness={frameMaterial.roughness}
+                    envMapIntensity={frameMaterial.envMapIntensity}
                   />
                 </mesh>
               )
@@ -726,12 +682,7 @@ function GazeboStructure(props: GazeboPreviewProps) {
           {/* Ridge cap/flashing */}
           <mesh position={[0, roofHighSide + 0.02, 0]} castShadow>
             <boxGeometry args={[totalLength, 0.04, 0.15]} />
-            <meshStandardMaterial
-              color={roofColorHex}
-              metalness={0.1} // Dramatically reduced from 0.8-0.9
-              roughness={0.9} // Increased from 0.1-0.2
-              envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
-            />
+            <meshStandardMaterial color={roofColorHex} metalness={0.1} roughness={0.9} envMapIntensity={0.3} />
           </mesh>
 
           {/* Enhanced Gutters - Front and Back */}
@@ -740,19 +691,19 @@ function GazeboStructure(props: GazeboPreviewProps) {
               <mesh position={[0, roofLowSide - gutterDepth / 3, z - gutterWidth / 2 + gutterThickness / 2]} castShadow>
                 <boxGeometry args={[totalLength, gutterDepth * 0.6, gutterThickness]} />
                 <meshStandardMaterial
-                  color={frameColor}
-                  metalness={0.1} // Dramatically reduced from 0.8-0.9
-                  roughness={0.9} // Increased from 0.1-0.2
-                  envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
+                  color={gutterMaterial.color}
+                  metalness={gutterMaterial.metalness}
+                  roughness={gutterMaterial.roughness}
+                  envMapIntensity={gutterMaterial.envMapIntensity}
                 />
               </mesh>
               <mesh position={[0, roofLowSide - gutterDepth + gutterThickness / 2, z]} castShadow>
                 <boxGeometry args={[totalLength, gutterThickness, gutterWidth - gutterThickness]} />
                 <meshStandardMaterial
-                  color={frameColor}
-                  metalness={0.1} // Dramatically reduced from 0.8-0.9
-                  roughness={0.9} // Increased from 0.1-0.2
-                  envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
+                  color={gutterMaterial.color}
+                  metalness={gutterMaterial.metalness}
+                  roughness={gutterMaterial.roughness}
+                  envMapIntensity={gutterMaterial.envMapIntensity}
                 />
               </mesh>
               <mesh
@@ -762,10 +713,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
               >
                 <boxGeometry args={[totalLength, gutterDepth * 0.4, gutterThickness]} />
                 <meshStandardMaterial
-                  color={frameColor}
-                  metalness={0.1} // Dramatically reduced from 0.8-0.9
-                  roughness={0.9} // Increased from 0.1-0.2
-                  envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
+                  color={gutterMaterial.color}
+                  metalness={gutterMaterial.metalness}
+                  roughness={gutterMaterial.roughness}
+                  envMapIntensity={gutterMaterial.envMapIntensity}
                 />
               </mesh>
             </group>
@@ -773,7 +724,7 @@ function GazeboStructure(props: GazeboPreviewProps) {
 
           {/* Gutter outlets */}
           {outletPositions.map((position, index) => (
-            <GutterOutlet key={`outlet-${index}`} position={position} color={frameColor} />
+            <GutterOutlet key={`outlet-${index}`} position={position} color={postBeamColor || "MONUMENT"} />
           ))}
         </group>
       ) : (
@@ -800,10 +751,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
             >
               <boxGeometry args={[totalLength, gutterDepth * 0.6, gutterThickness]} />
               <meshStandardMaterial
-                color={frameColor}
-                metalness={0.1} // Dramatically reduced from 0.8-0.9
-                roughness={0.9} // Increased from 0.1-0.2
-                envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
+                color={gutterMaterial.color}
+                metalness={gutterMaterial.metalness}
+                roughness={gutterMaterial.roughness}
+                envMapIntensity={gutterMaterial.envMapIntensity}
               />
             </mesh>
             <mesh
@@ -812,10 +763,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
             >
               <boxGeometry args={[totalLength, gutterThickness, gutterWidth - gutterThickness]} />
               <meshStandardMaterial
-                color={frameColor}
-                metalness={0.1} // Dramatically reduced from 0.8-0.9
-                roughness={0.9} // Increased from 0.1-0.2
-                envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
+                color={gutterMaterial.color}
+                metalness={gutterMaterial.metalness}
+                roughness={gutterMaterial.roughness}
+                envMapIntensity={gutterMaterial.envMapIntensity}
               />
             </mesh>
             <mesh
@@ -825,10 +776,10 @@ function GazeboStructure(props: GazeboPreviewProps) {
             >
               <boxGeometry args={[totalLength, gutterDepth * 0.4, gutterThickness]} />
               <meshStandardMaterial
-                color={frameColor}
-                metalness={0.1} // Dramatically reduced from 0.8-0.9
-                roughness={0.9} // Increased from 0.1-0.2
-                envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
+                color={gutterMaterial.color}
+                metalness={gutterMaterial.metalness}
+                roughness={gutterMaterial.roughness}
+                envMapIntensity={gutterMaterial.envMapIntensity}
               />
             </mesh>
           </group>
@@ -840,7 +791,7 @@ function GazeboStructure(props: GazeboPreviewProps) {
               <GutterOutlet
                 key={`outlet-skillion-${i}`}
                 position={[x, roofLowSide - gutterDepth, totalWidth / 2 + gutterWidth / 2 - 0.01]}
-                color={frameColor}
+                color={postBeamColor || "MONUMENT"}
               />
             )
           })}
@@ -853,45 +804,25 @@ function GazeboStructure(props: GazeboPreviewProps) {
           {overhangSides.includes("Front") && (
             <mesh position={[0, roofLowSide + 0.01, -(scaleWidth / 2 + scaleOverhang / 2)]} castShadow receiveShadow>
               <boxGeometry args={[scaleLength, 0.025, scaleOverhang]} />
-              <meshStandardMaterial
-                color={roofColorHex}
-                metalness={0.1} // Dramatically reduced from 0.8-0.9
-                roughness={0.9} // Increased from 0.1-0.2
-                envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
-              />
+              <meshStandardMaterial color={roofColorHex} metalness={0.1} roughness={0.9} envMapIntensity={0.3} />
             </mesh>
           )}
           {overhangSides.includes("Back") && (
             <mesh position={[0, roofLowSide + 0.01, scaleWidth / 2 + scaleOverhang / 2]} castShadow receiveShadow>
               <boxGeometry args={[scaleLength, 0.025, scaleOverhang]} />
-              <meshStandardMaterial
-                color={roofColorHex}
-                metalness={0.1} // Dramatically reduced from 0.8-0.9
-                roughness={0.9} // Increased from 0.1-0.2
-                envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
-              />
+              <meshStandardMaterial color={roofColorHex} metalness={0.1} roughness={0.9} envMapIntensity={0.3} />
             </mesh>
           )}
           {overhangSides.includes("Left") && (
             <mesh position={[-(scaleLength / 2 + scaleOverhang / 2), roofLowSide + 0.01, 0]} castShadow receiveShadow>
               <boxGeometry args={[scaleOverhang, 0.025, scaleWidth]} />
-              <meshStandardMaterial
-                color={roofColorHex}
-                metalness={0.1} // Dramatically reduced from 0.8-0.9
-                roughness={0.9} // Increased from 0.1-0.2
-                envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
-              />
+              <meshStandardMaterial color={roofColorHex} metalness={0.1} roughness={0.9} envMapIntensity={0.3} />
             </mesh>
           )}
           {overhangSides.includes("Right") && (
             <mesh position={[scaleLength / 2 + scaleOverhang / 2, roofLowSide + 0.01, 0]} castShadow receiveShadow>
               <boxGeometry args={[scaleOverhang, 0.025, scaleWidth]} />
-              <meshStandardMaterial
-                color={roofColorHex}
-                metalness={0.1} // Dramatically reduced from 0.8-0.9
-                roughness={0.9} // Increased from 0.1-0.2
-                envMapIntensity={0.3} // Dramatically reduced from 1.5-2.0
-              />
+              <meshStandardMaterial color={roofColorHex} metalness={0.1} roughness={0.9} envMapIntensity={0.3} />
             </mesh>
           )}
         </group>
@@ -920,7 +851,7 @@ function RoofCladdingProfile({
   const lighterColor = new THREE.Color(color).multiplyScalar(1.15).getHexString()
 
   const profileWidth = 0.076 // 76mm pitch
-  const profileHeight = 0.017 // 17mm rib height
+  const profileHeight = 0.025 // Increased from 0.017 to 0.025 for more pronounced curves
   const profileThickness = 0.0006 // 0.6mm sheet thickness
   const profileWidthTrimclad = 0.19 // 190mm rib spacing
   const profileHeightTrimclad = 0.029 // 29mm rib height
@@ -937,7 +868,7 @@ function RoofCladdingProfile({
 
   const startOffset = (length - actualLength) / 2
 
-  // Create corrugated geometry using useMemo for performance
+  // Enhanced corrugated geometry with smoother, more pronounced curves
   const corrugatedGeometry = useMemo(() => {
     if (claddingType !== "Corrugated") return null
 
@@ -946,32 +877,37 @@ function RoofCladdingProfile({
     const normals = []
     const uvs = []
 
-    const widthSegments = Math.max(8, Math.ceil(width * 5))
-    const lengthSegments = numProfiles * 4 // 4 segments per corrugation
+    // Increased segments for smoother curves
+    const widthSegments = Math.max(12, Math.ceil(width * 8)) // Increased from 8 to 12
+    const lengthSegments = numProfiles * 8 // Increased from 4 to 8 segments per corrugation for smoother curves
 
-    // Create vertices
+    // Create vertices with enhanced sinusoidal wave pattern
     for (let i = 0; i <= lengthSegments; i++) {
       const x = -length / 2 + (i / lengthSegments) * length
       const corrugationPhase = (i / lengthSegments) * numProfiles * 2 * Math.PI
 
       for (let j = 0; j <= widthSegments; j++) {
         const y = -width / 2 + (j / widthSegments) * width
-        const z = Math.sin(corrugationPhase) * (profileHeight / 2)
+
+        // Enhanced sinusoidal curve with smoother transitions
+        // Using a combination of sine and cosine for more realistic corrugation shape
+        const primaryWave = Math.sin(corrugationPhase)
+        const secondaryWave = Math.sin(corrugationPhase * 2) * 0.1 // Add subtle secondary wave
+        const z = (primaryWave + secondaryWave) * (profileHeight / 2)
 
         vertices.push(x, y, z)
 
-        // Calculate normal
-        const nx = Math.cos(corrugationPhase) * (profileHeight / 2) * ((2 * Math.PI * numProfiles) / length)
-        const ny = 0
-        const nz = 1
-        const normalLength = Math.sqrt(nx * nx + ny * ny + nz * nz)
-        normals.push(nx / normalLength, ny / normalLength, nz / normalLength)
+        // Calculate enhanced normal for better lighting
+        const dzdx = Math.cos(corrugationPhase) * (profileHeight / 2) * ((2 * Math.PI * numProfiles) / length)
+        const dzdy = 0
+        const normal = new THREE.Vector3(-dzdx, -dzdy, 1).normalize()
 
+        normals.push(normal.x, normal.y, normal.z)
         uvs.push(i / lengthSegments, j / widthSegments)
       }
     }
 
-    // Create faces
+    // Create faces with proper winding
     for (let i = 0; i < lengthSegments; i++) {
       for (let j = 0; j < widthSegments; j++) {
         const a = i * (widthSegments + 1) + j
@@ -979,6 +915,7 @@ function RoofCladdingProfile({
         const c = (i + 1) * (widthSegments + 1) + j + 1
         const d = (i + 1) * (widthSegments + 1) + j
 
+        // Create triangles with proper normals
         indices.push(a, b, d)
         indices.push(b, c, d)
       }
@@ -989,23 +926,31 @@ function RoofCladdingProfile({
     geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3))
     geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2))
     geometry.setIndex(indices)
+
+    // Compute vertex normals for smooth shading
     geometry.computeVertexNormals()
 
     return geometry
-  }, [length, width, numProfiles, claddingType])
+  }, [length, width, numProfiles, claddingType, profileHeight])
 
   if (claddingType === "Corrugated") {
     return (
       <group position={position} rotation={rotation}>
-        {/* Base sheet */}
+        {/* Base sheet - slightly thicker for better visibility */}
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[length, width, profileThickness]} />
+          <boxGeometry args={[length, width, profileThickness * 2]} />
           <meshLambertMaterial color={color} />
         </mesh>
 
-        {/* Corrugated surface */}
+        {/* Enhanced corrugated surface with smooth curves */}
         <mesh castShadow receiveShadow geometry={corrugatedGeometry}>
-          <meshLambertMaterial color={color} side={THREE.DoubleSide} />
+          <meshStandardMaterial
+            color={color}
+            side={THREE.DoubleSide}
+            metalness={0.1}
+            roughness={0.8}
+            envMapIntensity={0.3}
+          />
         </mesh>
       </group>
     )
@@ -1069,18 +1014,17 @@ const SceneCapture = forwardRef<any, any>((props, ref) => {
       // Render the scene
       gl.render(scene, camera)
 
-      // Get the canvas data URL
-      const dataUrl = gl.domElement.toDataURL("image/png")
-      console.log("Screenshot captured successfully, data URL length:", dataUrl.length)
-
-      return dataUrl
+      // Get the canvas and convert to data URL
+      const canvas = gl.domElement
+      const dataUrl = canvas.toDataURL("image/png", 0.9)
+      console.log("Screenshot captured successfully")
+      return Promise.resolve(dataUrl)
     } catch (error) {
       console.error("Error taking screenshot:", error)
-      return null
+      return Promise.resolve(null)
     }
   }, [gl, scene, camera])
 
-  // Expose the takeScreenshot method to parent components
   useImperativeHandle(ref, () => ({
     takeScreenshot,
   }))
@@ -1088,56 +1032,57 @@ const SceneCapture = forwardRef<any, any>((props, ref) => {
   return null
 })
 
-// Update the main Canvas component with better lighting and rendering
-const GazeboPreview = forwardRef<any, GazeboPreviewProps>((props, ref) => {
-  const sceneRef = useRef(null)
+SceneCapture.displayName = "SceneCapture"
 
-  // Expose the takeScreenshot method to parent components
+const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, ref) => {
+  const sceneRef = useRef<any>()
+
   useImperativeHandle(ref, () => ({
-    takeScreenshot: () => {
+    captureScreenshot: async (): Promise<string | null> => {
       if (sceneRef.current) {
-        return sceneRef.current.takeScreenshot()
+        return await sceneRef.current.takeScreenshot()
       }
-      console.warn("Scene ref not available for screenshot")
-      return null
+      return Promise.resolve(null)
     },
   }))
 
   return (
-    <div className="h-full w-full">
-      <Suspense fallback={<LoadingFallback />}>
-        <Canvas
-          camera={{
-            position: [8, 6, 8],
-            fov: 50,
-          }}
-          shadows
-          gl={{
-            antialias: true,
-            alpha: false,
-            powerPreference: "high-performance",
-            stencil: false,
-            depth: true,
-          }}
-          onCreated={({ gl }) => {
-            gl.shadowMap.enabled = true
-            gl.shadowMap.type = THREE.PCFSoftShadowMap
-            gl.toneMapping = THREE.ACESFilmicToneMapping
-            gl.toneMappingExposure = 1.2
-            gl.outputColorSpace = THREE.SRGBColorSpace
-          }}
-        >
-          <SceneCapture ref={sceneRef} />
+    <div className="w-full h-full bg-gradient-to-b from-blue-100 to-green-100 rounded-lg overflow-hidden">
+      <Canvas
+        camera={{
+          position: [-8, 6, -8], // Changed from [8, 6, 8] to opposite side
+          fov: 35, // Reduced FOV for more isometric-like view
+        }}
+        shadows
+        gl={{
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance",
+          stencil: false,
+          depth: true,
+          preserveDrawingBuffer: true, // Important for screenshot capture
+        }}
+        onCreated={({ gl }) => {
+          gl.shadowMap.enabled = true
+          gl.shadowMap.type = THREE.PCFSoftShadowMap
+          gl.toneMapping = THREE.ACESFilmicToneMapping
+          gl.toneMappingExposure = 1.0 // Reduced from 1.2 for less gloss
+          gl.outputColorSpace = THREE.SRGBColorSpace
+        }}
+      >
+        <SceneCapture ref={sceneRef} />
+
+        <Suspense fallback={null}>
           <CustomSkybox />
+          <GrassGround />
 
-          {/* Reduced intensity ambient light for better base colors */}
-          <ambientLight intensity={0.6} color="#ffffff" />
-
-          {/* Main sun light - dramatically reduced intensity and repositioned */}
+          {/* Enhanced lighting setup */}
+          <ambientLight intensity={0.4} color="#ffffff" />
+          {/* Main sun light - repositioned for opposite side view */}
           <directionalLight
-            position={[5, 10, 5]} // Changed from [15, 20, 10]
-            intensity={0.9} // Dramatically reduced from 1.8
-            color="#f8f8f8" // Slightly warmer light
+            position={[-5, 10, -5]} // Changed from [5, 10, 5] to match camera side
+            intensity={0.8} // Slightly reduced for less gloss
+            color="#f8f8f8"
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
@@ -1150,30 +1095,29 @@ const GazeboPreview = forwardRef<any, GazeboPreviewProps>((props, ref) => {
           />
 
           {/* Fill light for better color visibility */}
-          <directionalLight position={[-5, 8, -3]} intensity={0.4} color="#e0e8ff" />
-
-          {/* Increased ground reflection for better visibility underneath */}
-          <hemisphereLight skyColor="#a7c5ff" groundColor="#d2c4a5" intensity={0.7} />
+          <directionalLight position={[5, 8, 3]} intensity={0.3} color="#e0e8ff" />
 
           <GazeboStructure {...props} />
-          <GrassGround />
+
           <OrbitControls
             enablePan={true}
             enableZoom={true}
             enableRotate={true}
             minDistance={4}
             maxDistance={20}
-            minPolarAngle={Math.PI / 6} // Prevent viewing from directly below
-            maxPolarAngle={Math.PI / 2.5} // Prevent viewing from directly above
-            target={[0, 2, 0]}
+            minPolarAngle={Math.PI / 6}
+            maxPolarAngle={Math.PI / 2.5}
+            target={[0, 1.5, 0]} // Slightly higher target for better isometric view
             enableDamping={true}
             dampingFactor={0.05}
-            rotateSpeed={0.7} // Slower rotation for better control
+            rotateSpeed={0.7}
           />
-        </Canvas>
-      </Suspense>
+        </Suspense>
+      </Canvas>
     </div>
   )
 })
+
+GazeboPreview.displayName = "GazeboPreview"
 
 export default GazeboPreview
