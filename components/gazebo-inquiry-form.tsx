@@ -264,16 +264,41 @@ export default function GazeboInquiryForm() {
       // Capture screenshot before submission
       let screenshot: string | null = null
       if (gazeboPreviewRef.current) {
-        screenshot = await gazeboPreviewRef.current.captureScreenshot()
-        console.log("📸 Screenshot captured:", screenshot ? "Success" : "Failed")
+        console.log("📸 Attempting to capture screenshot...")
+        try {
+          screenshot = await gazeboPreviewRef.current.captureScreenshot()
+          if (screenshot) {
+            console.log("✅ Screenshot captured successfully, size:", screenshot.length, "characters")
+            console.log("📸 Screenshot preview:", screenshot.substring(0, 100) + "...")
+
+            // Check if it's too large for JSON transmission
+            const sizeInMB = screenshot.length / (1024 * 1024)
+            console.log("📊 Screenshot size:", sizeInMB.toFixed(2), "MB")
+
+            if (sizeInMB > 4) {
+              console.warn("⚠️ Screenshot is very large, may cause issues")
+            }
+          } else {
+            console.warn("⚠️ Screenshot capture returned null")
+          }
+        } catch (error) {
+          console.error("❌ Error capturing screenshot:", error)
+        }
+      } else {
+        console.warn("⚠️ Gazebo preview ref not available")
       }
 
       const submissionData = {
         ...values,
         screenshot: screenshot,
+        hasOverhang: false,
+        overhangSides: [],
+        overhangSize: 0,
       }
 
-      console.log("🚀 Submitting inquiry:", submissionData.customerEmail)
+      console.log("🚀 Submitting inquiry for:", submissionData.customerEmail)
+      console.log("📸 Screenshot included:", !!screenshot)
+      console.log("📊 Submission data size:", JSON.stringify(submissionData).length, "characters")
 
       const response = await fetch("/api/inquiries", {
         method: "POST",
@@ -292,7 +317,9 @@ export default function GazeboInquiryForm() {
         })
 
         console.log("✅ Inquiry submitted successfully")
-        console.log("📧 Email sent:", result.emailSent)
+        console.log("📧 Customer email sent:", result.customerEmailSent)
+        console.log("📧 Sales email sent:", result.salesEmailSent)
+        console.log("📸 Screenshot uploaded:", result.screenshotUploaded)
 
         // Auto-close modal and reset form after 5 seconds
         setTimeout(() => {
@@ -318,6 +345,62 @@ export default function GazeboInquiryForm() {
       })
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Test screenshot capture and upload function
+  const testScreenshot = async () => {
+    console.log("🧪 Testing screenshot capture and upload...")
+    if (gazeboPreviewRef.current) {
+      try {
+        const screenshot = await gazeboPreviewRef.current.captureScreenshot()
+        if (screenshot) {
+          console.log("✅ Test screenshot successful!")
+          console.log("📸 Screenshot size:", screenshot.length, "characters")
+          console.log("📸 Screenshot preview:", screenshot.substring(0, 100) + "...")
+
+          // Test the upload process
+          console.log("🧪 Testing upload to blob storage...")
+          try {
+            const uploadResponse = await fetch("/api/test/screenshot", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ screenshot }),
+            })
+
+            const uploadResult = await uploadResponse.json()
+            console.log("📤 Upload test result:", uploadResult)
+
+            if (uploadResult.success) {
+              alert(`Screenshot test successful!\nCapture: ✅\nUpload: ✅\nURL: ${uploadResult.url}`)
+            } else {
+              alert(`Screenshot capture: ✅\nUpload failed: ${uploadResult.error}`)
+            }
+          } catch (uploadError) {
+            console.error("❌ Upload test error:", uploadError)
+            alert(`Screenshot capture: ✅\nUpload test failed: ${uploadError.message}`)
+          }
+
+          // Also create a download link for manual verification
+          const link = document.createElement("a")
+          link.href = screenshot
+          link.download = "test-screenshot.png"
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+        } else {
+          console.error("❌ Test screenshot failed - no data returned")
+          alert("Screenshot capture failed - check console for details")
+        }
+      } catch (error) {
+        console.error("❌ Test screenshot error:", error)
+        alert("Screenshot capture error: " + error.message)
+      }
+    } else {
+      console.error("❌ Gazebo preview ref not available")
+      alert("Gazebo preview not ready")
     }
   }
 
@@ -765,6 +848,11 @@ export default function GazeboInquiryForm() {
                     >
                       Continue to Customer Details
                       <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+
+                    {/* Test Screenshot Button - for debugging */}
+                    <Button type="button" onClick={testScreenshot} variant="outline" className="w-full mt-2 text-sm">
+                      🧪 Test Screenshot Capture & Upload
                     </Button>
                   </>
                 ) : (

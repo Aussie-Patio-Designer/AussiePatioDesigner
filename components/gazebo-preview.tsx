@@ -1019,17 +1019,47 @@ const SceneCapture = forwardRef<any, any>((props, ref) => {
   // Method to take screenshot
   const takeScreenshot = useCallback(() => {
     try {
-      console.log("Taking screenshot...")
-      // Render the scene
+      console.log("🎬 Taking screenshot - renderer info:", {
+        domElement: !!gl.domElement,
+        width: gl.domElement.width,
+        height: gl.domElement.height,
+        preserveDrawingBuffer: gl.preserveDrawingBuffer,
+      })
+
+      // Force a render to ensure the scene is up to date
       gl.render(scene, camera)
 
-      // Get the canvas and convert to data URL
-      const canvas = gl.domElement
-      const dataUrl = canvas.toDataURL("image/png", 0.9)
-      console.log("Screenshot captured successfully")
-      return Promise.resolve(dataUrl)
+      // Wait a frame to ensure rendering is complete
+      return new Promise<string | null>((resolve) => {
+        requestAnimationFrame(() => {
+          try {
+            // Get the canvas and convert to data URL
+            const canvas = gl.domElement
+            console.log("📸 Canvas info:", {
+              width: canvas.width,
+              height: canvas.height,
+              nodeName: canvas.nodeName,
+            })
+
+            // Set crossOrigin to avoid CORS issues
+            const dataUrl = canvas.toDataURL("image/png", 0.9)
+
+            if (dataUrl && dataUrl.length > 100) {
+              console.log("✅ Screenshot captured successfully, size:", dataUrl.length, "characters")
+              console.log("📸 Data URL preview:", dataUrl.substring(0, 50) + "...")
+              resolve(dataUrl)
+            } else {
+              console.error("❌ Screenshot capture failed - empty or invalid data URL")
+              resolve(null)
+            }
+          } catch (error) {
+            console.error("❌ Error converting canvas to data URL:", error)
+            resolve(null)
+          }
+        })
+      })
     } catch (error) {
-      console.error("Error taking screenshot:", error)
+      console.error("❌ Error in takeScreenshot:", error)
       return Promise.resolve(null)
     }
   }, [gl, scene, camera])
@@ -1048,10 +1078,16 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
 
   useImperativeHandle(ref, () => ({
     captureScreenshot: async (): Promise<string | null> => {
+      console.log("📸 GazeboPreview.captureScreenshot called")
       if (sceneRef.current) {
-        return await sceneRef.current.takeScreenshot()
+        console.log("📸 SceneRef available, calling takeScreenshot...")
+        const result = await sceneRef.current.takeScreenshot()
+        console.log("📸 Screenshot result:", result ? "Success" : "Failed")
+        return result
+      } else {
+        console.error("❌ SceneRef not available")
+        return null
       }
-      return Promise.resolve(null)
     },
   }))
 
@@ -1069,13 +1105,14 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           powerPreference: "high-performance",
           stencil: false,
           depth: true,
-          preserveDrawingBuffer: true, // Important for screenshot capture
+          preserveDrawingBuffer: true, // CRITICAL: This must be true for screenshots
         }}
         onCreated={({ gl }) => {
+          console.log("🎨 Canvas created with preserveDrawingBuffer:", gl.preserveDrawingBuffer)
           gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFSoftShadowMap
           gl.toneMapping = THREE.ACESFilmicToneMapping
-          gl.toneMappingExposure = 1.0 // Reduced from 1.2 for less gloss
+          gl.toneMappingExposure = 0.7 // Reduced from 1.0 to 0.7 for less brightness variation
           gl.outputColorSpace = THREE.SRGBColorSpace
         }}
       >
@@ -1086,11 +1123,11 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           <GrassGround />
 
           {/* Enhanced lighting setup */}
-          <ambientLight intensity={0.4} color="#ffffff" />
+          <ambientLight intensity={0.6} color="#ffffff" />
           {/* Main sun light - repositioned for opposite side view */}
           <directionalLight
-            position={[-5, 10, -5]} // Changed from [5, 10, 5] to match camera side
-            intensity={0.8} // Slightly reduced for less gloss
+            position={[-5, 10, -5]}
+            intensity={0.5} // Reduced from 0.8 to 0.5 for less dramatic lighting
             color="#f8f8f8"
             castShadow
             shadow-mapSize-width={2048}
@@ -1104,7 +1141,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           />
 
           {/* Fill light for better color visibility */}
-          <directionalLight position={[5, 8, 3]} intensity={0.3} color="#e0e8ff" />
+          <directionalLight position={[5, 8, 3]} intensity={0.2} color="#e0e8ff" />
 
           <GazeboStructure {...props} />
 
