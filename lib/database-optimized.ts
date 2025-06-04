@@ -14,7 +14,9 @@ export interface GazeboInquiry {
   id?: number
   customer_name: string
   customer_email: string
+  customer_phone: string
   site_address: string
+  additional_details?: string
   roof_type: string
   roof_cladding: string
   roof_pitch: number
@@ -77,15 +79,16 @@ export async function createInquiry(inquiry: Omit<GazeboInquiry, "id" | "created
 
       const result = await connection`
         INSERT INTO gazebo_inquiries (
-          customer_name, customer_email, site_address, roof_type, roof_cladding,
-          roof_pitch, length, width, height, has_overhang, overhang_sides,
-          overhang_size, roof_color, post_beam_color, screenshot_url, status
+          customer_name, customer_email, customer_phone, site_address, additional_details,
+          roof_type, roof_cladding, roof_pitch, length, width, height, has_overhang, 
+          overhang_sides, overhang_size, roof_color, post_beam_color, screenshot_url, status
         ) VALUES (
-          ${inquiry.customer_name}, ${inquiry.customer_email}, ${inquiry.site_address},
-          ${inquiry.roof_type}, ${inquiry.roof_cladding}, ${inquiry.roof_pitch},
-          ${inquiry.length}, ${inquiry.width}, ${inquiry.height}, ${inquiry.has_overhang},
-          ${inquiry.overhang_sides}, ${inquiry.overhang_size}, ${inquiry.roof_color},
-          ${inquiry.post_beam_color}, ${inquiry.screenshot_url || null}, ${inquiry.status || "new"}
+          ${inquiry.customer_name}, ${inquiry.customer_email}, ${inquiry.customer_phone}, 
+          ${inquiry.site_address}, ${inquiry.additional_details || null}, ${inquiry.roof_type}, 
+          ${inquiry.roof_cladding}, ${inquiry.roof_pitch}, ${inquiry.length}, ${inquiry.width}, 
+          ${inquiry.height}, ${inquiry.has_overhang}, ${inquiry.overhang_sides}, 
+          ${inquiry.overhang_size}, ${inquiry.roof_color}, ${inquiry.post_beam_color}, 
+          ${inquiry.screenshot_url || null}, ${inquiry.status || "new"}
         )
         RETURNING id, created_at
       `

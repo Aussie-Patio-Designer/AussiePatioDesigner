@@ -32,6 +32,10 @@ const formSchema = z
     customerEmail: z.string().email({
       message: "Please enter a valid email address.",
     }),
+    customerPhone: z.string().min(10, {
+      message: "Phone number must be at least 10 digits.",
+    }),
+    additionalDetails: z.string().optional(),
     roofType: z.enum(["Gable", "Skillion"]).default("Gable"),
     roofCladding: z.enum(["Corrugated", "Trimclad"]).default("Corrugated"),
     roofPitch: z.number().min(2).max(20).default(10),
@@ -136,6 +140,8 @@ export default function GazeboInquiryForm() {
         customerName: "",
         siteAddress: "",
         customerEmail: "",
+        customerPhone: "",
+        additionalDetails: "",
         roofType: urlParams.roofType,
         roofCladding: urlParams.roofCladding,
         roofPitch: urlParams.roofPitch,
@@ -151,6 +157,8 @@ export default function GazeboInquiryForm() {
       customerName: "",
       siteAddress: "",
       customerEmail: "",
+      customerPhone: "",
+      additionalDetails: "",
       roofType: "Gable" as const,
       roofCladding: "Corrugated" as const,
       roofPitch: 10,
@@ -315,6 +323,8 @@ export default function GazeboInquiryForm() {
       customerName: "",
       siteAddress: "",
       customerEmail: "",
+      customerPhone: "",
+      additionalDetails: "",
       roofType: "Gable",
       roofCladding: "Corrugated",
       roofPitch: 10,
@@ -783,6 +793,25 @@ export default function GazeboInquiryForm() {
 
                         <FormField
                           control={form.control}
+                          name="customerPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Phone Number</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="tel"
+                                  placeholder="Enter your phone number"
+                                  {...field}
+                                  className="text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
                           name="siteAddress"
                           render={({ field }) => (
                             <FormItem>
@@ -792,6 +821,24 @@ export default function GazeboInquiryForm() {
                                   placeholder="Enter the full installation address..."
                                   {...field}
                                   className="min-h-[80px] text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="additionalDetails"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Additional Details</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Any specific requirements, preferences, or questions about your patio/gazebo project..."
+                                  {...field}
+                                  className="min-h-[100px] text-sm"
                                 />
                               </FormControl>
                               <FormMessage />

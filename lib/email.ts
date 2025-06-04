@@ -9,6 +9,8 @@ interface InquiryData {
   customerName: string
   siteAddress: string
   customerEmail: string
+  customerPhone: string
+  additionalDetails?: string
   roofType: string
   roofCladding: string
   roofPitch: number
@@ -50,6 +52,10 @@ function validateInquiryData(data: InquiryData): { valid: boolean; errors: strin
 
   if (!data.customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.customerEmail)) {
     errors.push("Valid customer email is required")
+  }
+
+  if (!data.customerPhone || data.customerPhone.trim().length < 10) {
+    errors.push("Phone number is required and must be at least 10 digits")
   }
 
   if (!data.siteAddress || data.siteAddress.trim().length < 10) {
@@ -243,25 +249,6 @@ async function sendCustomerConfirmation(
           margin-bottom: 20px;
         }
         
-        .cta-button {
-          display: inline-block;
-          background: #555555;
-          color: #ffffff;
-          padding: 12px 25px;
-          text-decoration: none;
-          border-radius: 4px;
-          font-weight: 500;
-          font-size: 16px;
-          margin-bottom: 15px;
-        }
-        
-        .design-link {
-          font-size: 12px;
-          color: #777777;
-          word-break: break-all;
-          margin-top: 10px;
-        }
-        
         .next-steps {
           background: #f9f9f9;
           border-radius: 4px;
@@ -339,6 +326,116 @@ async function sendCustomerConfirmation(
             grid-template-columns: 1fr;
           }
         }
+
+        .action-buttons {
+          display: flex;
+          gap: 12px;
+          justify-content: center;
+          flex-wrap: wrap;
+          margin-top: 25px;
+          padding: 0 10px;
+        }
+
+        .btn {
+          display: inline-block;
+          padding: 14px 24px;
+          border-radius: 6px;
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 15px;
+          text-align: center;
+          min-width: 140px;
+          transition: all 0.2s ease;
+          border: 2px solid transparent;
+          box-sizing: border-box;
+        }
+
+        .btn-primary {
+          background: #2563eb;
+          color: #ffffff;
+          border-color: #2563eb;
+        }
+
+        .btn-primary:hover {
+          background: #1d4ed8;
+          border-color: #1d4ed8;
+        }
+
+        .btn-secondary {
+          background: #ffffff;
+          color: #2563eb;
+          border-color: #2563eb;
+        }
+
+        .btn-secondary:hover {
+          background: #f8fafc;
+          border-color: #1d4ed8;
+          color: #1d4ed8;
+        }
+
+        .cta-button {
+          display: inline-block;
+          background: #2563eb;
+          color: #ffffff;
+          padding: 14px 28px;
+          text-decoration: none;
+          border-radius: 6px;
+          font-weight: 600;
+          font-size: 16px;
+          margin-bottom: 20px;
+          border: 2px solid #2563eb;
+          min-width: 180px;
+          text-align: center;
+          transition: all 0.2s ease;
+        }
+
+        .cta-button:hover {
+          background: #1d4ed8;
+          border-color: #1d4ed8;
+        }
+
+        @media (max-width: 768px) {
+          .action-buttons {
+            flex-direction: column;
+            gap: 10px;
+          }
+          
+          .btn {
+            width: 100%;
+            max-width: 280px;
+            margin: 0 auto;
+          }
+          
+          .cta-button {
+            width: 100%;
+            max-width: 280px;
+          }
+        }
+
+        /* Email client specific fixes */
+        @media screen and (max-width: 600px) {
+          .action-buttons {
+            display: block !important;
+            width: 100% !important;
+          }
+          
+          .btn {
+            display: block !important;
+            width: 90% !important;
+            margin: 8px auto !important;
+            text-align: center !important;
+          }
+        }
+
+        /* Outlook specific fixes */
+        <!--[if mso]>
+        <style type="text/css">
+        .btn {
+          border: none !important;
+          mso-style-priority: 99 !important;
+        }
+        </style>
+        <![endif]-->
       </style>
     </head>
     <body>
@@ -363,49 +460,89 @@ async function sendCustomerConfirmation(
             <p>🌐 Visit us at: aussie-patio-designer.vercel.app</p>
           </div>
           
-          <!-- Design Specifications -->
+          <!-- Combined Design Specifications and 3D Preview -->
           <div class="specs-section">
-            <div class="specs-title">Design Specifications</div>
-            <div class="specs-grid">
-              <div class="spec-item">
-                <div class="spec-label">Roof Type</div>
-                <div class="spec-value">${data.roofType}</div>
-              </div>
-              <div class="spec-item">
-                <div class="spec-label">Roof Material</div>
-                <div class="spec-value">${data.roofCladding}</div>
-              </div>
-              <div class="spec-item">
-                <div class="spec-label">Roof Pitch</div>
-                <div class="spec-value">${data.roofPitch}°</div>
-              </div>
-              <div class="spec-item">
-                <div class="spec-label">Dimensions</div>
-                <div class="spec-value">${data.length} × ${data.width} × ${data.height}mm</div>
-              </div>
-              <div class="spec-item">
-                <div class="spec-label">Roof Color</div>
-                <div class="spec-value">${data.roofColor}</div>
-              </div>
-              <div class="spec-item">
-                <div class="spec-label">Frame Color</div>
-                <div class="spec-value">${data.postBeamColor}</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 3D Design Section -->
-          <div class="design-section">
-            <div class="design-title">Your 3D Design Preview</div>
-            ${
-              data.screenshot
-                ? `<img src="${data.screenshot}" alt="3D Patio/Gazebo Design" class="design-image" />`
-                : `<p style="color: #777777; font-style: italic; margin-bottom: 20px;">Preview image not available</p>`
-            }
-            <a href="${designUrl}" class="cta-button">View Interactive Design</a>
-            <div class="design-link">
-              Access link: <a href="${designUrl}" style="color: #555555;">${designUrl}</a>
-            </div>
+            <div class="specs-title">Your Patio/Gazebo Design</div>
+            <table style="width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden; margin-bottom: 20px;">
+              <tbody>
+                <!-- 3D Preview Image Row -->
+                <tr style="background: #ffffff;">
+                  <td colspan="2" style="padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0;">
+                    ${
+                      data.screenshot
+                        ? `<img src="${data.screenshot}" alt="3D Patio/Gazebo Design" style="max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 4px;" />`
+                        : `<p style="color: #777777; font-style: italic; padding: 30px 0;">Preview image not available</p>`
+                    }
+                  </td>
+                </tr>
+                
+                <!-- Interactive Design Button Row -->
+                <tr style="background: #f9f9f9;">
+                  <td colspan="2" style="padding: 15px; text-align: center; border-bottom: 1px solid #e0e0e0;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                      <tr>
+                        <td style="background: #2563eb; border-radius: 6px; text-align: center;">
+                          <a href="${designUrl}" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 6px;">View Interactive Design</a>
+                        </td>
+                      </tr>
+                    </table>
+                    <div style="margin-top: 10px; font-size: 12px; color: #777777;">
+                      Access link: <a href="${designUrl}" style="color: #555555;">${designUrl}</a>
+                    </div>
+                  </td>
+                </tr>
+                
+                <!-- Specifications Header Row -->
+                <tr style="background: #555555;">
+                  <th style="color: #ffffff; padding: 12px 15px; text-align: left; font-weight: 500; font-size: 14px; border: none;">Specification</th>
+                  <th style="color: #ffffff; padding: 12px 15px; text-align: left; font-weight: 500; font-size: 14px; border: none;">Details</th>
+                </tr>
+                
+                <!-- Specification Rows -->
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Roof Type</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.roofType}</td>
+                </tr>
+                <tr style="background: #f9f9f9;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Roof Material</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.roofCladding}</td>
+                </tr>
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Roof Pitch</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.roofPitch}°</td>
+                </tr>
+                <tr style="background: #f9f9f9;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Dimensions</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.length} × ${data.width} × ${data.height}mm</td>
+                </tr>
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Roof Color</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.roofColor}</td>
+                </tr>
+                <tr style="background: #f9f9f9;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Frame Color</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.postBeamColor}</td>
+                </tr>
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Phone Number</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.customerPhone}</td>
+                </tr>
+                <tr style="background: #f9f9f9;">
+                  <td style="padding: 12px 15px; ${data.additionalDetails ? "border-bottom: 1px solid #e0e0e0;" : ""} font-size: 14px; font-weight: 500; color: #777777;">Installation Address</td>
+                  <td style="padding: 12px 15px; ${data.additionalDetails ? "border-bottom: 1px solid #e0e0e0;" : ""} font-size: 14px; color: #333333;">${data.siteAddress}</td>
+                </tr>
+                ${
+                  data.additionalDetails
+                    ? `
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; font-size: 14px; font-weight: 500; color: #777777;">Additional Details</td>
+                  <td style="padding: 12px 15px; font-size: 14px; color: #333333; line-height: 1.6;">${data.additionalDetails}</td>
+                </tr>
+                `
+                    : ""
+                }
+              </tbody>
+            </table>
           </div>
           
           <!-- Next Steps -->
@@ -451,6 +588,8 @@ YOUR DESIGN SPECIFICATIONS:
 • Roof Color: ${data.roofColor}
 • Frame Color: ${data.postBeamColor}
 • Installation Address: ${data.siteAddress}
+• Phone Number: ${data.customerPhone}
+${data.additionalDetails ? `• Additional Details: ${data.additionalDetails}` : ""}
 
 VIEW YOUR 3D DESIGN:
 ${designUrl}
@@ -700,34 +839,6 @@ async function sendSalesTeamNotification(
           margin: 15px 0;
         }
         
-        .action-buttons {
-          display: flex;
-          gap: 15px;
-          justify-content: center;
-          flex-wrap: wrap;
-          margin-top: 20px;
-        }
-        
-        .btn {
-          display: inline-block;
-          padding: 10px 20px;
-          border-radius: 4px;
-          text-decoration: none;
-          font-weight: 500;
-          font-size: 14px;
-          text-align: center;
-        }
-        
-        .btn-primary {
-          background: #555555;
-          color: #ffffff;
-        }
-        
-        .btn-secondary {
-          background: #777777;
-          color: #ffffff;
-        }
-        
         .priority-banner {
           background: #f9f9f9;
           border: 1px solid #e0e0e0;
@@ -805,6 +916,109 @@ async function sendSalesTeamNotification(
             width: 100%;
           }
         }
+
+        .action-buttons {
+          display: flex;
+          gap: 12px;
+          justify-content: center;
+          flex-wrap: wrap;
+          margin-top: 25px;
+          padding: 0 10px;
+        }
+
+        .btn {
+          display: inline-block;
+          padding: 14px 24px;
+          border-radius: 6px;
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 15px;
+          text-align: center;
+          min-width: 140px;
+          transition: all 0.2s ease;
+          border: 2px solid transparent;
+          box-sizing: border-box;
+        }
+
+        .btn-primary {
+          background: #2563eb;
+          color: #ffffff;
+          border-color: #2563eb;
+        }
+
+        .btn-primary:hover {
+          background: #1d4ed8;
+          border-color: #1d4ed8;
+        }
+
+        .btn-secondary {
+          background: #ffffff;
+          color: #2563eb;
+          border-color: #2563eb;
+        }
+
+        .btn-secondary:hover {
+          background: #f8fafc;
+          border-color: #1d4ed8;
+          color: #1d4ed8;
+        }
+
+        .cta-button {
+          display: inline-block;
+          background: #2563eb;
+          color: #ffffff;
+          padding: 14px 28px;
+          text-decoration: none;
+          border-radius: 6px;
+          font-weight: 600;
+          font-size: 16px;
+          margin-bottom: 20px;
+          border: 2px solid #2563eb;
+          min-width: 180px;
+          text-align: center;
+          transition: all 0.2s ease;
+        }
+
+        .cta-button:hover {
+          background: #1d4ed8;
+          border-color: #1d4ed8;
+        }
+
+        @media (max-width: 768px) {
+          .action-buttons {
+            flex-direction: column;
+            gap: 10px;
+          }
+          
+          .btn {
+            width: 100%;
+          }
+        }
+
+        /* Email client specific fixes */
+        @media screen and (max-width: 600px) {
+          .action-buttons {
+            display: block !important;
+            width: 100% !important;
+          }
+          
+          .btn {
+            display: block !important;
+            width: 90% !important;
+            margin: 8px auto !important;
+            text-align: center !important;
+          }
+        }
+
+        /* Outlook specific fixes */
+        <!--[if mso]>
+        <style type="text/css">
+        .btn {
+          border: none !important;
+          mso-style-priority: 99 !important;
+        }
+        </style>
+        <![endif]-->
       </style>
     </head>
     <body>
@@ -826,89 +1040,126 @@ async function sendSalesTeamNotification(
           
           <!-- Customer Information -->
           <div class="section">
-            <div class="section-title">
-              Customer Information
-            </div>
-            <div class="info-grid">
-              <div class="info-card">
-                <div class="info-label">Customer Name</div>
-                <div class="info-value">${data.customerName}</div>
-              </div>
-              <div class="info-card">
-                <div class="info-label">Email Address</div>
-                <div class="info-value">
-                  <a href="mailto:${data.customerEmail}" class="email-link">${data.customerEmail}</a>
-                </div>
-              </div>
-              <div class="info-card" style="grid-column: 1 / -1;">
-                <div class="info-label">Installation Address</div>
-                <div class="info-value">${data.siteAddress}</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Patio/Gazebo Specifications -->
-          <div class="section">
-            <div class="section-title">
-              Design Specifications
-            </div>
-            <table class="specs-table">
+            <div class="section-title">Customer Information</div>
+            <table style="width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden; margin-bottom: 20px;">
               <thead>
                 <tr>
-                  <th>Specification</th>
-                  <th>Details</th>
+                  <th style="background: #555555; color: #ffffff; padding: 12px 15px; text-align: left; font-weight: 500; font-size: 14px; border: none;">Field</th>
+                  <th style="background: #555555; color: #ffffff; padding: 12px 15px; text-align: left; font-weight: 500; font-size: 14px; border: none;">Information</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>Roof Type</td>
-                  <td>${data.roofType}</td>
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Customer Name</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.customerName}</td>
                 </tr>
-                <tr>
-                  <td>Roof Cladding</td>
-                  <td>${data.roofCladding}</td>
+                <tr style="background: #f9f9f9;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Email Address</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">
+                    <a href="mailto:${data.customerEmail}" style="color: #2563eb; text-decoration: none; font-weight: 500;">${data.customerEmail}</a>
+                  </td>
                 </tr>
-                <tr>
-                  <td>Roof Pitch</td>
-                  <td>${data.roofPitch}°</td>
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Phone Number</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">
+                    <a href="tel:${data.customerPhone}" style="color: #2563eb; text-decoration: none; font-weight: 500;">${data.customerPhone}</a>
+                  </td>
                 </tr>
-                <tr>
-                  <td>Dimensions</td>
-                  <td>L: ${data.length}mm × W: ${data.width}mm × H: ${data.height}mm</td>
-                </tr>
-                <tr>
-                  <td>Roof Color</td>
-                  <td>${data.roofColor}</td>
-                </tr>
-                <tr>
-                  <td>Frame Color</td>
-                  <td>${data.postBeamColor}</td>
+                <tr style="background: #f9f9f9;">
+                  <td style="padding: 12px 15px; font-size: 14px; font-weight: 500; color: #777777;">Installation Address</td>
+                  <td style="padding: 12px 15px; font-size: 14px; color: #333333;">${data.siteAddress}</td>
                 </tr>
               </tbody>
             </table>
           </div>
           
-          <!-- 3D Design Preview -->
+          <!-- Combined Design Specifications and 3D Preview -->
           <div class="section">
-            <div class="section-title">
-              3D Design Preview
-            </div>
-            <div class="design-preview">
-              <h3>Customer's Design</h3>
-              ${
-                screenshotUrl
-                  ? `<img src="${screenshotUrl}" alt="3D Patio/Gazebo Design Preview" class="screenshot" />`
-                  : `<div style="background: #f0f0f0; padding: 30px; border-radius: 4px; color: #777777; font-style: italic; text-align: center;">3D design screenshot not available</div>`
-              }
-              <div class="action-buttons">
-                <a href="mailto:${data.customerEmail}?subject=Re: Your Patio/Gazebo Inquiry ${referenceNumber}&body=Dear ${data.customerName},%0D%0A%0D%0AThank you for your patio/gazebo inquiry. We have reviewed your requirements and would like to discuss your project further.%0D%0A%0D%0ABest regards,%0D%0AThe Sales Team" class="btn btn-primary">
-                  Reply to Customer
-                </a>
-                <a href="${designUrl}" class="btn btn-secondary">
-                  View 3D Design
-                </a>
-              </div>
-            </div>
+            <div class="section-title">Customer's Design</div>
+            <table style="width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden; margin-bottom: 20px;">
+              <tbody>
+                <!-- 3D Preview Image Row -->
+                <tr style="background: #ffffff;">
+                  <td colspan="2" style="padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0;">
+                    ${
+                      screenshotUrl
+                        ? `<img src="${screenshotUrl}" alt="3D Patio/Gazebo Design Preview" style="max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 4px;" />`
+                        : `<div style="background: #f0f0f0; padding: 30px; border-radius: 4px; color: #777777; font-style: italic; text-align: center;">3D design screenshot not available</div>`
+                    }
+                  </td>
+                </tr>
+                
+                <!-- Action Buttons Row -->
+                <tr style="background: #f9f9f9;">
+                  <td colspan="2" style="padding: 15px; text-align: center; border-bottom: 1px solid #e0e0e0;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                      <tr>
+                        <td style="padding: 0 6px;">
+                          <table cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td style="background: #2563eb; border-radius: 6px; text-align: center;">
+                                <a href="mailto:${data.customerEmail}?subject=Re: Your Patio/Gazebo Inquiry ${referenceNumber}&body=Dear ${data.customerName},%0D%0A%0D%0AThank you for your patio/gazebo inquiry. We have reviewed your requirements and would like to discuss your project further.%0D%0A%0D%0ABest regards,%0D%0AThe Sales Team" style="display: inline-block; padding: 12px 20px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 6px; min-width: 120px; text-align: center;">Reply to Customer</a>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                        <td style="padding: 0 6px;">
+                          <table cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td style="background: #ffffff; border: 2px solid #2563eb; border-radius: 6px; text-align: center;">
+                                <a href="${designUrl}" style="display: inline-block; padding: 10px 18px; color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 6px; min-width: 120px; text-align: center;">View 3D Design</a>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                
+                <!-- Specifications Header Row -->
+                <tr style="background: #555555;">
+                  <th style="color: #ffffff; padding: 12px 15px; text-align: left; font-weight: 500; font-size: 14px; border: none;">Specification</th>
+                  <th style="color: #ffffff; padding: 12px 15px; text-align: left; font-weight: 500; font-size: 14px; border: none;">Details</th>
+                </tr>
+                
+                <!-- Specification Rows -->
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Roof Type</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.roofType}</td>
+                </tr>
+                <tr style="background: #f9f9f9;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Roof Cladding</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.roofCladding}</td>
+                </tr>
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Roof Pitch</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.roofPitch}°</td>
+                </tr>
+                <tr style="background: #f9f9f9;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Dimensions</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">L: ${data.length}mm × W: ${data.width}mm × H: ${data.height}mm</td>
+                </tr>
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: 500; color: #777777;">Roof Color</td>
+                  <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333333;">${data.roofColor}</td>
+                </tr>
+                <tr style="background: #f9f9f9;">
+                  <td style="padding: 12px 15px; ${data.additionalDetails ? "border-bottom: 1px solid #e0e0e0;" : ""} font-size: 14px; font-weight: 500; color: #777777;">Frame Color</td>
+                  <td style="padding: 12px 15px; ${data.additionalDetails ? "border-bottom: 1px solid #e0e0e0;" : ""} font-size: 14px; color: #333333;">${data.postBeamColor}</td>
+                </tr>
+                ${
+                  data.additionalDetails
+                    ? `
+                <tr style="background: #ffffff;">
+                  <td style="padding: 12px 15px; font-size: 14px; font-weight: 500; color: #777777;">Additional Details</td>
+                  <td style="padding: 12px 15px; font-size: 14px; color: #333333; line-height: 1.6;">${data.additionalDetails}</td>
+                </tr>
+                `
+                    : ""
+                }
+              </tbody>
+            </table>
           </div>
           
           <!-- Priority Banner -->
@@ -940,6 +1191,7 @@ Visit: aussie-patio-designer.vercel.app
 CUSTOMER INFORMATION:
 - Name: ${data.customerName}
 - Email: ${data.customerEmail}
+- Phone: ${data.customerPhone}
 - Installation Address: ${data.siteAddress}
 
 PATIO/GAZEBO SPECIFICATIONS:
@@ -949,6 +1201,7 @@ PATIO/GAZEBO SPECIFICATIONS:
 - Dimensions: ${data.length}mm × ${data.width}mm × ${data.height}mm
 - Roof Color: ${data.roofColor}
 - Frame Color: ${data.postBeamColor}
+${data.additionalDetails ? `\nADDITIONAL DETAILS:\n${data.additionalDetails}\n` : ""}
 
 3D DESIGN:
 ${screenshotUrl ? `Screenshot: ${screenshotUrl}` : "Screenshot not available"}
@@ -1025,7 +1278,9 @@ export async function sendGazeboInquiry(data: InquiryData) {
     const inquiryData = {
       customer_name: data.customerName,
       customer_email: data.customerEmail,
+      customer_phone: data.customerPhone,
       site_address: data.siteAddress,
+      additional_details: data.additionalDetails,
       roof_type: data.roofType,
       roof_cladding: data.roofCladding,
       roof_pitch: data.roofPitch,
