@@ -478,6 +478,17 @@ export default function GazeboInquiryForm() {
         </p>
       </div>
 
+      {/* Screenshot Button - Top Right Corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <Button
+          onClick={testScreenshot}
+          variant="secondary"
+          className="bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200/50 hover:bg-white/70"
+        >
+          📸 Screenshot
+        </Button>
+      </div>
+
       {/* Submit Modal Popup */}
       <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
         <DialogContent className="sm:max-w-md">
@@ -850,10 +861,7 @@ export default function GazeboInquiryForm() {
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
 
-                    {/* Test Screenshot Button - for debugging */}
-                    <Button type="button" onClick={testScreenshot} variant="outline" className="w-full mt-2 text-sm">
-                      🧪 Test Screenshot Capture & Upload
-                    </Button>
+                    {/* No test button here anymore */}
                   </>
                 ) : (
                   <>
