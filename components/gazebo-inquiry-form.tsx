@@ -19,6 +19,9 @@ import GazeboPreview from "@/components/gazebo-preview"
 import type { GazeboPreviewRef } from "./gazebo-preview"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
+import ARView from "@/components/ar-view"
+import { useMobile } from "@/hooks/use-mobile"
+import { Camera } from "lucide-react"
 
 // Fixed form schema with proper validation
 const formSchema = z
@@ -109,6 +112,8 @@ export default function GazeboInquiryForm() {
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [isViewMode, setIsViewMode] = useState(false)
   const [referenceNumber, setReferenceNumber] = useState<string>("")
+  const [showARView, setShowARView] = useState(false)
+  const isMobile = useMobile()
 
   const searchParams = useSearchParams()
   const gazeboPreviewRef = useRef<GazeboPreviewRef>(null)
@@ -354,6 +359,21 @@ export default function GazeboInquiryForm() {
         { value: "5", label: "5°" },
       ]
     }
+  }
+
+  const ARButton = () => {
+    if (!isMobile) return null
+
+    return (
+      <Button
+        onClick={() => setShowARView(true)}
+        className="fixed bottom-20 right-4 z-50 bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-full"
+        size="icon"
+      >
+        <Camera className="h-5 w-5" />
+        <span className="sr-only">View in AR</span>
+      </Button>
+    )
   }
 
   return (
@@ -891,6 +911,25 @@ export default function GazeboInquiryForm() {
           }
         `}</style>
       </div>
+
+      {/* AR View Dialog */}
+      <ARView
+        isOpen={showARView}
+        onClose={() => setShowARView(false)}
+        gazeboProps={{
+          length: form.watch("length") || 3000,
+          width: form.watch("width") || 3000,
+          height: form.watch("height") || 2400,
+          roofType: form.watch("roofType") || "Gable",
+          roofPitch: form.watch("roofPitch") || 10,
+          roofCladding: form.watch("roofCladding") || "Corrugated",
+          roofColor: form.watch("roofColor"),
+          postBeamColor: form.watch("postBeamColor"),
+        }}
+      />
+
+      {/* AR Button for mobile */}
+      <ARButton />
     </div>
   )
 }

@@ -27,6 +27,9 @@ interface GazeboPreviewProps {
   postBeamColor?: string
 }
 
+// Add an export for the GazeboStructure component near the top of the file, right after the GazeboPreviewProps interface
+export { GazeboStructure }
+
 // Memoized texture loader with caching
 const useOptimizedTexture = (url: string) => {
   const [texture, setTexture] = useState<THREE.Texture | null>(null)
