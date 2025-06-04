@@ -85,7 +85,7 @@ function GrassGround() {
         // Enhanced texture settings for tiling
         texture.wrapS = THREE.RepeatWrapping
         texture.wrapT = THREE.RepeatWrapping
-        texture.repeat.set(4, 4) // Tile 4x4 for good coverage without making tiles too small
+        texture.repeat.set(8, 8) // Increased from 4x4 to 8x8 for smaller tiles
         texture.anisotropy = 16 // Maximum anisotropy for crisp textures
         texture.colorSpace = THREE.SRGBColorSpace
         setGrassTexture(texture)
@@ -165,7 +165,7 @@ function ConcreteArea({
         // Enhanced concrete texture settings for tiling
         texture.wrapS = THREE.RepeatWrapping
         texture.wrapT = THREE.RepeatWrapping
-        texture.repeat.set(3, 3) // Tile 3x3 for concrete area
+        texture.repeat.set(6, 6) // Increased from 3x3 to 6x6 for smaller tiles
         texture.anisotropy = 16
         texture.colorSpace = THREE.SRGBColorSpace
         setConcreteTexture(texture)
@@ -634,6 +634,7 @@ function GazeboStructure(props: GazeboPreviewProps) {
             position={[0, roofLowSide + roofRise / 2, -totalWidth / 4]}
             rotation={[-Math.PI / 2 + -pitchRadians, 0, 0]}
             color={roofColorHex}
+            underneathColor="#e4e3dc" // Always SURFMIST underneath
           />
 
           {/* Right roof plane with 3D cladding profile */}
@@ -643,6 +644,7 @@ function GazeboStructure(props: GazeboPreviewProps) {
             position={[0, roofLowSide + roofRise / 2, totalWidth / 4]}
             rotation={[-Math.PI / 2 - -pitchRadians, 0, 0]}
             color={roofColorHex}
+            underneathColor="#e4e3dc" // Always SURFMIST underneath
           />
 
           {/* Ridge cap/flashing */}
@@ -703,6 +705,7 @@ function GazeboStructure(props: GazeboPreviewProps) {
             position={[0, roofLowSide + roofRise / 2, 0]}
             rotation={[-Math.PI / 2 - -pitchRadians, 0, 0]}
             color={roofColorHex}
+            underneathColor="#e4e3dc" // Always SURFMIST underneath
           />
 
           {/* Single gutter on low side (back) only */}
@@ -803,12 +806,14 @@ function RoofCladdingProfile({
   position,
   rotation,
   color,
+  underneathColor = "#e4e3dc", // Default to SURFMIST
 }: {
   claddingType: string
   dimensions: [number, number]
   position: [number, number, number]
   rotation: [number, number, number]
   color: string
+  underneathColor?: string
 }) {
   const [length, width] = dimensions
 
@@ -902,46 +907,76 @@ function RoofCladdingProfile({
   if (claddingType === "Corrugated") {
     return (
       <group position={position} rotation={rotation}>
-        {/* Base sheet - slightly thicker for better visibility */}
+        {/* Top surface - user selected color */}
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[length, width, profileThickness * 2]} />
+          <boxGeometry args={[length, width, profileThickness]} />
           <meshStandardMaterial color={color} roughness={0.9} metalness={0.1} />
         </mesh>
 
-        {/* Enhanced corrugated surface with smooth curves */}
+        {/* Bottom surface - always SURFMIST */}
+        <mesh castShadow receiveShadow position={[0, 0, -profileThickness * 2]}>
+          <boxGeometry args={[length, width, profileThickness]} />
+          <meshStandardMaterial color={underneathColor} roughness={0.9} metalness={0.1} />
+        </mesh>
+
+        {/* Enhanced corrugated surface with smooth curves - top side only */}
         <mesh castShadow receiveShadow geometry={corrugatedGeometry}>
-          <meshStandardMaterial
-            color={color}
-            side={THREE.DoubleSide}
-            metalness={0.1}
-            roughness={0.8}
-            envMapIntensity={0.3}
-          />
+          <meshStandardMaterial color={color} metalness={0.1} roughness={0.8} envMapIntensity={0.3} />
+        </mesh>
+
+        {/* Corrugated surface underneath - SURFMIST color */}
+        <mesh castShadow receiveShadow geometry={corrugatedGeometry} position={[0, 0, -profileThickness * 3]}>
+          <meshStandardMaterial color={underneathColor} metalness={0.1} roughness={0.8} envMapIntensity={0.3} />
         </mesh>
       </group>
     )
   } else if (claddingType === "Trimclad") {
     return (
       <group position={position} rotation={rotation}>
-        {/* Base sheet */}
+        {/* Top surface - user selected color */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[length, width, profileThickness]} />
           <meshStandardMaterial color={color} roughness={0.9} metalness={0.1} />
         </mesh>
 
-        {/* Simplified Trimclad ribs - no crossing materials */}
+        {/* Bottom surface - always SURFMIST */}
+        <mesh castShadow receiveShadow position={[0, 0, -profileThickness * 2]}>
+          <boxGeometry args={[length, width, profileThickness]} />
+          <meshStandardMaterial color={underneathColor} roughness={0.9} metalness={0.1} />
+        </mesh>
+
+        {/* Trimclad ribs on top */}
         {Array.from({ length: Math.max(1, Math.floor(length / profileWidthTrimclad)) }, (_, i) => {
           const ribX = -length / 2 + (i + 0.5) * (length / Math.max(1, Math.floor(length / profileWidthTrimclad)))
 
-          // Only render if rib is well within boundaries
           if (Math.abs(ribX) > length / 2 - ribWidth) {
             return null
           }
 
           return (
-            <mesh key={`trimclad-rib-${i}`} position={[ribX, 0, profileHeightTrimclad / 2]} castShadow>
+            <mesh key={`trimclad-rib-top-${i}`} position={[ribX, 0, profileHeightTrimclad / 2]} castShadow>
               <boxGeometry args={[ribWidth * 0.8, width, profileHeightTrimclad]} />
               <meshStandardMaterial color={`#${lighterColor}`} roughness={0.8} metalness={0.1} />
+            </mesh>
+          )
+        }).filter(Boolean)}
+
+        {/* Trimclad ribs on bottom - SURFMIST color */}
+        {Array.from({ length: Math.max(1, Math.floor(length / profileWidthTrimclad)) }, (_, i) => {
+          const ribX = -length / 2 + (i + 0.5) * (length / Math.max(1, Math.floor(length / profileWidthTrimclad)))
+
+          if (Math.abs(ribX) > length / 2 - ribWidth) {
+            return null
+          }
+
+          return (
+            <mesh
+              key={`trimclad-rib-bottom-${i}`}
+              position={[ribX, 0, -profileHeightTrimclad / 2 - profileThickness * 2]}
+              castShadow
+            >
+              <boxGeometry args={[ribWidth * 0.8, width, profileHeightTrimclad]} />
+              <meshStandardMaterial color={underneathColor} roughness={0.8} metalness={0.1} />
             </mesh>
           )
         }).filter(Boolean)}
@@ -949,12 +984,20 @@ function RoofCladdingProfile({
     )
   }
 
-  // Fallback to simple flat sheet
+  // Fallback to simple flat sheet with top and bottom surfaces
   return (
-    <mesh position={position} rotation={rotation} castShadow receiveShadow>
-      <boxGeometry args={[length, width, 0.0006]} />
-      <meshStandardMaterial color={color} roughness={0.9} metalness={0.1} />
-    </mesh>
+    <group position={position} rotation={rotation}>
+      {/* Top surface */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[length, width, 0.0006]} />
+        <meshStandardMaterial color={color} roughness={0.9} metalness={0.1} />
+      </mesh>
+      {/* Bottom surface - SURFMIST */}
+      <mesh castShadow receiveShadow position={[0, 0, -0.0012]}>
+        <boxGeometry args={[length, width, 0.0006]} />
+        <meshStandardMaterial color={underneathColor} roughness={0.9} metalness={0.1} />
+      </mesh>
+    </group>
   )
 }
 
@@ -1032,7 +1075,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFSoftShadowMap
           gl.toneMapping = THREE.ACESFilmicToneMapping
-          gl.toneMappingExposure = 1.0 // Reduced from 1.2 for less gloss
+          gl.toneMappingExposure = 0.7 // Reduced from 1.0 to 0.7 for less brightness variation
           gl.outputColorSpace = THREE.SRGBColorSpace
         }}
       >
@@ -1043,11 +1086,11 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           <GrassGround />
 
           {/* Enhanced lighting setup */}
-          <ambientLight intensity={0.4} color="#ffffff" />
+          <ambientLight intensity={0.6} color="#ffffff" />
           {/* Main sun light - repositioned for opposite side view */}
           <directionalLight
-            position={[-5, 10, -5]} // Changed from [5, 10, 5] to match camera side
-            intensity={0.8} // Slightly reduced for less gloss
+            position={[-5, 10, -5]}
+            intensity={0.5} // Reduced from 0.8 to 0.5 for less dramatic lighting
             color="#f8f8f8"
             castShadow
             shadow-mapSize-width={2048}
@@ -1061,7 +1104,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           />
 
           {/* Fill light for better color visibility */}
-          <directionalLight position={[5, 8, 3]} intensity={0.3} color="#e0e8ff" />
+          <directionalLight position={[5, 8, 3]} intensity={0.2} color="#e0e8ff" />
 
           <GazeboStructure {...props} />
 
@@ -1071,8 +1114,8 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             enableRotate={true}
             minDistance={4}
             maxDistance={20}
-            minPolarAngle={Math.PI / 6}
-            maxPolarAngle={Math.PI / 2.5}
+            minPolarAngle={Math.PI / 12} // Changed from Math.PI / 6 to Math.PI / 12 (15 degrees)
+            maxPolarAngle={Math.PI / 1.5} // Changed from Math.PI / 2.5 to Math.PI / 1.5 (120 degrees)
             target={[0, 1.5, 0]} // Slightly higher target for better isometric view
             enableDamping={true}
             dampingFactor={0.05}
