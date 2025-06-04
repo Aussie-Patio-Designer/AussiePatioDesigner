@@ -38,7 +38,7 @@ const formSchema = z
     additionalDetails: z.string().optional(),
     roofType: z.enum(["Gable", "Skillion"]).default("Gable"),
     roofCladding: z.enum(["Corrugated", "Trimclad"]).default("Corrugated"),
-    roofPitch: z.number().min(2).max(20).default(10),
+    roofPitch: z.number().min(2).max(22.5).default(15),
     length: z.number().min(1000).max(20000).default(3000),
     width: z.number().min(1000).max(20000).default(3000),
     height: z.number().min(1000).max(5000).default(2400),
@@ -49,14 +49,14 @@ const formSchema = z
     (data) => {
       // Validate roof pitch based on roof type
       if (data.roofType === "Gable") {
-        return data.roofPitch >= 10 && data.roofPitch <= 20
+        return data.roofPitch === 15 || data.roofPitch === 22.5
       } else if (data.roofType === "Skillion") {
-        return data.roofPitch >= 2 && data.roofPitch <= 5
+        return data.roofPitch === 2 || data.roofPitch === 5
       }
       return true
     },
     {
-      message: "Invalid roof pitch for selected roof type. Gable: 10-20°, Skillion: 2-5°",
+      message: "Invalid roof pitch for selected roof type. Gable: 15° or 22.5°, Skillion: 2° or 5°",
       path: ["roofPitch"],
     },
   )
@@ -120,7 +120,7 @@ export default function GazeboInquiryForm() {
     return {
       roofType: (searchParams.get("roofType") as "Gable" | "Skillion") || "Gable",
       roofCladding: (searchParams.get("roofCladding") as "Corrugated" | "Trimclad") || "Corrugated",
-      roofPitch: Number(searchParams.get("roofPitch")) || 10,
+      roofPitch: Number(searchParams.get("roofPitch")) || 15,
       length: Number(searchParams.get("length")) || 3000,
       width: Number(searchParams.get("width")) || 3000,
       height: Number(searchParams.get("height")) || 2400,
@@ -131,19 +131,22 @@ export default function GazeboInquiryForm() {
     }
   }, [searchParams])
 
-  // Default form values
+  // Default form values - ALWAYS keep customer fields empty
   const defaultFormValues = useMemo(() => {
     const urlParams = extractUrlParams
 
+    // Base customer values - ALWAYS empty
+    const customerDefaults = {
+      customerName: "",
+      siteAddress: "",
+      customerEmail: "",
+      customerPhone: "",
+      additionalDetails: "",
+    }
+
     if (urlParams) {
       return {
-        // Always start with empty customer details regardless of URL params
-        customerName: "",
-        siteAddress: "",
-        customerEmail: "",
-        customerPhone: "",
-        additionalDetails: "",
-        // Only use URL params for design values
+        ...customerDefaults, // Always use empty customer defaults
         roofType: urlParams.roofType,
         roofCladding: urlParams.roofCladding,
         roofPitch: urlParams.roofPitch,
@@ -156,14 +159,10 @@ export default function GazeboInquiryForm() {
     }
 
     return {
-      customerName: "",
-      siteAddress: "",
-      customerEmail: "",
-      customerPhone: "",
-      additionalDetails: "",
+      ...customerDefaults, // Always use empty customer defaults
       roofType: "Gable" as const,
       roofCladding: "Corrugated" as const,
-      roofPitch: 10,
+      roofPitch: 15,
       length: 3000,
       width: 3000,
       height: 2400,
@@ -197,6 +196,18 @@ export default function GazeboInquiryForm() {
     }
   }, [extractUrlParams])
 
+  // Force reset customer fields when switching to customer step
+  useEffect(() => {
+    if (currentStep === "customer") {
+      // Force reset only customer fields to empty strings
+      form.setValue("customerName", "")
+      form.setValue("customerEmail", "")
+      form.setValue("customerPhone", "")
+      form.setValue("siteAddress", "")
+      form.setValue("additionalDetails", "")
+    }
+  }, [currentStep, form])
+
   // Handle roof type changes with proper validation
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
@@ -206,11 +217,11 @@ export default function GazeboInquiryForm() {
 
         // Auto-adjust pitch when roof type changes
         if (roofType === "Gable") {
-          if (currentPitch < 10 || currentPitch > 20) {
-            form.setValue("roofPitch", 10)
+          if (currentPitch !== 15 && currentPitch !== 22.5) {
+            form.setValue("roofPitch", 15)
           }
         } else if (roofType === "Skillion") {
-          if (currentPitch < 2 || currentPitch > 5) {
+          if (currentPitch !== 2 && currentPitch !== 5) {
             form.setValue("roofPitch", 5)
           }
         }
@@ -226,9 +237,9 @@ export default function GazeboInquiryForm() {
   // Custom validation function for roof pitch
   const validateRoofPitch = (pitch: number, roofType: string) => {
     if (roofType === "Gable") {
-      return pitch >= 10 && pitch <= 20
+      return pitch === 15 || pitch === 22.5
     } else if (roofType === "Skillion") {
-      return pitch >= 2 && pitch <= 5
+      return pitch === 2 || pitch === 5
     }
     return true
   }
@@ -242,9 +253,7 @@ export default function GazeboInquiryForm() {
       // Additional client-side validation
       if (!validateRoofPitch(values.roofPitch, values.roofType)) {
         const errorMessage =
-          values.roofType === "Gable"
-            ? "Gable roof pitch must be between 10° and 20°"
-            : "Skillion roof pitch must be between 2° and 5°"
+          values.roofType === "Gable" ? "Gable roof pitch must be 15° or 22.5°" : "Skillion roof pitch must be 2° or 5°"
 
         form.setError("roofPitch", { message: errorMessage })
         setIsSubmitting(false)
@@ -321,21 +330,24 @@ export default function GazeboInquiryForm() {
   }
 
   const startNewDesign = () => {
-    form.reset({
+    // Explicitly reset with proper values
+    const resetValues = {
       customerName: "",
       siteAddress: "",
       customerEmail: "",
       customerPhone: "",
       additionalDetails: "",
-      roofType: "Gable",
-      roofCladding: "Corrugated",
-      roofPitch: 10,
+      roofType: "Gable" as const,
+      roofCladding: "Corrugated" as const,
+      roofPitch: 15,
       length: 3000,
       width: 3000,
       height: 2400,
       roofColor: "SURFMIST / BASALT",
       postBeamColor: "MONUMENT",
-    })
+    }
+
+    form.reset(resetValues)
     setIsViewMode(false)
     setReferenceNumber("")
     setCurrentStep("design")
@@ -345,14 +357,12 @@ export default function GazeboInquiryForm() {
   const getPitchOptions = (roofType: string) => {
     if (roofType === "Gable") {
       return [
-        { value: "10", label: "10°" },
         { value: "15", label: "15°" },
-        { value: "20", label: "20°" },
+        { value: "22.5", label: "22.5°" },
       ]
     } else {
       return [
         { value: "2", label: "2°" },
-        { value: "3.5", label: "3.5°" },
         { value: "5", label: "5°" },
       ]
     }
@@ -368,7 +378,7 @@ export default function GazeboInquiryForm() {
           width={form.watch("width") || 3000}
           height={form.watch("height") || 2400}
           roofType={form.watch("roofType") || "Gable"}
-          roofPitch={form.watch("roofPitch") || 10}
+          roofPitch={form.watch("roofPitch") || 15}
           roofCladding={form.watch("roofCladding") || "Corrugated"}
           hasOverhang={false}
           overhangSides={[]}
@@ -582,12 +592,12 @@ export default function GazeboInquiryForm() {
                               <FormLabel className="text-sm font-medium">
                                 Roof Pitch
                                 <span className="text-xs text-gray-500 ml-1">
-                                  ({form.watch("roofType") === "Gable" ? "10-20°" : "2-5°"})
+                                  ({form.watch("roofType") === "Gable" ? "15° or 22.5°" : "2° or 5°"})
                                 </span>
                               </FormLabel>
                               <FormControl>
                                 <Tabs
-                                  value={field.value?.toString() || (form.watch("roofType") === "Gable" ? "10" : "5")}
+                                  value={field.value?.toString() || (form.watch("roofType") === "Gable" ? "15" : "5")}
                                   onValueChange={(value) => field.onChange(Number(value))}
                                 >
                                   <TabsList className="grid grid-cols-3 w-full">
@@ -774,8 +784,11 @@ export default function GazeboInquiryForm() {
                               <FormControl>
                                 <Input
                                   placeholder="Enter your full name"
-                                  {...field}
                                   value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
                                   className="text-sm"
                                 />
                               </FormControl>
@@ -794,8 +807,11 @@ export default function GazeboInquiryForm() {
                                 <Input
                                   type="email"
                                   placeholder="Enter your email"
-                                  {...field}
                                   value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
                                   className="text-sm"
                                 />
                               </FormControl>
@@ -814,8 +830,11 @@ export default function GazeboInquiryForm() {
                                 <Input
                                   type="tel"
                                   placeholder="Enter your phone number"
-                                  {...field}
                                   value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
                                   className="text-sm"
                                 />
                               </FormControl>
@@ -833,8 +852,11 @@ export default function GazeboInquiryForm() {
                               <FormControl>
                                 <Textarea
                                   placeholder="Enter the full installation address..."
-                                  {...field}
                                   value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
                                   className="min-h-[80px] text-sm"
                                 />
                               </FormControl>
@@ -852,8 +874,11 @@ export default function GazeboInquiryForm() {
                               <FormControl>
                                 <Textarea
                                   placeholder="Any specific requirements, preferences, or questions about your patio/gazebo project..."
-                                  {...field}
                                   value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
                                   className="min-h-[100px] text-sm"
                                 />
                               </FormControl>

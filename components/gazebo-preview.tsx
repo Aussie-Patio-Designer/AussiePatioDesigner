@@ -3,7 +3,7 @@
 import { Canvas, useThree } from "@react-three/fiber"
 import { OrbitControls, Plane, Environment } from "@react-three/drei"
 import { Suspense, useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect, useMemo } from "react"
-import { TextureLoader, RepeatWrapping, BackSide } from "three"
+import { TextureLoader, BackSide } from "three"
 import * as THREE from "three"
 import {
   getEnhancedColorHex,
@@ -30,26 +30,24 @@ export interface GazeboPreviewRef {
   captureScreenshot: () => Promise<string | null>
 }
 
-// Replace the entire CustomSkybox function with this:
-function CustomSkybox() {
+// Simplified skybox with just a light blue color gradient
+function SimpleSkybox() {
+  // Create a simple gradient using vertex colors
   const skyMaterial = useMemo(() => {
-    // Create a simple gradient using vertex colors
     const canvas = document.createElement("canvas")
     const ctx = canvas.getContext("2d")
     if (!ctx) return null
 
-    canvas.width = 512
-    canvas.height = 512
+    canvas.width = 2
+    canvas.height = 2
 
-    // Create vertical gradient from light blue to darker blue
-    const gradient = ctx.createLinearGradient(0, 0, 0, 512)
-    gradient.addColorStop(0, "#c4e0f9") // Light blue at top
-    gradient.addColorStop(0.3, "#a7c5e8") // Medium blue
-    gradient.addColorStop(0.6, "#87a8d0") // Darker blue
-    gradient.addColorStop(1, "#7a99c0") // Darkest blue at bottom
+    // Create vertical gradient from light blue to slightly darker blue
+    const gradient = ctx.createLinearGradient(0, 0, 0, 2)
+    gradient.addColorStop(0, "#a7d9ff") // Light blue at top
+    gradient.addColorStop(1, "#d6eeff") // Very light blue at horizon
 
     ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, 512, 512)
+    ctx.fillRect(0, 0, 2, 2)
 
     const texture = new THREE.CanvasTexture(canvas)
     texture.mapping = THREE.EquirectangularReflectionMapping
@@ -65,48 +63,13 @@ function CustomSkybox() {
     <>
       {/* Simple gradient sky background */}
       <mesh>
-        <sphereGeometry args={[100, 32, 32]} />
+        <sphereGeometry args={[100, 16, 16]} />
         <primitive object={skyMaterial} attach="material" />
       </mesh>
 
       {/* Subtle environment for minimal reflections */}
-      <Environment background={false} preset="park" intensity={0.2} />
-
-      {/* Minimal clouds */}
-      <CloudComponent position={[-25, 18, -35]} args={[2, 1.5]} opacity={0.7} />
-      <CloudComponent position={[20, 22, -45]} args={[2.5, 1.8]} opacity={0.7} />
+      <Environment background={false} preset="dawn" intensity={0.2} />
     </>
-  )
-}
-
-// Add a simple cloud component
-function CloudComponent({
-  position = [0, 0, 0],
-  args = [3, 2],
-  opacity = 0.9,
-}: { position?: [number, number, number]; args?: [number, number]; opacity?: number }) {
-  const [width, height] = args
-
-  return (
-    <group position={position}>
-      {/* Create a fluffy cloud using multiple overlapping spheres */}
-      <mesh>
-        <sphereGeometry args={[width * 0.5, 1.8, 1.8]} />
-        <meshStandardMaterial color="white" transparent opacity={opacity} />
-      </mesh>
-      <mesh position={[width * 0.3, -height * 0.1, 0]}>
-        <sphereGeometry args={[width * 0.4, 1.5, 1.5]} />
-        <meshStandardMaterial color="white" transparent opacity={opacity} />
-      </mesh>
-      <mesh position={[-width * 0.3, -height * 0.05, 0]}>
-        <sphereGeometry args={[width * 0.4, 1.6, 1.6]} />
-        <meshStandardMaterial color="white" transparent opacity={opacity} />
-      </mesh>
-      <mesh position={[0, -height * 0.2, 0]}>
-        <sphereGeometry args={[width * 0.5, 1.7, 1.7]} />
-        <meshStandardMaterial color="white" transparent opacity={opacity} />
-      </mesh>
-    </group>
   )
 }
 
@@ -119,10 +82,10 @@ function GrassGround() {
     loader.load(
       "/textures/grass-texture-background.jpg", // Using your new grass texture
       (texture) => {
-        // Enhanced texture settings for the new grass texture
-        texture.wrapS = RepeatWrapping
-        texture.wrapT = RepeatWrapping
-        texture.repeat.set(12, 12) // Adjusted repeat for optimal tiling
+        // Enhanced texture settings for tiling
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        texture.repeat.set(4, 4) // Tile 4x4 for good coverage without making tiles too small
         texture.anisotropy = 16 // Maximum anisotropy for crisp textures
         texture.colorSpace = THREE.SRGBColorSpace
         setGrassTexture(texture)
@@ -138,15 +101,14 @@ function GrassGround() {
   // Create realistic grass material
   const grassMaterial = useMemo(() => {
     if (grassTexture) {
-      return new THREE.MeshLambertMaterial({
+      return new THREE.MeshStandardMaterial({
         map: grassTexture,
-        color: "#ffffff", // Pure white to show texture colors accurately
+        color: "#ffffff",
         roughness: 0.8,
         metalness: 0.0,
       })
     } else {
-      // Fallback to simple grass color if texture fails to load
-      return new THREE.MeshLambertMaterial({
+      return new THREE.MeshStandardMaterial({
         color: "#4ade80",
         roughness: 0.8,
         metalness: 0.0,
@@ -200,10 +162,10 @@ function ConcreteArea({
     loader.load(
       "/textures/concrete-texture.jpg",
       (texture) => {
-        // Enhanced concrete texture settings
-        texture.wrapS = RepeatWrapping
-        texture.wrapT = RepeatWrapping
-        texture.repeat.set(totalLength * 3, totalWidth * 3) // More detailed tiling
+        // Enhanced concrete texture settings for tiling
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        texture.repeat.set(3, 3) // Tile 3x3 for concrete area
         texture.anisotropy = 16
         texture.colorSpace = THREE.SRGBColorSpace
         setConcreteTexture(texture)
@@ -319,7 +281,7 @@ function GazeboStructure(props: GazeboPreviewProps) {
 
     const baseColor = hexToRgb(color)
     const darkerColor = `rgb(${Math.max(0, baseColor.r - 40)}, ${Math.max(0, baseColor.g - 40)}, ${Math.max(0, baseColor.b - 40)})`
-    const lighterColor = `rgb(${Math.min(255, baseColor.r + 40)}, ${Math.min(255, baseColor.g + 40)}, ${Math.min(255, baseColor.b + 40)})`
+    const lighterColor = `rgb(${Math.min(255, baseColor.r + 40)}, ${Math.min(255, baseColor.g + 40)}, ${Math.min(255, baseColor.b - 40)})`
 
     // Base color fill
     ctx.fillStyle = color
@@ -417,15 +379,19 @@ function GazeboStructure(props: GazeboPreviewProps) {
       texture.wrapT = THREE.RepeatWrapping
       texture.repeat.set(6, 6)
 
-      return new THREE.MeshLambertMaterial({
+      return new THREE.MeshStandardMaterial({
         map: texture,
         color: roofColorHex,
-        emissive: new THREE.Color(roofColorHex).multiplyScalar(0.1), // Slight self-illumination
+        emissive: new THREE.Color(roofColorHex).multiplyScalar(0.1),
+        roughness: 0.9,
+        metalness: 0.1,
       })
     } else {
-      return new THREE.MeshLambertMaterial({
+      return new THREE.MeshStandardMaterial({
         color: roofColorHex,
-        emissive: new THREE.Color(roofColorHex).multiplyScalar(0.1), // Slight self-illumination
+        emissive: new THREE.Color(roofColorHex).multiplyScalar(0.1),
+        roughness: 0.9,
+        metalness: 0.1,
       })
     }
   }, [roofTexture, roofColorHex])
@@ -939,7 +905,7 @@ function RoofCladdingProfile({
         {/* Base sheet - slightly thicker for better visibility */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[length, width, profileThickness * 2]} />
-          <meshLambertMaterial color={color} />
+          <meshStandardMaterial color={color} roughness={0.9} metalness={0.1} />
         </mesh>
 
         {/* Enhanced corrugated surface with smooth curves */}
@@ -960,7 +926,7 @@ function RoofCladdingProfile({
         {/* Base sheet */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[length, width, profileThickness]} />
-          <meshLambertMaterial color={color} />
+          <meshStandardMaterial color={color} roughness={0.9} metalness={0.1} />
         </mesh>
 
         {/* Simplified Trimclad ribs - no crossing materials */}
@@ -975,7 +941,7 @@ function RoofCladdingProfile({
           return (
             <mesh key={`trimclad-rib-${i}`} position={[ribX, 0, profileHeightTrimclad / 2]} castShadow>
               <boxGeometry args={[ribWidth * 0.8, width, profileHeightTrimclad]} />
-              <meshLambertMaterial color={`#${lighterColor}`} />
+              <meshStandardMaterial color={`#${lighterColor}`} roughness={0.8} metalness={0.1} />
             </mesh>
           )
         }).filter(Boolean)}
@@ -987,7 +953,7 @@ function RoofCladdingProfile({
   return (
     <mesh position={position} rotation={rotation} castShadow receiveShadow>
       <boxGeometry args={[length, width, 0.0006]} />
-      <meshLambertMaterial color={color} />
+      <meshStandardMaterial color={color} roughness={0.9} metalness={0.1} />
     </mesh>
   )
 }
@@ -1073,7 +1039,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
         <SceneCapture ref={sceneRef} />
 
         <Suspense fallback={null}>
-          <CustomSkybox />
+          <SimpleSkybox />
           <GrassGround />
 
           {/* Enhanced lighting setup */}
