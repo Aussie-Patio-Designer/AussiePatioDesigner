@@ -23,6 +23,22 @@ interface InquiryData {
   screenshot?: string
 }
 
+// Get the correct domain URL
+function getBaseUrl(): string {
+  // In production, use the Vercel URL
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+
+  // For development
+  if (process.env.NODE_ENV === "development") {
+    return "http://localhost:3000"
+  }
+
+  // Fallback to the new Vercel domain
+  return "https://aussie-patio-designer.vercel.app"
+}
+
 // Validate inquiry data
 function validateInquiryData(data: InquiryData): { valid: boolean; errors: string[] } {
   const errors: string[] = []
@@ -65,9 +81,10 @@ async function sendCustomerConfirmation(
   inquiryId?: number,
 ): Promise<{ sent: boolean; error?: string }> {
   const config = getEnvConfig()
+  const baseUrl = getBaseUrl()
 
   // Create the 3D design URL with inquiry parameters
-  const designUrl = `${process.env.VERCEL_URL || "https://your-domain.vercel.app"}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
+  const designUrl = `${baseUrl}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
 
   const referenceNumber = inquiryId ? `#${inquiryId.toString().padStart(6, "0")}` : ""
   const subject = `Patio/Gazebo Design Inquiry Confirmation ${referenceNumber}`
@@ -293,6 +310,22 @@ async function sendCustomerConfirmation(
           color: #999999;
         }
         
+        .domain-info {
+          background: #f0f8ff;
+          border: 1px solid #d0e7ff;
+          border-radius: 4px;
+          padding: 15px;
+          margin: 20px 0;
+          text-align: center;
+        }
+        
+        .domain-info p {
+          color: #2563eb;
+          font-size: 14px;
+          font-weight: 500;
+          margin: 0;
+        }
+        
         @media (max-width: 640px) {
           .email-container {
             width: 100%;
@@ -323,6 +356,11 @@ async function sendCustomerConfirmation(
           
           <div class="message">
             Thank you for submitting your patio/gazebo design inquiry. Your request has been received and is now being processed by our team.
+          </div>
+          
+          <!-- Domain Info -->
+          <div class="domain-info">
+            <p>🌐 Visit us at: aussie-patio-designer.vercel.app</p>
           </div>
           
           <!-- Design Specifications -->
@@ -403,6 +441,8 @@ Dear ${data.customerName},
 
 Thank you for submitting your patio/gazebo design inquiry. Your request has been received and is now being processed by our team.
 
+Visit us at: aussie-patio-designer.vercel.app
+
 YOUR DESIGN SPECIFICATIONS:
 • Roof Type: ${data.roofType}
 • Roof Material: ${data.roofCladding}
@@ -463,6 +503,7 @@ async function sendSalesTeamNotification(
   screenshotUrl?: string,
 ): Promise<{ sent: boolean; error?: string }> {
   const config = getEnvConfig()
+  const baseUrl = getBaseUrl()
 
   // Sales team email addresses
   const salesTeamEmails = [process.env.SALES_EMAIL_1, process.env.SALES_EMAIL_2, process.env.SALES_EMAIL_3].filter(
@@ -475,7 +516,7 @@ async function sendSalesTeamNotification(
   }
 
   const referenceNumber = inquiryId ? `#${inquiryId.toString().padStart(6, "0")}` : "N/A"
-  const designUrl = `${process.env.VERCEL_URL || "https://your-domain.vercel.app"}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
+  const designUrl = `${baseUrl}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
 
   const subject = `New Patio/Gazebo Inquiry ${referenceNumber} - ${data.customerName}`
 
@@ -727,6 +768,22 @@ async function sendSalesTeamNotification(
           color: #999999;
         }
         
+        .domain-info {
+          background: #f0f8ff;
+          border: 1px solid #d0e7ff;
+          border-radius: 4px;
+          padding: 10px;
+          margin: 15px 0;
+          text-align: center;
+        }
+        
+        .domain-info p {
+          color: #2563eb;
+          font-size: 12px;
+          font-weight: 500;
+          margin: 0;
+        }
+        
         @media (max-width: 768px) {
           .email-container {
             width: 100%;
@@ -762,6 +819,11 @@ async function sendSalesTeamNotification(
         
         <!-- Content -->
         <div class="content">
+          <!-- Domain Info -->
+          <div class="domain-info">
+            <p>🌐 aussie-patio-designer.vercel.app</p>
+          </div>
+          
           <!-- Customer Information -->
           <div class="section">
             <div class="section-title">
@@ -872,6 +934,8 @@ async function sendSalesTeamNotification(
   const textContent = `
 NEW PATIO/GAZEBO INQUIRY ${referenceNumber}
 Submitted: ${new Date().toLocaleString()}
+
+Visit: aussie-patio-designer.vercel.app
 
 CUSTOMER INFORMATION:
 - Name: ${data.customerName}
