@@ -1,3 +1,4 @@
+"use client"
 import GazeboInquiryForm from "@/components/gazebo-inquiry-form"
 import Image from "next/image"
 

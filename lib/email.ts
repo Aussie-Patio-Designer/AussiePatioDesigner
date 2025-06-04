@@ -70,7 +70,7 @@ async function sendCustomerConfirmation(
   const designUrl = `${process.env.VERCEL_URL || "https://your-domain.vercel.app"}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
 
   const referenceNumber = inquiryId ? `#${inquiryId.toString().padStart(6, "0")}` : ""
-  const subject = `Your Patio/Gazebo Design Inquiry Confirmation ${referenceNumber}`
+  const subject = `Patio/Gazebo Design Inquiry Confirmation ${referenceNumber}`
 
   // Professional HTML email template for customer
   const htmlContent = `
@@ -92,141 +92,99 @@ async function sendCustomerConfirmation(
         body {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           line-height: 1.6;
-          color: #1f2937;
-          background-color: #f8fafc;
+          color: #333333;
+          background-color: #f5f5f5;
         }
         
         .email-container {
-          max-width: 680px;
+          max-width: 600px;
           margin: 0 auto;
           background: #ffffff;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          border-radius: 16px;
-          overflow: hidden;
+          border: 1px solid #e0e0e0;
         }
         
         .header {
-          background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
-          padding: 40px 30px;
+          background: #333333;
+          padding: 30px;
           text-align: center;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-          opacity: 0.3;
-        }
-        
-        .header-content {
-          position: relative;
-          z-index: 1;
-        }
-        
-        .logo {
-          width: 60px;
-          height: 60px;
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 12px;
-          margin: 0 auto 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          backdrop-filter: blur(10px);
         }
         
         .header h1 {
           color: #ffffff;
-          font-size: 28px;
-          font-weight: 700;
+          font-size: 24px;
+          font-weight: 600;
           margin-bottom: 8px;
-          letter-spacing: -0.025em;
         }
         
         .header p {
-          color: rgba(255, 255, 255, 0.9);
+          color: #e0e0e0;
           font-size: 16px;
           font-weight: 400;
         }
         
         .reference-badge {
           display: inline-block;
-          background: rgba(255, 255, 255, 0.2);
+          background: #555555;
           color: #ffffff;
-          padding: 8px 16px;
-          border-radius: 20px;
+          padding: 6px 12px;
+          border-radius: 4px;
           font-size: 14px;
-          font-weight: 600;
-          margin-top: 16px;
-          backdrop-filter: blur(10px);
+          font-weight: 500;
+          margin-top: 12px;
         }
         
         .content {
-          padding: 40px 30px;
+          padding: 30px;
         }
         
         .greeting {
           font-size: 18px;
-          color: #1f2937;
-          margin-bottom: 24px;
+          color: #333333;
+          margin-bottom: 20px;
           font-weight: 500;
         }
         
         .message {
           font-size: 16px;
-          color: #4b5563;
-          margin-bottom: 32px;
-          line-height: 1.7;
+          color: #555555;
+          margin-bottom: 25px;
+          line-height: 1.6;
         }
         
         .specs-section {
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          border-radius: 12px;
-          padding: 24px;
-          margin: 32px 0;
-          border: 1px solid #e2e8f0;
+          background: #f9f9f9;
+          border-radius: 4px;
+          padding: 20px;
+          margin: 25px 0;
+          border: 1px solid #e0e0e0;
         }
         
         .specs-title {
           font-size: 18px;
           font-weight: 600;
-          color: #1e40af;
-          margin-bottom: 20px;
-          display: flex;
-          align-items: center;
-        }
-        
-        .specs-title::before {
-          content: '🏗️';
-          margin-right: 8px;
-          font-size: 20px;
+          color: #333333;
+          margin-bottom: 15px;
+          border-bottom: 1px solid #e0e0e0;
+          padding-bottom: 10px;
         }
         
         .specs-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 16px;
+          gap: 15px;
         }
         
         .spec-item {
           background: #ffffff;
-          padding: 16px;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          padding: 12px;
+          border-radius: 4px;
+          border: 1px solid #e0e0e0;
         }
         
         .spec-label {
           font-size: 12px;
           font-weight: 600;
-          color: #6b7280;
+          color: #777777;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin-bottom: 4px;
@@ -234,134 +192,118 @@ async function sendCustomerConfirmation(
         
         .spec-value {
           font-size: 16px;
-          font-weight: 600;
-          color: #1f2937;
+          font-weight: 500;
+          color: #333333;
         }
         
         .design-section {
-          background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-          border-radius: 12px;
-          padding: 32px 24px;
+          background: #f9f9f9;
+          border-radius: 4px;
+          padding: 25px 20px;
           text-align: center;
-          margin: 32px 0;
-          border: 1px solid #a7f3d0;
+          margin: 25px 0;
+          border: 1px solid #e0e0e0;
         }
         
         .design-title {
-          font-size: 20px;
-          font-weight: 700;
-          color: #065f46;
-          margin-bottom: 12px;
+          font-size: 18px;
+          font-weight: 600;
+          color: #333333;
+          margin-bottom: 10px;
         }
         
         .design-subtitle {
           font-size: 16px;
-          color: #047857;
-          margin-bottom: 24px;
+          color: #555555;
+          margin-bottom: 20px;
+        }
+        
+        .design-image {
+          max-width: 100%;
+          height: auto;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          margin-bottom: 20px;
         }
         
         .cta-button {
           display: inline-block;
-          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+          background: #555555;
           color: #ffffff;
-          padding: 16px 32px;
+          padding: 12px 25px;
           text-decoration: none;
-          border-radius: 8px;
-          font-weight: 600;
+          border-radius: 4px;
+          font-weight: 500;
           font-size: 16px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          transition: all 0.2s ease;
-          margin-bottom: 16px;
-        }
-        
-        .cta-button:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          margin-bottom: 15px;
         }
         
         .design-link {
           font-size: 12px;
-          color: #6b7280;
+          color: #777777;
           word-break: break-all;
-          margin-top: 12px;
+          margin-top: 10px;
         }
         
         .next-steps {
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          border-radius: 12px;
-          padding: 24px;
-          margin: 32px 0;
-          border: 1px solid #f59e0b;
+          background: #f9f9f9;
+          border-radius: 4px;
+          padding: 20px;
+          margin: 25px 0;
+          border: 1px solid #e0e0e0;
         }
         
         .next-steps-title {
           font-size: 18px;
           font-weight: 600;
-          color: #92400e;
-          margin-bottom: 16px;
-          display: flex;
-          align-items: center;
-        }
-        
-        .next-steps-title::before {
-          content: '⏱️';
-          margin-right: 8px;
-          font-size: 20px;
+          color: #333333;
+          margin-bottom: 15px;
+          border-bottom: 1px solid #e0e0e0;
+          padding-bottom: 10px;
         }
         
         .next-steps-content {
-          color: #78350f;
+          color: #555555;
           font-size: 15px;
           line-height: 1.6;
         }
         
         .footer {
-          background: #f8fafc;
-          padding: 32px 30px;
+          background: #f5f5f5;
+          padding: 25px;
           text-align: center;
-          border-top: 1px solid #e2e8f0;
-          position: relative;
+          border-top: 1px solid #e0e0e0;
         }
         
         .footer-message {
-          font-size: 16px;
-          color: #4b5563;
-          margin-bottom: 16px;
+          font-size: 14px;
+          color: #777777;
+          margin-bottom: 10px;
         }
         
         .footer-signature {
-          font-size: 16px;
-          color: #1f2937;
-          font-weight: 600;
+          font-size: 14px;
+          color: #333333;
+          font-weight: 500;
         }
         
         .footer-credit {
-          position: absolute;
-          bottom: 12px;
-          right: 20px;
-          font-size: 11px;
-          color: #9ca3af;
-          font-weight: 400;
+          margin-top: 15px;
+          font-size: 12px;
+          color: #999999;
         }
         
         @media (max-width: 640px) {
           .email-container {
-            margin: 0;
-            border-radius: 0;
+            width: 100%;
           }
           
           .content, .header {
-            padding: 24px 20px;
+            padding: 20px 15px;
           }
           
           .specs-grid {
             grid-template-columns: 1fr;
-          }
-          
-          .footer-credit {
-            position: static;
-            text-align: center;
-            margin-top: 16px;
           }
         }
       </style>
@@ -370,12 +312,9 @@ async function sendCustomerConfirmation(
       <div class="email-container">
         <!-- Header -->
         <div class="header">
-          <div class="header-content">
-            <div class="logo">DESIGN</div>
-            <h1>Thank You for Your Inquiry</h1>
-            <p>Your patio/gazebo design request has been received</p>
-            ${referenceNumber ? `<div class="reference-badge">Reference ${referenceNumber}</div>` : ""}
-          </div>
+          <h1>Thank You for Your Inquiry</h1>
+          <p>Your patio/gazebo design request has been received</p>
+          ${referenceNumber ? `<div class="reference-badge">Reference ${referenceNumber}</div>` : ""}
         </div>
         
         <!-- Content -->
@@ -383,12 +322,12 @@ async function sendCustomerConfirmation(
           <div class="greeting">Dear ${data.customerName},</div>
           
           <div class="message">
-            We're excited to help bring your patio/gazebo vision to life! Your custom design request has been successfully submitted and is now being processed by our expert team.
+            Thank you for submitting your patio/gazebo design inquiry. Your request has been received and is now being processed by our team.
           </div>
           
           <!-- Design Specifications -->
           <div class="specs-section">
-            <div class="specs-title">Specifications:</div>
+            <div class="specs-title">Design Specifications</div>
             <div class="specs-grid">
               <div class="spec-item">
                 <div class="spec-label">Roof Type</div>
@@ -419,30 +358,34 @@ async function sendCustomerConfirmation(
           
           <!-- 3D Design Section -->
           <div class="design-section">
-            <div class="design-title">3D Preview:</div>
-            <div class="design-subtitle">Experience your patio/gazebo in interactive 3D</div>
+            <div class="design-title">Your 3D Design Preview</div>
+            ${
+              data.screenshot
+                ? `<img src="${data.screenshot}" alt="3D Patio/Gazebo Design" class="design-image" />`
+                : `<p style="color: #777777; font-style: italic; margin-bottom: 20px;">Preview image not available</p>`
+            }
             <a href="${designUrl}" class="cta-button">View Interactive Design</a>
             <div class="design-link">
-              Share this link: <a href="${designUrl}" style="color: #059669;">${designUrl}</a>
+              Access link: <a href="${designUrl}" style="color: #555555;">${designUrl}</a>
             </div>
           </div>
           
           <!-- Next Steps -->
           <div class="next-steps">
-            <div class="next-steps-title">Next Steps:</div>
+            <div class="next-steps-title">Next Steps</div>
             <div class="next-steps-content">
-              <strong>Our team will contact you within 24-48 hours</strong> to discuss your project in detail and provide you with a comprehensive quote. We'll review your specifications and may suggest optimizations to ensure the best outcome for your patio/gazebo project.
-              <br><br>
-              If you have any immediate questions or would like to make changes to your design, please reply to this email with your reference number.
+              <p>Our team will contact you within 24-48 hours to discuss your project in detail and provide you with a comprehensive quote. We'll review your specifications and may suggest optimizations to ensure the best outcome for your patio/gazebo project.</p>
+              <br>
+              <p>If you have any immediate questions or would like to make changes to your design, please reply to this email with your reference number.</p>
             </div>
           </div>
         </div>
         
         <!-- Footer -->
         <div class="footer">
-          <div class="footer-message">Thank you for choosing us for your patio/gazebo project!</div>
+          <div class="footer-message">Thank you for choosing us for your patio/gazebo project.</div>
           <div class="footer-signature">
-            <strong>The Aussie Patio Design Team</strong>
+            The Aussie Patio Design Team
           </div>
           <div class="footer-credit">Generated by Gazi OGUTCU 2025</div>
         </div>
@@ -458,7 +401,7 @@ ${referenceNumber ? `Reference: ${referenceNumber}` : ""}
 
 Dear ${data.customerName},
 
-We're excited to help bring your patio/gazebo vision to life! Your custom design request has been successfully submitted and is now being processed by our expert team.
+Thank you for submitting your patio/gazebo design inquiry. Your request has been received and is now being processed by our team.
 
 YOUR DESIGN SPECIFICATIONS:
 • Roof Type: ${data.roofType}
@@ -477,7 +420,7 @@ Our team will contact you within 24-48 hours to discuss your project in detail a
 
 If you have any immediate questions or would like to make changes to your design, please reply to this email with your reference number.
 
-Thank you for choosing us for your patio/gazebo project!
+Thank you for choosing us for your patio/gazebo project.
 
 Best regards,
 The Aussie Patio Design Team
@@ -534,7 +477,7 @@ async function sendSalesTeamNotification(
   const referenceNumber = inquiryId ? `#${inquiryId.toString().padStart(6, "0")}` : "N/A"
   const designUrl = `${process.env.VERCEL_URL || "https://your-domain.vercel.app"}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
 
-  const subject = `🚨 New Patio/Gazebo Inquiry ${referenceNumber} - ${data.customerName}`
+  const subject = `New Patio/Gazebo Inquiry ${referenceNumber} - ${data.customerName}`
 
   // Professional HTML email template for sales team
   const htmlContent = `
@@ -556,134 +499,105 @@ async function sendSalesTeamNotification(
         body {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           line-height: 1.6;
-          color: #1f2937;
-          background-color: #f3f4f6;
+          color: #333333;
+          background-color: #f5f5f5;
         }
         
         .email-container {
-          max-width: 800px;
-          margin: 20px auto;
+          max-width: 700px;
+          margin: 0 auto;
           background: #ffffff;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-          border-radius: 20px;
-          overflow: hidden;
+          border: 1px solid #e0e0e0;
         }
         
         .header {
-          background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
-          padding: 32px;
+          background: #333333;
+          padding: 25px;
           text-align: center;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.5" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
-        }
-        
-        .header-content {
-          position: relative;
-          z-index: 1;
         }
         
         .alert-badge {
           display: inline-block;
-          background: rgba(255, 255, 255, 0.2);
+          background: #555555;
           color: #ffffff;
-          padding: 8px 16px;
-          border-radius: 20px;
+          padding: 6px 12px;
+          border-radius: 4px;
           font-size: 12px;
-          font-weight: 700;
+          font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
-          margin-bottom: 16px;
-          backdrop-filter: blur(10px);
+          letter-spacing: 0.05em;
+          margin-bottom: 12px;
         }
         
         .header h1 {
           color: #ffffff;
-          font-size: 32px;
-          font-weight: 800;
+          font-size: 24px;
+          font-weight: 600;
           margin-bottom: 8px;
-          letter-spacing: -0.025em;
         }
         
         .header .reference {
-          color: rgba(255, 255, 255, 0.9);
-          font-size: 18px;
-          font-weight: 600;
+          color: #e0e0e0;
+          font-size: 16px;
+          font-weight: 500;
         }
         
         .header .timestamp {
-          color: rgba(255, 255, 255, 0.7);
+          color: #cccccc;
           font-size: 14px;
           margin-top: 8px;
         }
         
         .content {
-          padding: 40px;
+          padding: 30px;
         }
         
         .section {
-          margin-bottom: 40px;
+          margin-bottom: 30px;
         }
         
         .section-title {
-          font-size: 20px;
-          font-weight: 700;
-          color: #1f2937;
-          margin-bottom: 20px;
-          display: flex;
-          align-items: center;
-          padding-bottom: 12px;
-          border-bottom: 3px solid #e5e7eb;
-        }
-        
-        .section-title .icon {
-          margin-right: 12px;
-          font-size: 24px;
+          font-size: 18px;
+          font-weight: 600;
+          color: #333333;
+          margin-bottom: 15px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #e0e0e0;
         }
         
         .info-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 20px;
+          gap: 15px;
         }
         
         .info-card {
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          padding: 20px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          background: #f9f9f9;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          padding: 15px;
         }
         
         .info-label {
           font-size: 12px;
-          font-weight: 700;
-          color: #6b7280;
+          font-weight: 600;
+          color: #777777;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
-          margin-bottom: 8px;
+          letter-spacing: 0.05em;
+          margin-bottom: 5px;
         }
         
         .info-value {
           font-size: 16px;
-          font-weight: 600;
-          color: #1f2937;
+          font-weight: 500;
+          color: #333333;
           word-break: break-word;
         }
         
         .email-link {
-          color: #dc2626;
+          color: #555555;
           text-decoration: none;
-          font-weight: 600;
+          font-weight: 500;
         }
         
         .email-link:hover {
@@ -694,27 +608,24 @@ async function sendSalesTeamNotification(
           width: 100%;
           border-collapse: collapse;
           background: #ffffff;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
           overflow: hidden;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         
         .specs-table th {
-          background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+          background: #555555;
           color: #ffffff;
-          padding: 16px;
+          padding: 12px 15px;
           text-align: left;
-          font-weight: 600;
+          font-weight: 500;
           font-size: 14px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
         }
         
         .specs-table td {
-          padding: 16px;
-          border-bottom: 1px solid #e5e7eb;
-          font-size: 15px;
-          font-weight: 500;
+          padding: 12px 15px;
+          border-bottom: 1px solid #e0e0e0;
+          font-size: 14px;
         }
         
         .specs-table tr:last-child td {
@@ -722,125 +633,107 @@ async function sendSalesTeamNotification(
         }
         
         .specs-table tr:nth-child(even) {
-          background: #f9fafb;
+          background: #f9f9f9;
         }
         
         .design-preview {
-          background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-          border: 2px solid #10b981;
-          border-radius: 16px;
-          padding: 32px;
+          background: #f9f9f9;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          padding: 25px;
           text-align: center;
         }
         
         .design-preview h3 {
-          font-size: 22px;
-          font-weight: 700;
-          color: #065f46;
-          margin-bottom: 16px;
+          font-size: 18px;
+          font-weight: 600;
+          color: #333333;
+          margin-bottom: 15px;
         }
         
         .screenshot {
           max-width: 100%;
           height: auto;
-          border-radius: 12px;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          margin: 20px 0;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          margin: 15px 0;
         }
         
         .action-buttons {
           display: flex;
-          gap: 16px;
+          gap: 15px;
           justify-content: center;
           flex-wrap: wrap;
-          margin-top: 24px;
+          margin-top: 20px;
         }
         
         .btn {
           display: inline-block;
-          padding: 14px 28px;
-          border-radius: 8px;
+          padding: 10px 20px;
+          border-radius: 4px;
           text-decoration: none;
-          font-weight: 600;
-          font-size: 15px;
+          font-weight: 500;
+          font-size: 14px;
           text-align: center;
-          transition: all 0.2s ease;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        
-        .btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
         
         .btn-primary {
-          background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+          background: #555555;
           color: #ffffff;
         }
         
         .btn-secondary {
-          background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-          color: #ffffff;
-        }
-        
-        .btn-success {
-          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+          background: #777777;
           color: #ffffff;
         }
         
         .priority-banner {
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          border: 2px solid #f59e0b;
-          border-radius: 12px;
-          padding: 20px;
-          margin: 32px 0;
+          background: #f9f9f9;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          padding: 15px;
+          margin: 25px 0;
           text-align: center;
         }
         
         .priority-banner h3 {
-          color: #92400e;
-          font-size: 18px;
-          font-weight: 700;
-          margin-bottom: 8px;
+          color: #333333;
+          font-size: 16px;
+          font-weight: 600;
+          margin-bottom: 5px;
         }
         
         .priority-banner p {
-          color: #78350f;
-          font-size: 15px;
-          font-weight: 500;
+          color: #555555;
+          font-size: 14px;
         }
         
         .footer {
-          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-          padding: 32px 40px;
+          background: #f5f5f5;
+          padding: 20px;
           text-align: center;
-          border-top: 1px solid #e5e7eb;
-          position: relative;
+          border-top: 1px solid #e0e0e0;
         }
         
         .footer-text {
-          color: #6b7280;
+          color: #777777;
           font-size: 14px;
-          margin-bottom: 8px;
+          margin-bottom: 5px;
         }
         
         .footer-credit {
-          position: absolute;
-          bottom: 16px;
-          right: 24px;
-          font-size: 11px;
-          color: #9ca3af;
-          font-weight: 400;
+          margin-top: 10px;
+          font-size: 12px;
+          color: #999999;
         }
         
         @media (max-width: 768px) {
           .email-container {
-            margin: 10px;
-            border-radius: 12px;
+            width: 100%;
           }
           
           .content, .header {
-            padding: 24px 20px;
+            padding: 20px 15px;
           }
           
           .info-grid {
@@ -854,12 +747,6 @@ async function sendSalesTeamNotification(
           .btn {
             width: 100%;
           }
-          
-          .footer-credit {
-            position: static;
-            text-align: center;
-            margin-top: 16px;
-          }
         }
       </style>
     </head>
@@ -867,12 +754,10 @@ async function sendSalesTeamNotification(
       <div class="email-container">
         <!-- Header -->
         <div class="header">
-          <div class="header-content">
-            <div class="alert-badge">NEW INQUIRY</div>
-            <h1>Patio/Gazebo Design Request</h1>
-            <div class="reference">Reference: ${referenceNumber}</div>
-            <div class="timestamp">Submitted: ${new Date().toLocaleString()}</div>
-          </div>
+          <div class="alert-badge">NEW INQUIRY</div>
+          <h1>Patio/Gazebo Design Request</h1>
+          <div class="reference">Reference: ${referenceNumber}</div>
+          <div class="timestamp">Submitted: ${new Date().toLocaleString()}</div>
         </div>
         
         <!-- Content -->
@@ -880,8 +765,7 @@ async function sendSalesTeamNotification(
           <!-- Customer Information -->
           <div class="section">
             <div class="section-title">
-              <span class="icon">👤</span>
-              Customer Info:
+              Customer Information
             </div>
             <div class="info-grid">
               <div class="info-card">
@@ -904,8 +788,7 @@ async function sendSalesTeamNotification(
           <!-- Patio/Gazebo Specifications -->
           <div class="section">
             <div class="section-title">
-              <span class="icon">🏗️</span>
-              Specifications:
+              Design Specifications
             </div>
             <table class="specs-table">
               <thead>
@@ -929,7 +812,7 @@ async function sendSalesTeamNotification(
                 </tr>
                 <tr>
                   <td>Dimensions</td>
-                  <td><strong>L:</strong> ${data.length}mm × <strong>W:</strong> ${data.width}mm × <strong>H:</strong> ${data.height}mm</td>
+                  <td>L: ${data.length}mm × W: ${data.width}mm × H: ${data.height}mm</td>
                 </tr>
                 <tr>
                   <td>Roof Color</td>
@@ -946,25 +829,21 @@ async function sendSalesTeamNotification(
           <!-- 3D Design Preview -->
           <div class="section">
             <div class="section-title">
-              <span class="icon">🎨</span>
-              3D Preview:
+              3D Design Preview
             </div>
             <div class="design-preview">
-              <h3>Interactive 3D Design</h3>
+              <h3>Customer's Design</h3>
               ${
                 screenshotUrl
-                  ? `<img src="${screenshotUrl}" alt="3D Patio/Gazebo Design Preview" class="screenshot" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); margin: 20px 0;" />`
-                  : `<div style="background: #f3f4f6; padding: 40px; border-radius: 12px; color: #6b7280; font-style: italic; text-align: center;">3D design screenshot will be available once processing is complete</div>`
+                  ? `<img src="${screenshotUrl}" alt="3D Patio/Gazebo Design Preview" class="screenshot" />`
+                  : `<div style="background: #f0f0f0; padding: 30px; border-radius: 4px; color: #777777; font-style: italic; text-align: center;">3D design screenshot not available</div>`
               }
               <div class="action-buttons">
                 <a href="mailto:${data.customerEmail}?subject=Re: Your Patio/Gazebo Inquiry ${referenceNumber}&body=Dear ${data.customerName},%0D%0A%0D%0AThank you for your patio/gazebo inquiry. We have reviewed your requirements and would like to discuss your project further.%0D%0A%0D%0ABest regards,%0D%0AThe Sales Team" class="btn btn-primary">
                   Reply to Customer
                 </a>
-                <a href="${designUrl}" class="btn btn-success">
+                <a href="${designUrl}" class="btn btn-secondary">
                   View 3D Design
-                </a>
-                <a href="tel:${data.customerEmail}" class="btn btn-secondary">
-                  Contact Customer
                 </a>
               </div>
             </div>
@@ -972,7 +851,7 @@ async function sendSalesTeamNotification(
           
           <!-- Priority Banner -->
           <div class="priority-banner">
-            <h3>⏰ Follow-up Required</h3>
+            <h3>Follow-up Required</h3>
             <p>Please contact this customer within 24 hours for optimal conversion rates</p>
           </div>
         </div>
@@ -991,15 +870,15 @@ async function sendSalesTeamNotification(
 
   // Create text version
   const textContent = `
-🚨 NEW PATIO/GAZEBO INQUIRY ${referenceNumber}
+NEW PATIO/GAZEBO INQUIRY ${referenceNumber}
 Submitted: ${new Date().toLocaleString()}
 
-👤 CUSTOMER INFORMATION:
+CUSTOMER INFORMATION:
 - Name: ${data.customerName}
 - Email: ${data.customerEmail}
 - Installation Address: ${data.siteAddress}
 
-🏗️ PATIO/GAZEBO SPECIFICATIONS:
+PATIO/GAZEBO SPECIFICATIONS:
 - Roof Type: ${data.roofType}
 - Roof Cladding: ${data.roofCladding}
 - Roof Pitch: ${data.roofPitch}°
@@ -1007,15 +886,15 @@ Submitted: ${new Date().toLocaleString()}
 - Roof Color: ${data.roofColor}
 - Frame Color: ${data.postBeamColor}
 
-🎨 3D DESIGN:
+3D DESIGN:
 ${screenshotUrl ? `Screenshot: ${screenshotUrl}` : "Screenshot not available"}
 Interactive Design: ${designUrl}
 
-⚡ QUICK ACTIONS:
+QUICK ACTIONS:
 - Reply to customer: ${data.customerEmail}
 - View 3D design: ${designUrl}
 
-⏰ FOLLOW-UP REQUIRED:
+FOLLOW-UP REQUIRED:
 Please contact this customer within 24 hours for optimal conversion rates.
 
 Generated by Gazi OGUTCU 2025
@@ -1117,8 +996,12 @@ export async function sendGazeboInquiry(data: InquiryData) {
       console.warn("⚠️ Failed to notify sales team:", salesEmailResult.error)
     }
 
-    // Send confirmation email
-    const emailResult = await sendCustomerConfirmation(data, inquiryId)
+    // Send confirmation email to customer with screenshot
+    const customerData = {
+      ...data,
+      screenshot: screenshotUrl, // Pass the screenshot URL to the customer email
+    }
+    const emailResult = await sendCustomerConfirmation(customerData, inquiryId)
 
     // Return success with email status
     const referenceNumber = inquiryId?.toString().padStart(6, "0")

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
+import { useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -102,26 +103,89 @@ export default function GazeboInquiryForm() {
   const [submitStatus, setSubmitStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [currentStep, setCurrentStep] = useState<"design" | "customer">("design")
   const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [isViewMode, setIsViewMode] = useState(false)
+  const [referenceNumber, setReferenceNumber] = useState<string>("")
 
+  const searchParams = useSearchParams()
   const gazeboPreviewRef = useRef<GazeboPreviewRef>(null)
 
-  // Update the form default values
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
+  // Pure function to extract URL parameters without side effects
+  const extractUrlParams = useMemo(() => {
+    if (!searchParams) return null
+
+    return {
+      roofType: (searchParams.get("roofType") as "Gable" | "Skillion") || "Gable",
+      roofCladding: (searchParams.get("roofCladding") as "Corrugated" | "Trimclad") || "Corrugated",
+      roofPitch: Number(searchParams.get("roofPitch")) || 10,
+      length: Number(searchParams.get("length")) || 3000,
+      width: Number(searchParams.get("width")) || 3000,
+      height: Number(searchParams.get("height")) || 2400,
+      roofColor: searchParams.get("roofColor") || "SURFMIST / BASALT",
+      postBeamColor: searchParams.get("postBeamColor") || "MONUMENT",
+      isDesignView: searchParams.get("design") === "true",
+      ref: searchParams.get("ref"),
+    }
+  }, [searchParams])
+
+  // Default form values
+  const defaultFormValues = useMemo(() => {
+    const urlParams = extractUrlParams
+
+    if (urlParams) {
+      return {
+        customerName: "",
+        siteAddress: "",
+        customerEmail: "",
+        roofType: urlParams.roofType,
+        roofCladding: urlParams.roofCladding,
+        roofPitch: urlParams.roofPitch,
+        length: urlParams.length,
+        width: urlParams.width,
+        height: urlParams.height,
+        roofColor: urlParams.roofColor,
+        postBeamColor: urlParams.postBeamColor,
+      }
+    }
+
+    return {
       customerName: "",
       siteAddress: "",
       customerEmail: "",
-      roofType: "Gable",
-      roofCladding: "Corrugated",
+      roofType: "Gable" as const,
+      roofCladding: "Corrugated" as const,
       roofPitch: 10,
       length: 3000,
       width: 3000,
       height: 2400,
       roofColor: "SURFMIST / BASALT",
       postBeamColor: "MONUMENT",
-    },
+    }
+  }, [extractUrlParams])
+
+  // Initialize form
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: defaultFormValues,
   })
+
+  // Handle URL parameters and view mode - separate from form initialization
+  useEffect(() => {
+    if (extractUrlParams?.isDesignView) {
+      setIsViewMode(true)
+      if (extractUrlParams.ref) {
+        setReferenceNumber(`#${extractUrlParams.ref.padStart(6, "0")}`)
+      }
+
+      console.log("🔗 Loaded design from URL:", {
+        roofType: extractUrlParams.roofType,
+        roofCladding: extractUrlParams.roofCladding,
+        roofPitch: extractUrlParams.roofPitch,
+        dimensions: `${extractUrlParams.length}x${extractUrlParams.width}x${extractUrlParams.height}`,
+        roofColor: extractUrlParams.roofColor,
+        postBeamColor: extractUrlParams.postBeamColor,
+      })
+    }
+  }, [extractUrlParams])
 
   // Handle roof type changes with proper validation
   useEffect(() => {
@@ -217,6 +281,8 @@ export default function GazeboInquiryForm() {
           form.reset()
           setSubmitStatus(null)
           setCurrentStep("design")
+          setIsViewMode(false)
+          setReferenceNumber("")
         }, 5000)
       } else {
         setSubmitStatus({
@@ -241,6 +307,25 @@ export default function GazeboInquiryForm() {
   }
 
   const backToDesign = () => {
+    setCurrentStep("design")
+  }
+
+  const startNewDesign = () => {
+    form.reset({
+      customerName: "",
+      siteAddress: "",
+      customerEmail: "",
+      roofType: "Gable",
+      roofCladding: "Corrugated",
+      roofPitch: 10,
+      length: 3000,
+      width: 3000,
+      height: 2400,
+      roofColor: "SURFMIST / BASALT",
+      postBeamColor: "MONUMENT",
+    })
+    setIsViewMode(false)
+    setReferenceNumber("")
     setCurrentStep("design")
   }
 
@@ -364,7 +449,22 @@ export default function GazeboInquiryForm() {
         {/* Header - Fixed */}
         <div className="flex-shrink-0 p-6 border-b border-gray-200/50">
           <h1 className="text-2xl font-bold text-gray-900">Aussie Patio Designer</h1>
-          <p className="text-sm text-gray-600">Design your perfect patio/gazebo</p>
+          <p className="text-sm text-gray-600">
+            {isViewMode ? `Viewing saved design ${referenceNumber}` : "Design your perfect patio/gazebo"}
+          </p>
+          {isViewMode && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>This is your saved design!</strong>
+                <br />
+                You can modify it and submit a new inquiry, or{" "}
+                <button onClick={startNewDesign} className="underline font-medium">
+                  start a completely new design
+                </button>
+                .
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Scrollable Content */}
@@ -389,7 +489,7 @@ export default function GazeboInquiryForm() {
                               <FormControl>
                                 <RadioGroup
                                   onValueChange={field.onChange}
-                                  defaultValue={field.value}
+                                  value={field.value}
                                   className="flex flex-col space-y-2"
                                 >
                                   <div className="flex items-center space-x-2">
@@ -577,7 +677,7 @@ export default function GazeboInquiryForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-sm font-medium">Roof Color</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select roof color" />
@@ -608,7 +708,7 @@ export default function GazeboInquiryForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-sm font-medium">Frame Color</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select frame color" />
