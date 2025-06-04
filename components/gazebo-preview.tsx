@@ -1075,7 +1075,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFSoftShadowMap
           gl.toneMapping = THREE.ACESFilmicToneMapping
-          gl.toneMappingExposure = 0.7 // Reduced from 1.0 to 0.7 for less brightness variation
+          gl.toneMappingExposure = 1.0 // Reduced from 1.2 for less gloss
           gl.outputColorSpace = THREE.SRGBColorSpace
         }}
       >
@@ -1086,11 +1086,11 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           <GrassGround />
 
           {/* Enhanced lighting setup */}
-          <ambientLight intensity={0.6} color="#ffffff" />
+          <ambientLight intensity={0.4} color="#ffffff" />
           {/* Main sun light - repositioned for opposite side view */}
           <directionalLight
-            position={[-5, 10, -5]}
-            intensity={0.5} // Reduced from 0.8 to 0.5 for less dramatic lighting
+            position={[-5, 10, -5]} // Changed from [5, 10, 5] to match camera side
+            intensity={0.8} // Slightly reduced for less gloss
             color="#f8f8f8"
             castShadow
             shadow-mapSize-width={2048}
@@ -1104,7 +1104,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           />
 
           {/* Fill light for better color visibility */}
-          <directionalLight position={[5, 8, 3]} intensity={0.2} color="#e0e8ff" />
+          <directionalLight position={[5, 8, 3]} intensity={0.3} color="#e0e8ff" />
 
           <GazeboStructure {...props} />
 

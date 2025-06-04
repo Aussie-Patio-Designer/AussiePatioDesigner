@@ -16,6 +16,12 @@ export async function POST(request: NextRequest) {
       dimensions: `${data.length}x${data.width}x${data.height}`,
     })
 
+    // Check if screenshot data is valid before processing
+    if (data.screenshot && !data.screenshot.startsWith("data:image/")) {
+      console.warn("⚠️ Invalid screenshot data format received")
+      data.screenshot = undefined // Remove invalid screenshot data
+    }
+
     const result = await sendGazeboInquiry(data)
 
     if (result.success) {

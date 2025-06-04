@@ -1260,18 +1260,26 @@ export async function sendGazeboInquiry(data: InquiryData) {
     // Initialize database
     await initializeDatabase()
 
-    // Upload screenshot if provided
+    // Update screenshot if provided
     let screenshotUrl: string | undefined
     if (data.screenshot) {
       try {
+        console.log("Attempting to upload screenshot")
         const tempId = `temp-${Date.now()}`
         const uploadResult = await uploadScreenshot(data.screenshot, tempId)
-        if (uploadResult.success) {
+
+        if (uploadResult.success && uploadResult.url) {
+          console.log("Screenshot uploaded successfully:", uploadResult.url)
           screenshotUrl = uploadResult.url
+        } else {
+          console.warn("Screenshot upload failed:", uploadResult.error)
         }
       } catch (error) {
-        console.warn("Screenshot upload failed:", error)
+        console.warn("Exception during screenshot upload:", error)
+        // Continue without the screenshot
       }
+    } else {
+      console.log("No screenshot provided in submission")
     }
 
     // Save inquiry to database
