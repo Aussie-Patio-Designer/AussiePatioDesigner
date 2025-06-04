@@ -137,11 +137,13 @@ export default function GazeboInquiryForm() {
 
     if (urlParams) {
       return {
+        // Always start with empty customer details regardless of URL params
         customerName: "",
         siteAddress: "",
         customerEmail: "",
         customerPhone: "",
         additionalDetails: "",
+        // Only use URL params for design values
         roofType: urlParams.roofType,
         roofCladding: urlParams.roofCladding,
         roofPitch: urlParams.roofPitch,
@@ -770,7 +772,12 @@ export default function GazeboInquiryForm() {
                             <FormItem>
                               <FormLabel className="text-sm font-medium">Customer Name</FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter your full name" {...field} className="text-sm" />
+                                <Input
+                                  placeholder="Enter your full name"
+                                  {...field}
+                                  value={field.value || ""}
+                                  className="text-sm"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -784,7 +791,13 @@ export default function GazeboInquiryForm() {
                             <FormItem>
                               <FormLabel className="text-sm font-medium">Email Address</FormLabel>
                               <FormControl>
-                                <Input type="email" placeholder="Enter your email" {...field} className="text-sm" />
+                                <Input
+                                  type="email"
+                                  placeholder="Enter your email"
+                                  {...field}
+                                  value={field.value || ""}
+                                  className="text-sm"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -802,6 +815,7 @@ export default function GazeboInquiryForm() {
                                   type="tel"
                                   placeholder="Enter your phone number"
                                   {...field}
+                                  value={field.value || ""}
                                   className="text-sm"
                                 />
                               </FormControl>
@@ -820,6 +834,7 @@ export default function GazeboInquiryForm() {
                                 <Textarea
                                   placeholder="Enter the full installation address..."
                                   {...field}
+                                  value={field.value || ""}
                                   className="min-h-[80px] text-sm"
                                 />
                               </FormControl>
@@ -838,6 +853,7 @@ export default function GazeboInquiryForm() {
                                 <Textarea
                                   placeholder="Any specific requirements, preferences, or questions about your patio/gazebo project..."
                                   {...field}
+                                  value={field.value || ""}
                                   className="min-h-[100px] text-sm"
                                 />
                               </FormControl>
