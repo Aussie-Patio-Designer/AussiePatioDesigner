@@ -371,7 +371,7 @@ async function sendCustomerConfirmation(
         <!-- Header -->
         <div class="header">
           <div class="header-content">
-            <div class="logo">🏗️</div>
+            <div class="logo">DESIGN</div>
             <h1>Thank You for Your Inquiry</h1>
             <p>Your patio/gazebo design request has been received</p>
             ${referenceNumber ? `<div class="reference-badge">Reference ${referenceNumber}</div>` : ""}
@@ -388,7 +388,7 @@ async function sendCustomerConfirmation(
           
           <!-- Design Specifications -->
           <div class="specs-section">
-            <div class="specs-title">Your Design Specifications</div>
+            <div class="specs-title">Specifications:</div>
             <div class="specs-grid">
               <div class="spec-item">
                 <div class="spec-label">Roof Type</div>
@@ -419,7 +419,7 @@ async function sendCustomerConfirmation(
           
           <!-- 3D Design Section -->
           <div class="design-section">
-            <div class="design-title">🎨 View Your 3D Design</div>
+            <div class="design-title">3D Preview:</div>
             <div class="design-subtitle">Experience your patio/gazebo in interactive 3D</div>
             <a href="${designUrl}" class="cta-button">View Interactive Design</a>
             <div class="design-link">
@@ -429,7 +429,7 @@ async function sendCustomerConfirmation(
           
           <!-- Next Steps -->
           <div class="next-steps">
-            <div class="next-steps-title">What Happens Next?</div>
+            <div class="next-steps-title">Next Steps:</div>
             <div class="next-steps-content">
               <strong>Our team will contact you within 24-48 hours</strong> to discuss your project in detail and provide you with a comprehensive quote. We'll review your specifications and may suggest optimizations to ensure the best outcome for your patio/gazebo project.
               <br><br>
@@ -868,7 +868,7 @@ async function sendSalesTeamNotification(
         <!-- Header -->
         <div class="header">
           <div class="header-content">
-            <div class="alert-badge">🚨 New Inquiry</div>
+            <div class="alert-badge">NEW INQUIRY</div>
             <h1>Patio/Gazebo Design Request</h1>
             <div class="reference">Reference: ${referenceNumber}</div>
             <div class="timestamp">Submitted: ${new Date().toLocaleString()}</div>
@@ -881,7 +881,7 @@ async function sendSalesTeamNotification(
           <div class="section">
             <div class="section-title">
               <span class="icon">👤</span>
-              Customer Information
+              Customer Info:
             </div>
             <div class="info-grid">
               <div class="info-card">
@@ -905,7 +905,7 @@ async function sendSalesTeamNotification(
           <div class="section">
             <div class="section-title">
               <span class="icon">🏗️</span>
-              Patio/Gazebo Specifications
+              Specifications:
             </div>
             <table class="specs-table">
               <thead>
@@ -947,24 +947,24 @@ async function sendSalesTeamNotification(
           <div class="section">
             <div class="section-title">
               <span class="icon">🎨</span>
-              3D Design Preview
+              3D Preview:
             </div>
             <div class="design-preview">
               <h3>Interactive 3D Design</h3>
               ${
                 screenshotUrl
-                  ? `<img src="${screenshotUrl}" alt="3D Patio/Gazebo Design" class="screenshot" />`
-                  : `<p style="color: #6b7280; font-style: italic;">3D design screenshot not available</p>`
+                  ? `<img src="${screenshotUrl}" alt="3D Patio/Gazebo Design Preview" class="screenshot" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); margin: 20px 0;" />`
+                  : `<div style="background: #f3f4f6; padding: 40px; border-radius: 12px; color: #6b7280; font-style: italic; text-align: center;">3D design screenshot will be available once processing is complete</div>`
               }
               <div class="action-buttons">
                 <a href="mailto:${data.customerEmail}?subject=Re: Your Patio/Gazebo Inquiry ${referenceNumber}&body=Dear ${data.customerName},%0D%0A%0D%0AThank you for your patio/gazebo inquiry. We have reviewed your requirements and would like to discuss your project further.%0D%0A%0D%0ABest regards,%0D%0AThe Sales Team" class="btn btn-primary">
-                  📧 Reply to Customer
+                  Reply to Customer
                 </a>
                 <a href="${designUrl}" class="btn btn-success">
-                  🔗 View 3D Design
+                  View 3D Design
                 </a>
                 <a href="tel:${data.customerEmail}" class="btn btn-secondary">
-                  📞 Contact Customer
+                  Contact Customer
                 </a>
               </div>
             </div>
