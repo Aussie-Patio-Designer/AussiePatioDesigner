@@ -933,8 +933,6 @@ export default function GazeboInquiryForm() {
                       Continue to Customer Details
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
-
-                    {/* No test button here anymore */}
                   </>
                 ) : (
                   <>
