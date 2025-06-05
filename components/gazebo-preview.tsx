@@ -85,7 +85,7 @@ function GrassGround() {
         // Enhanced texture settings for tiling
         texture.wrapS = THREE.RepeatWrapping
         texture.wrapT = THREE.RepeatWrapping
-        texture.repeat.set(8, 8) // Increased from 4x4 to 8x8 for smaller tiles
+        texture.repeat.set(12, 12) // Increased from 8x8 to 12x12 for wider area
         texture.anisotropy = 16 // Maximum anisotropy for crisp textures
         texture.colorSpace = THREE.SRGBColorSpace
         setGrassTexture(texture)
@@ -117,7 +117,7 @@ function GrassGround() {
   }, [grassTexture])
 
   return (
-    <Plane args={[50, 50]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+    <Plane args={[80, 80]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
       <primitive object={grassMaterial} attach="material" />
     </Plane>
   )
@@ -232,6 +232,84 @@ function GutterOutlet({
   )
 }
 
+// Logo decals component to place branding around the gazebo
+function LogoDecals({ gazeboLength, gazeboWidth }: { gazeboLength: number; gazeboWidth: number }) {
+  const [logoTexture, setLogoTexture] = useState<THREE.Texture | null>(null)
+
+  useEffect(() => {
+    const loader = new TextureLoader()
+    loader.load(
+      "/images/aussie-patio-designer-logo.png",
+      (texture) => {
+        texture.wrapS = THREE.ClampToEdgeWrapping
+        texture.wrapT = THREE.ClampToEdgeWrapping
+        texture.colorSpace = THREE.SRGBColorSpace
+        setLogoTexture(texture)
+      },
+      undefined,
+      (error) => {
+        console.warn("Logo texture failed to load:", error)
+      },
+    )
+  }, [])
+
+  if (!logoTexture) return null
+
+  // Convert mm to meters and calculate positions around the gazebo
+  const scaleLength = gazeboLength / 1000
+  const scaleWidth = gazeboWidth / 1000
+  const logoSize = 2.5 // 2.5m x 2.5m logos for better visibility
+  const distance = 3.5 // Back to 3.5m from gazebo edge
+
+  // Position all 4 logos to be visible from the ISO camera view [-8, 6, -8]
+  // All logos lay completely flat like grass texture decals
+  const logoPositions = [
+    // Front logo (directly in front - negative Z) - rotated 180 degrees around Y-axis + 90 degrees on X
+    {
+      position: [0, 0.02, -(scaleWidth / 2 + distance)],
+      rotation: [Math.PI / 2, Math.PI, 0], // 90 degree X rotation + 180 degree Y rotation
+    },
+    // Back logo (directly behind - positive Z) - rotated 180 degrees vertically
+    {
+      position: [0, 0.02, scaleWidth / 2 + distance],
+      rotation: [-Math.PI / 2, 0, 0], // Removed the 180 degree Z rotation
+    },
+    // Left logo (directly to the left - negative X)
+    {
+      position: [-(scaleLength / 2 + distance), 0.02, 0],
+      rotation: [-Math.PI / 2, 0, -Math.PI / 2], // 90 degree X rotation + 270 degree Z rotation
+    },
+    // Right logo (directly to the right - positive X)
+    {
+      position: [scaleLength / 2 + distance, 0.02, 0],
+      rotation: [(3 * Math.PI) / 2, 0, Math.PI / 2], // 270 degree X rotation + 90 degree Z rotation
+    },
+  ]
+
+  return (
+    <group>
+      {logoPositions.map((logo, index) => (
+        <mesh
+          key={`logo-${index}`}
+          position={logo.position as [number, number, number]}
+          rotation={logo.rotation as [number, number, number]}
+          receiveShadow
+        >
+          <planeGeometry args={[logoSize, logoSize]} />
+          <meshStandardMaterial
+            map={logoTexture}
+            transparent
+            alphaTest={0.1}
+            roughness={0.8}
+            metalness={0.0}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 function GazeboStructure(props: GazeboPreviewProps) {
   const {
     length,
@@ -281,7 +359,7 @@ function GazeboStructure(props: GazeboPreviewProps) {
 
     const baseColor = hexToRgb(color)
     const darkerColor = `rgb(${Math.max(0, baseColor.r - 40)}, ${Math.max(0, baseColor.g - 40)}, ${Math.max(0, baseColor.b - 40)})`
-    const lighterColor = `rgb(${Math.min(255, baseColor.r + 40)}, ${Math.min(255, baseColor.g + 40)}, ${Math.min(255, baseColor.b - 40)})`
+    const lighterColor = `rgb(${Math.min(255, baseColor.r + 40)}, ${Math.min(255, baseColor.g + 40)}, ${Math.min(255, baseColor.b + 40)})`
 
     // Base color fill
     ctx.fillStyle = color
@@ -796,6 +874,9 @@ function GazeboStructure(props: GazeboPreviewProps) {
           )}
         </group>
       )}
+
+      {/* Logo decals around the gazebo */}
+      <LogoDecals gazeboLength={length} gazeboWidth={width} />
     </group>
   )
 }
@@ -1150,10 +1231,10 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             enableZoom={true}
             enableRotate={true}
             minDistance={4}
-            maxDistance={20}
-            minPolarAngle={Math.PI / 12} // Changed from Math.PI / 6 to Math.PI / 12 (15 degrees)
-            maxPolarAngle={Math.PI / 1.5} // Changed from Math.PI / 2.5 to Math.PI / 1.5 (120 degrees)
-            target={[0, 1.5, 0]} // Slightly higher target for better isometric view
+            maxDistance={40} // Increased from 20 to 40 for more zoom out
+            minPolarAngle={Math.PI / 12}
+            maxPolarAngle={Math.PI / 1.5}
+            target={[0, 1.5, 0]}
             enableDamping={true}
             dampingFactor={0.05}
             rotateSpeed={0.7}
