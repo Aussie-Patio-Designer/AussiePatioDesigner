@@ -19,6 +19,7 @@ import GazeboPreview from "@/components/gazebo-preview"
 import type { GazeboPreviewRef } from "./gazebo-preview"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
 
 // Fixed form schema with proper validation
 const formSchema = z
@@ -41,7 +42,7 @@ const formSchema = z
     roofPitch: z.number().min(2).max(22.5).default(15),
     length: z.number().min(1000).max(20000).default(3000),
     width: z.number().min(1000).max(20000).default(3000),
-    height: z.number().min(1000).max(5000).default(2400),
+    height: z.number().min(2400).max(5000).default(2400),
     roofColor: z.string().min(1, "Roof color is required").default("SURFMIST / BASALT"),
     postBeamColor: z.string().min(1, "Frame color is required").default("MONUMENT"),
   })
@@ -721,15 +722,39 @@ export default function GazeboInquiryForm() {
                           name="length"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">Length (mm)</FormLabel>
-                              <FormControl>
+                              <div className="flex items-center justify-between">
+                                <FormLabel className="text-sm font-medium">Length (m)</FormLabel>
                                 <Input
                                   type="number"
+                                  min={1}
+                                  max={20}
+                                  step={0.1}
+                                  value={(field.value / 1000).toFixed(1)}
+                                  onChange={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value)) {
+                                      field.onChange(1000)
+                                    } else {
+                                      field.onChange(Math.max(1000, value * 1000))
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value) || value < 1) {
+                                      field.onChange(1000)
+                                    }
+                                  }}
+                                  className="w-16 h-8 text-center text-sm"
+                                />
+                              </div>
+                              <FormControl>
+                                <Slider
                                   min={1000}
-                                  placeholder="3000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(Number(e.target.value))}
-                                  className="text-sm"
+                                  max={20000}
+                                  step={100}
+                                  value={[field.value]}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                  className="py-2"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -742,15 +767,39 @@ export default function GazeboInquiryForm() {
                           name="width"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">Width (mm)</FormLabel>
-                              <FormControl>
+                              <div className="flex items-center justify-between">
+                                <FormLabel className="text-sm font-medium">Width (m)</FormLabel>
                                 <Input
                                   type="number"
+                                  min={1}
+                                  max={20}
+                                  step={0.1}
+                                  value={(field.value / 1000).toFixed(1)}
+                                  onChange={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value)) {
+                                      field.onChange(1000)
+                                    } else {
+                                      field.onChange(Math.max(1000, value * 1000))
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value) || value < 1) {
+                                      field.onChange(1000)
+                                    }
+                                  }}
+                                  className="w-16 h-8 text-center text-sm"
+                                />
+                              </div>
+                              <FormControl>
+                                <Slider
                                   min={1000}
-                                  placeholder="3000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(Number(e.target.value))}
-                                  className="text-sm"
+                                  max={20000}
+                                  step={100}
+                                  value={[field.value]}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                  className="py-2"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -763,15 +812,39 @@ export default function GazeboInquiryForm() {
                           name="height"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">Eave Height (mm)</FormLabel>
-                              <FormControl>
+                              <div className="flex items-center justify-between">
+                                <FormLabel className="text-sm font-medium">Eave Height (m)</FormLabel>
                                 <Input
                                   type="number"
-                                  min={1000}
-                                  placeholder="2400"
-                                  {...field}
-                                  onChange={(e) => field.onChange(Number(e.target.value))}
-                                  className="text-sm"
+                                  min={2.4}
+                                  max={5}
+                                  step={0.1}
+                                  value={(field.value / 1000).toFixed(1)}
+                                  onChange={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value)) {
+                                      field.onChange(2400)
+                                    } else {
+                                      field.onChange(Math.max(2400, value * 1000))
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value) || value < 2.4) {
+                                      field.onChange(2400)
+                                    }
+                                  }}
+                                  className="w-16 h-8 text-center text-sm"
+                                />
+                              </div>
+                              <FormControl>
+                                <Slider
+                                  min={2400}
+                                  max={5000}
+                                  step={100}
+                                  value={[field.value]}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                  className="py-2"
                                 />
                               </FormControl>
                               <FormMessage />
