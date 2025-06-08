@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,7 +23,7 @@ interface Agent {
   contact_name: string
   email: string
   phone: string
-  website_url?: string
+  website?: string // Database column name
   logo_url?: string
   url_slug: string
   status: string
@@ -31,26 +31,50 @@ interface Agent {
 }
 
 interface EditAgentModalProps {
-  agent: Agent
+  agent: Agent | null
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSubmit: (agentData: any) => void
 }
 
-export function EditAgentModal({ agent, isOpen, onClose, onSuccess }: EditAgentModalProps) {
+export function EditAgentModal({ agent, isOpen, onClose, onSubmit }: EditAgentModalProps) {
   const [formData, setFormData] = useState({
-    company_name: agent.company_name,
-    contact_name: agent.contact_name,
-    email: agent.email,
-    phone: agent.phone,
-    website_url: agent.website_url || "",
-    logo_url: agent.logo_url || "",
-    url_slug: agent.url_slug,
-    status: agent.status,
-    notes: agent.notes || "",
+    id: 0,
+    company_name: "",
+    contact_name: "",
+    email: "",
+    phone: "",
+    website_url: "", // Form field name
+    logo_url: "",
+    url_slug: "",
+    status: "active",
+    notes: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
+
+  // Update form data when agent changes
+  useEffect(() => {
+    if (agent) {
+      setFormData({
+        id: agent.id,
+        company_name: agent.company_name || "",
+        contact_name: agent.contact_name || "",
+        email: agent.email || "",
+        phone: agent.phone || "",
+        website_url: agent.website || "", // Map database 'website' to form 'website_url'
+        logo_url: agent.logo_url || "",
+        url_slug: agent.url_slug || "",
+        status: agent.status || "active",
+        notes: agent.notes || "",
+      })
+    }
+  }, [agent])
+
+  // Don't render if no agent is selected
+  if (!agent) {
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,21 +82,7 @@ export function EditAgentModal({ agent, isOpen, onClose, onSuccess }: EditAgentM
     setError("")
 
     try {
-      const response = await fetch(`/api/admin/agents/${agent.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to update agent")
-      }
-
-      onSuccess()
-      onClose()
+      await onSubmit(formData)
     } catch (error) {
       console.error("Error updating agent:", error)
       setError(error instanceof Error ? error.message : "Failed to update agent")
