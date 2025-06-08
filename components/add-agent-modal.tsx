@@ -29,6 +29,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitError, setSubmitError] = useState("")
 
   const generateUrlSlug = (companyName: string) => {
     return companyName
@@ -82,6 +83,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitError("")
 
     if (!validateForm()) {
       return
@@ -91,6 +93,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
 
     try {
       await onSubmit(formData)
+      // Reset form on success
       setFormData({
         company_name: "",
         contact_name: "",
@@ -104,6 +107,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
       setErrors({})
     } catch (error) {
       console.error("Error submitting agent:", error)
+      setSubmitError("Failed to create agent. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -121,6 +125,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
       subscription_type: "basic",
     })
     setErrors({})
+    setSubmitError("")
     onClose()
   }
 
@@ -145,6 +150,12 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
         </CardHeader>
 
         <CardContent className="p-6">
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+              <p className="text-red-700 text-sm">{submitError}</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Company Information */}
             <div className="space-y-4">

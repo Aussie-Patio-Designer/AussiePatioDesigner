@@ -35,10 +35,13 @@ function FormLoading() {
   )
 }
 
-export default function GazeboFormWrapper() {
+export function GazeboFormWrapper() {
   return (
     <Suspense fallback={<FormLoading />}>
       <GazeboInquiryForm />
     </Suspense>
   )
 }
+
+// Add this at the very end of the file
+export default GazeboFormWrapper

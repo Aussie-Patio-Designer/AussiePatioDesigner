@@ -686,7 +686,7 @@ async function sendSalesTeamNotification(
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="viewport" content="width-device-width, initial-scale=1.0">
       <title>New Patio/Gazebo Inquiry</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -1401,3 +1401,6 @@ export async function sendGazeboInquiry(data: InquiryData) {
     }
   }
 }
+
+// Export alias for compatibility
+export { sendGazeboInquiry as sendEmail }
