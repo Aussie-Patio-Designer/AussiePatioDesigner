@@ -1,16 +1,10 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
-import { CopyButton } from "@/components/copy-button"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface Inquiry {
   id: number
@@ -31,22 +25,6 @@ interface Inquiry {
   screenshot_url?: string
   created_at: string
   status: string
-  agent_id?: string
-}
-
-interface Agent {
-  id: string
-  company_name: string
-  contact_name: string
-  contact_email: string
-  sales_email: string
-  phone?: string
-  website?: string
-  commission_rate?: number
-  status: "active" | "inactive" | "pending"
-  created_at: string
-  total_inquiries?: number
-  total_revenue?: number
 }
 
 interface Stats {
@@ -64,20 +42,6 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedStatus, setSelectedStatus] = useState("all")
-  const [selectedTab, setSelectedTab] = useState("inquiries")
-  const [agents, setAgents] = useState<Agent[]>([])
-  const [newAgent, setNewAgent] = useState<Omit<Agent, "id" | "created_at" | "total_inquiries" | "total_revenue">>({
-    company_name: "",
-    contact_name: "",
-    contact_email: "",
-    sales_email: "",
-    phone: "",
-    website: "",
-    commission_rate: 0,
-    status: "pending",
-  })
-  const [editingAgentId, setEditingAgentId] = useState<string | null>(null)
-  const [editedAgent, setEditedAgent] = useState<Agent | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -99,13 +63,6 @@ export default function AdminDashboard() {
       if (inquiriesResponse.ok) {
         const inquiriesData = await inquiriesResponse.json()
         setInquiries(inquiriesData.inquiries || [])
-      }
-
-      // Fetch agents
-      const agentsResponse = await fetch("/api/admin/agents")
-      if (agentsResponse.ok) {
-        const agentsData = await agentsResponse.json()
-        setAgents(agentsData.agents || [])
       }
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -139,90 +96,6 @@ export default function AdminDashboard() {
       hour: "2-digit",
       minute: "2-digit",
     })
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setNewAgent((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleCreateAgent = async () => {
-    try {
-      const response = await fetch("/api/admin/agents", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newAgent),
-      })
-
-      if (response.ok) {
-        toast.success("Agent created successfully!")
-        fetchData() // Refresh agent list
-        setNewAgent({
-          company_name: "",
-          contact_name: "",
-          contact_email: "",
-          sales_email: "",
-          phone: "",
-          website: "",
-          commission_rate: 0,
-          status: "pending",
-        }) // Reset form
-      } else {
-        const errorData = await response.json()
-        toast.error(`Failed to create agent: ${errorData.message || "Unknown error"}`)
-      }
-    } catch (error) {
-      console.error("Error creating agent:", error)
-      toast.error("Error creating agent.")
-    }
-  }
-
-  const handleEditAgent = (agent: Agent) => {
-    setEditingAgentId(agent.id)
-    setEditedAgent({ ...agent })
-  }
-
-  const handleEditedInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setEditedAgent((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleUpdateAgent = async () => {
-    if (!editedAgent) return
-
-    try {
-      const response = await fetch(`/api/admin/agents/${editedAgent.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editedAgent),
-      })
-
-      if (response.ok) {
-        toast.success("Agent updated successfully!")
-        fetchData() // Refresh agent list
-        setEditingAgentId(null)
-        setEditedAgent(null)
-      } else {
-        const errorData = await response.json()
-        toast.error(`Failed to update agent: ${errorData.message || "Unknown error"}`)
-      }
-    } catch (error) {
-      console.error("Error updating agent:", error)
-      toast.error("Error updating agent.")
-    }
-  }
-
-  const handleCancelEdit = () => {
-    setEditingAgentId(null)
-    setEditedAgent(null)
-  }
-
-  const generateEmbedCode = (agentId: string) => {
-    return `<iframe src="${process.env.NEXT_PUBLIC_BASE_URL}/embed/${agentId}" width="600" height="400"></iframe>`
   }
 
   if (loading) {
@@ -285,212 +158,65 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Agent Management Section */}
+        {/* Inquiries Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Agent Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Agent List Table */}
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-lg font-semibold">Agent List</h2>
-                <Button onClick={fetchData} variant="outline" size="sm">
-                  Refresh
-                </Button>
-              </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Agent Name</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Sales Email</TableHead>
-                    <TableHead>Embed URL</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {agents.map((agent) => (
-                    <TableRow key={agent.id}>
-                      <TableCell>{agent.contact_name}</TableCell>
-                      <TableCell>{agent.company_name}</TableCell>
-                      <TableCell>{agent.sales_email}</TableCell>
-                      <TableCell>
-                        <CopyButton text={generateEmbedCode(agent.id)} />
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{agent.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => handleEditAgent(agent)}>
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Add New Agent Form */}
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Add New Agent</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="company_name">Company Name</Label>
-                  <Input
-                    type="text"
-                    id="company_name"
-                    name="company_name"
-                    value={newAgent.company_name}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="contact_name">Contact Name</Label>
-                  <Input
-                    type="text"
-                    id="contact_name"
-                    name="contact_name"
-                    value={newAgent.contact_name}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="contact_email">Contact Email</Label>
-                  <Input
-                    type="email"
-                    id="contact_email"
-                    name="contact_email"
-                    value={newAgent.contact_email}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="sales_email">Sales Email</Label>
-                  <Input
-                    type="email"
-                    id="sales_email"
-                    name="sales_email"
-                    value={newAgent.sales_email}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input type="tel" id="phone" name="phone" value={newAgent.phone || ""} onChange={handleInputChange} />
-                </div>
-                <div>
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    type="url"
-                    id="website"
-                    name="website"
-                    value={newAgent.website || ""}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="commission_rate">Commission Rate</Label>
-                  <Input
-                    type="number"
-                    id="commission_rate"
-                    name="commission_rate"
-                    value={newAgent.commission_rate || 0}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-              <Button className="mt-4" onClick={handleCreateAgent}>
-                Create Agent
+            <div className="flex justify-between items-center">
+              <CardTitle>Customer Inquiries</CardTitle>
+              <Button onClick={fetchData} variant="outline" size="sm">
+                Refresh
               </Button>
             </div>
 
-            {/* Edit Agent Form */}
-            {editingAgentId && editedAgent && (
-              <div className="mt-8">
-                <h2 className="text-lg font-semibold mb-2">Edit Agent</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="edit_company_name">Company Name</Label>
-                    <Input
-                      type="text"
-                      id="edit_company_name"
-                      name="company_name"
-                      value={editedAgent.company_name}
-                      onChange={handleEditedInputChange}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit_contact_name">Contact Name</Label>
-                    <Input
-                      type="text"
-                      id="edit_contact_name"
-                      name="contact_name"
-                      value={editedAgent.contact_name}
-                      onChange={handleEditedInputChange}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit_contact_email">Contact Email</Label>
-                    <Input
-                      type="email"
-                      id="edit_contact_email"
-                      name="contact_email"
-                      value={editedAgent.contact_email}
-                      onChange={handleEditedInputChange}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit_sales_email">Sales Email</Label>
-                    <Input
-                      type="email"
-                      id="edit_sales_email"
-                      name="sales_email"
-                      value={editedAgent.sales_email}
-                      onChange={handleEditedInputChange}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit_phone">Phone</Label>
-                    <Input
-                      type="tel"
-                      id="edit_phone"
-                      name="phone"
-                      value={editedAgent.phone || ""}
-                      onChange={handleEditedInputChange}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit_website">Website</Label>
-                    <Input
-                      type="url"
-                      id="edit_website"
-                      name="website"
-                      value={editedAgent.website || ""}
-                      onChange={handleEditedInputChange}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit_commission_rate">Commission Rate</Label>
-                    <Input
-                      type="number"
-                      id="edit_commission_rate"
-                      name="commission_rate"
-                      value={editedAgent.commission_rate || 0}
-                      onChange={handleEditedInputChange}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end mt-4 gap-2">
-                  <Button variant="ghost" onClick={handleCancelEdit}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleUpdateAgent}>Update Agent</Button>
-                </div>
-              </div>
-            )}
+            <Tabs value={selectedStatus} onValueChange={setSelectedStatus}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="new">New</TabsTrigger>
+                <TabsTrigger value="contacted">Contacted</TabsTrigger>
+                <TabsTrigger value="quoted">Quoted</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">ID</th>
+                    <th className="text-left p-2">Customer</th>
+                    <th className="text-left p-2">Email</th>
+                    <th className="text-left p-2">Roof Type</th>
+                    <th className="text-left p-2">Dimensions</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inquiries.map((inquiry) => (
+                    <tr key={inquiry.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2 font-mono">#{inquiry.id.toString().padStart(6, "0")}</td>
+                      <td className="p-2 font-medium">{inquiry.customer_name}</td>
+                      <td className="p-2 text-blue-600">{inquiry.customer_email}</td>
+                      <td className="p-2">{inquiry.roof_type}</td>
+                      <td className="p-2">
+                        {(inquiry.length / 1000).toFixed(1)}×{(inquiry.width / 1000).toFixed(1)}×
+                        {(inquiry.height / 1000).toFixed(1)}m
+                      </td>
+                      <td className="p-2">
+                        <Badge className={getStatusColor(inquiry.status)}>{inquiry.status}</Badge>
+                      </td>
+                      <td className="p-2 text-gray-600">{formatDate(inquiry.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {inquiries.length === 0 && (
+                <div className="text-center py-8 text-gray-500">No inquiries found for the selected status.</div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

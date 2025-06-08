@@ -1,332 +1,1104 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
+import { useSearchParams } from "next/navigation"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { Button } from "@/components/ui/button"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChevronRight } from "lucide-react"
+import GazeboPreview from "@/components/gazebo-preview"
+import type { GazeboPreviewRef } from "./gazebo-preview"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
 
-interface FormData {
-  customerName: string
-  customerEmail: string
-  customerPhone: string
-  siteAddress: string
-  additionalDetails: string
-  roofType: string
-  roofCladding: string
-  roofPitch: string
-  length: number
-  width: number
-  height: number
-  hasOverhang: boolean
-  overhangSides: string
-  overhangSize: number
-  roofColor: string
-  postBeamColor: string
-}
+// Fixed form schema with proper validation
+const formSchema = z
+  .object({
+    customerName: z.string().min(2, {
+      message: "Customer Name must be at least 2 characters.",
+    }),
+    siteAddress: z.string().min(10, {
+      message: "Site Address must be at least 10 characters.",
+    }),
+    customerEmail: z.string().email({
+      message: "Please enter a valid email address.",
+    }),
+    customerPhone: z.string().min(10, {
+      message: "Phone number must be at least 10 digits.",
+    }),
+    additionalDetails: z.string().optional(),
+    roofType: z.enum(["Gable", "Skillion"]).default("Gable"),
+    roofCladding: z.enum(["Corrugated", "Trimclad"]).default("Corrugated"),
+    roofPitch: z.number().min(2).max(22.5).default(15),
+    length: z.number().min(1000).max(20000).default(3000),
+    width: z.number().min(1000).max(20000).default(3000),
+    height: z.number().min(2400).max(5000).default(2400),
+    roofColor: z.string().min(1, "Roof color is required").default("SURFMIST / BASALT"),
+    postBeamColor: z.string().min(1, "Frame color is required").default("MONUMENT"),
+  })
+  .refine(
+    (data) => {
+      // Validate roof pitch based on roof type
+      if (data.roofType === "Gable") {
+        return data.roofPitch === 15 || data.roofPitch === 22.5
+      } else if (data.roofType === "Skillion") {
+        return data.roofPitch === 2 || data.roofPitch === 5
+      }
+      return true
+    },
+    {
+      message: "Invalid roof pitch for selected roof type. Gable: 15° or 22.5°, Skillion: 2° or 5°",
+      path: ["roofPitch"],
+    },
+  )
 
-const GazeboInquiryForm = () => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>()
-  const [screenshot, setScreenshot] = useState<string | null>(null)
+// Color options - Updated with exact colors from the color chart
+const roofColors = [
+  { value: "SURFMIST / BASALT", label: "SURFMIST / BASALT", color: "#2C2E33" },
+  { value: "SURFMIST / CLASSIC CREAM", label: "SURFMIST / CLASSIC CREAM", color: "#F4F0E6" },
+  { value: "SURFMIST / DUNE", label: "SURFMIST / DUNE", color: "#C7B299" },
+  { value: "SURFMIST / MANOR RED", label: "SURFMIST / MANOR RED", color: "#8B2635" },
+  { value: "SURFMIST / PALE EUCALYPT", label: "SURFMIST / PALE EUCALYPT", color: "#A8B5A0" },
+  { value: "SURFMIST / PAPERBARK", label: "SURFMIST / PAPERBARK", color: "#D4C5A8" },
+  { value: "SURFMIST / SHALE GREY", label: "SURFMIST / SHALE GREY", color: "#5A6670" },
+  { value: "SURFMIST / SURFMIST", label: "SURFMIST / SURFMIST", color: "#F0EDE5" },
+  { value: "SURFMIST / WOODLAND GREY", label: "SURFMIST / WOODLAND GREY", color: "#3E4A47" },
+]
 
+const postBeamColors = [
+  { value: "CLASSIC CREAM", label: "CLASSIC CREAM", color: "#F4F0E6" },
+  { value: "DUNE", label: "DUNE", color: "#C7B299" },
+  { value: "GALVANISED", label: "GALVANISED", color: "#B8BCC0" },
+  { value: "MONUMENT", label: "MONUMENT", color: "#2C2E33" },
+  { value: "PAPERBARK", label: "PAPERBARK", color: "#D4C5A8" },
+  { value: "DOVER WHITE", label: "DOVER WHITE", color: "#FEFEFE" },
+  { value: "WOODLAND GREY", label: "WOODLAND GREY", color: "#3E4A47" },
+]
+
+// Simplified roof cladding options - only 2 options
+const roofCladdingOptions = [
+  {
+    value: "Corrugated",
+    label: "Corrugated Colorbond",
+    description: "Classic rounded corrugated profile - traditional and cost-effective",
+    image:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Corrugated_CB_Surfmist_RoofWall-003-AFtg3cmwP72VCuqLVGrLhW4EP1GRKz.webp",
+  },
+  {
+    value: "Trimclad",
+    label: "Trimclad Colorbond",
+    description: "Modern trapezoidal profile - contemporary industrial look",
+    image:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Trimclad_Cb_Surfmist_RoofWall-002-2C4NSajHb5KDRUZxElxmIz7XxLamum.webp",
+  },
+]
+
+export default function GazeboInquiryForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
+  const [currentStep, setCurrentStep] = useState<"design" | "customer">("design")
+  const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [isViewMode, setIsViewMode] = useState(false)
+  const [referenceNumber, setReferenceNumber] = useState<string>("")
+
+  const searchParams = useSearchParams()
+  const gazeboPreviewRef = useRef<GazeboPreviewRef>(null)
+
+  // Pure function to extract URL parameters without side effects
+  const extractUrlParams = useMemo(() => {
+    if (!searchParams) return null
+
+    return {
+      roofType: (searchParams.get("roofType") as "Gable" | "Skillion") || "Gable",
+      roofCladding: (searchParams.get("roofCladding") as "Corrugated" | "Trimclad") || "Corrugated",
+      roofPitch: Number(searchParams.get("roofPitch")) || 15,
+      length: Number(searchParams.get("length")) || 3000,
+      width: Number(searchParams.get("width")) || 3000,
+      height: Number(searchParams.get("height")) || 2400,
+      roofColor: searchParams.get("roofColor") || "SURFMIST / BASALT",
+      postBeamColor: searchParams.get("postBeamColor") || "MONUMENT",
+      isDesignView: searchParams.get("design") === "true",
+      ref: searchParams.get("ref"),
+    }
+  }, [searchParams])
+
+  // Default form values - ALWAYS keep customer fields empty
+  const defaultFormValues = useMemo(() => {
+    const urlParams = extractUrlParams
+
+    // Base customer values - ALWAYS empty
+    const customerDefaults = {
+      customerName: "",
+      siteAddress: "",
+      customerEmail: "",
+      customerPhone: "",
+      additionalDetails: "",
+    }
+
+    if (urlParams) {
+      return {
+        ...customerDefaults, // Always use empty customer defaults
+        roofType: urlParams.roofType,
+        roofCladding: urlParams.roofCladding,
+        roofPitch: urlParams.roofPitch,
+        length: urlParams.length,
+        width: urlParams.width,
+        height: urlParams.height,
+        roofColor: urlParams.roofColor,
+        postBeamColor: urlParams.postBeamColor,
+      }
+    }
+
+    return {
+      ...customerDefaults, // Always use empty customer defaults
+      roofType: "Gable" as const,
+      roofCladding: "Corrugated" as const,
+      roofPitch: 15,
+      length: 3000,
+      width: 3000,
+      height: 2400,
+      roofColor: "SURFMIST / BASALT",
+      postBeamColor: "MONUMENT",
+    }
+  }, [extractUrlParams])
+
+  // Initialize form
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: defaultFormValues,
+  })
+
+  // Handle URL parameters and view mode - separate from form initialization
   useEffect(() => {
-    // Get agent ID from URL if present
-    const urlParams = new URLSearchParams(window.location.search)
-    const agentId = urlParams.get("agent")
+    if (extractUrlParams?.isDesignView) {
+      setIsViewMode(true)
+      if (extractUrlParams.ref) {
+        setReferenceNumber(`#${extractUrlParams.ref.padStart(6, "0")}`)
+      }
 
-    if (agentId) {
-      console.log("🏢 Agent detected:", agentId)
-      // You can fetch and display agent info here if needed
+      console.log("🔗 Loaded design from URL:", {
+        roofType: extractUrlParams.roofType,
+        roofCladding: extractUrlParams.roofCladding,
+        roofPitch: extractUrlParams.roofPitch,
+        dimensions: `${extractUrlParams.length}x${extractUrlParams.width}x${extractUrlParams.height}`,
+        roofColor: extractUrlParams.roofColor,
+        postBeamColor: extractUrlParams.postBeamColor,
+      })
     }
-  }, [])
+  }, [extractUrlParams])
 
-  const onSubmit = async (data: FormData) => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const agentId = urlParams.get("agent")
-
-    const submissionData = {
-      customerName: data.customerName,
-      customerEmail: data.customerEmail,
-      customerPhone: data.customerPhone,
-      siteAddress: data.siteAddress,
-      additionalDetails: data.additionalDetails,
-      roofType: data.roofType,
-      roofCladding: data.roofCladding,
-      roofPitch: data.roofPitch,
-      length: data.length,
-      width: data.width,
-      height: data.height,
-      hasOverhang: data.hasOverhang,
-      overhangSides: data.overhangSides,
-      overhangSize: data.overhangSize,
-      roofColor: data.roofColor,
-      postBeamColor: data.postBeamColor,
-      screenshot: screenshot,
-      agentId: agentId, // Add this line
+  // Force reset customer fields when switching to customer step
+  useEffect(() => {
+    if (currentStep === "customer") {
+      // Force reset only customer fields to empty strings
+      form.setValue("customerName", "")
+      form.setValue("customerEmail", "")
+      form.setValue("customerPhone", "")
+      form.setValue("siteAddress", "")
+      form.setValue("additionalDetails", "")
     }
+  }, [currentStep, form])
 
-    console.log("Form Data:", submissionData)
+  // Handle roof type changes with proper validation
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === "roofType") {
+        const currentPitch = form.getValues("roofPitch")
+        const roofType = value.roofType
 
-    // Here you would typically send the data to your backend
-    // Example:
-    // try {
-    //   const response = await fetch('/api/submit-form', {
-    //     method: 'POST',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //     },
-    //     body: JSON.stringify(submissionData),
-    //   });
-    //   if (response.ok) {
-    //     alert('Form submitted successfully!');
-    //   } else {
-    //     alert('Form submission failed.');
-    //   }
-    // } catch (error) {
-    //   console.error('Error submitting form:', error);
-    //   alert('An error occurred while submitting the form.');
-    // }
+        // Auto-adjust pitch when roof type changes
+        if (roofType === "Gable") {
+          if (currentPitch !== 15 && currentPitch !== 22.5) {
+            form.setValue("roofPitch", 15)
+          }
+        } else if (roofType === "Skillion") {
+          if (currentPitch !== 2 && currentPitch !== 5) {
+            form.setValue("roofPitch", 5)
+          }
+        }
+
+        // Clear any existing validation errors
+        form.clearErrors("roofPitch")
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [form])
+
+  // Custom validation function for roof pitch
+  const validateRoofPitch = (pitch: number, roofType: string) => {
+    if (roofType === "Gable") {
+      return pitch === 15 || pitch === 22.5
+    } else if (roofType === "Skillion") {
+      return pitch === 2 || pitch === 5
+    }
+    return true
   }
 
-  const handleScreenshotUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setScreenshot(reader.result as string)
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true)
+    setSubmitStatus(null)
+    setShowSubmitModal(true) // Show the popup immediately
+
+    try {
+      // Additional client-side validation
+      if (!validateRoofPitch(values.roofPitch, values.roofType)) {
+        const errorMessage =
+          values.roofType === "Gable" ? "Gable roof pitch must be 15° or 22.5°" : "Skillion roof pitch must be 2° or 5°"
+
+        form.setError("roofPitch", { message: errorMessage })
+        setIsSubmitting(false)
+        setShowSubmitModal(false) // Hide popup on validation error
+        return
       }
-      reader.readAsDataURL(file)
+
+      // Capture screenshot before submission
+      let screenshot: string | null = null
+      if (gazeboPreviewRef.current) {
+        console.log("📸 Attempting to capture screenshot...")
+        try {
+          screenshot = await gazeboPreviewRef.current.captureScreenshot()
+          if (screenshot) {
+            console.log("✅ Screenshot captured successfully, size:", screenshot.length, "characters")
+            console.log("📸 Screenshot preview:", screenshot.substring(0, 100) + "...")
+
+            // Check if it's too large for JSON transmission
+            const sizeInMB = screenshot.length / (1024 * 1024)
+            console.log("📊 Screenshot size:", sizeInMB.toFixed(2), "MB")
+
+            if (sizeInMB > 4) {
+              console.warn("⚠️ Screenshot is very large, may cause issues")
+            }
+          } else {
+            console.warn("⚠️ Screenshot capture returned null")
+          }
+        } catch (error) {
+          console.error("❌ Error capturing screenshot:", error)
+        }
+      } else {
+        console.warn("⚠️ Gazebo preview ref not available")
+      }
+
+      const submissionData = {
+        ...values,
+        screenshot: screenshot,
+        hasOverhang: false,
+        overhangSides: [],
+        overhangSize: 0,
+      }
+
+      console.log("🚀 Submitting inquiry for:", submissionData.customerEmail)
+      console.log("📸 Screenshot included:", !!screenshot)
+      console.log("📊 Submission data size:", JSON.stringify(submissionData).length, "characters")
+
+      const response = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSubmitStatus({
+          type: "success",
+          message: result.message + (result.emailSent ? "" : " Note: Email confirmation may be delayed."),
+        })
+
+        console.log("✅ Inquiry submitted successfully")
+        console.log("📧 Customer email sent:", result.customerEmailSent)
+        console.log("📧 Sales email sent:", result.salesEmailSent)
+        console.log("📸 Screenshot uploaded:", result.screenshotUploaded)
+
+        // Auto-close modal and reset form after 5 seconds
+        setTimeout(() => {
+          setShowSubmitModal(false)
+          form.reset()
+          setSubmitStatus(null)
+          setCurrentStep("design")
+          setIsViewMode(false)
+          setReferenceNumber("")
+        }, 5000)
+      } else {
+        setSubmitStatus({
+          type: "error",
+          message: result.message || "Failed to submit inquiry. Please check your details and try again.",
+        })
+        console.error("❌ Inquiry submission failed:", result.message)
+      }
+    } catch (error) {
+      console.error("❌ Network error during submission:", error)
+      setSubmitStatus({
+        type: "error",
+        message: "Network error occurred. Please check your internet connection and try again.",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Test screenshot capture and upload function
+  const testScreenshot = async () => {
+    console.log("🧪 Testing screenshot capture and upload...")
+    if (gazeboPreviewRef.current) {
+      try {
+        const screenshot = await gazeboPreviewRef.current.captureScreenshot()
+        if (screenshot) {
+          console.log("✅ Test screenshot successful!")
+          console.log("📸 Screenshot size:", screenshot.length, "characters")
+          console.log("📸 Screenshot preview:", screenshot.substring(0, 100) + "...")
+
+          // Test the upload process
+          console.log("🧪 Testing upload to blob storage...")
+          try {
+            const uploadResponse = await fetch("/api/test/screenshot", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ screenshot }),
+            })
+
+            const uploadResult = await uploadResponse.json()
+            console.log("📤 Upload test result:", uploadResult)
+
+            if (uploadResult.success) {
+              alert(`Screenshot test successful!\nCapture: ✅\nUpload: ✅\nURL: ${uploadResult.url}`)
+            } else {
+              alert(`Screenshot capture: ✅\nUpload failed: ${uploadResult.error}`)
+            }
+          } catch (uploadError) {
+            console.error("❌ Upload test error:", uploadError)
+            alert(`Screenshot capture: ✅\nUpload test failed: ${uploadError.message}`)
+          }
+
+          // Also create a download link for manual verification
+          const link = document.createElement("a")
+          link.href = screenshot
+          link.download = "test-screenshot.png"
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+        } else {
+          console.error("❌ Test screenshot failed - no data returned")
+          alert("Screenshot capture failed - check console for details")
+        }
+      } catch (error) {
+        console.error("❌ Test screenshot error:", error)
+        alert("Screenshot capture error: " + error.message)
+      }
+    } else {
+      console.error("❌ Gazebo preview ref not available")
+      alert("Gazebo preview not ready")
+    }
+  }
+
+  const proceedToCustomerDetails = () => {
+    setCurrentStep("customer")
+  }
+
+  const backToDesign = () => {
+    setCurrentStep("design")
+  }
+
+  const startNewDesign = () => {
+    // Explicitly reset with proper values
+    const resetValues = {
+      customerName: "",
+      siteAddress: "",
+      customerEmail: "",
+      customerPhone: "",
+      additionalDetails: "",
+      roofType: "Gable" as const,
+      roofCladding: "Corrugated" as const,
+      roofPitch: 15,
+      length: 3000,
+      width: 3000,
+      height: 2400,
+      roofColor: "SURFMIST / BASALT",
+      postBeamColor: "MONUMENT",
+    }
+
+    form.reset(resetValues)
+    setIsViewMode(false)
+    setReferenceNumber("")
+    setCurrentStep("design")
+  }
+
+  // Get available pitch options based on roof type
+  const getPitchOptions = (roofType: string) => {
+    if (roofType === "Gable") {
+      return [
+        { value: "15", label: "15°" },
+        { value: "22.5", label: "22.5°" },
+      ]
+    } else {
+      return [
+        { value: "2", label: "2°" },
+        { value: "5", label: "5°" },
+      ]
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="max-w-lg mx-auto p-4">
-      <div className="mb-4">
-        <label htmlFor="customerName" className="block text-gray-700 text-sm font-bold mb-2">
-          Customer Name:
-        </label>
-        <input
-          type="text"
-          id="customerName"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("customerName", { required: "Customer name is required" })}
-        />
-        {errors.customerName && <p className="text-red-500 text-xs italic">{errors.customerName.message}</p>}
-      </div>
-
-      <div className="mb-4">
-        <label htmlFor="customerEmail" className="block text-gray-700 text-sm font-bold mb-2">
-          Customer Email:
-        </label>
-        <input
-          type="email"
-          id="customerEmail"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("customerEmail", { required: "Customer email is required" })}
-        />
-        {errors.customerEmail && <p className="text-red-500 text-xs italic">{errors.customerEmail.message}</p>}
-      </div>
-
-      <div className="mb-4">
-        <label htmlFor="customerPhone" className="block text-gray-700 text-sm font-bold mb-2">
-          Customer Phone:
-        </label>
-        <input
-          type="tel"
-          id="customerPhone"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("customerPhone", { required: "Customer phone is required" })}
-        />
-        {errors.customerPhone && <p className="text-red-500 text-xs italic">{errors.customerPhone.message}</p>}
-      </div>
-
-      <div className="mb-4">
-        <label htmlFor="siteAddress" className="block text-gray-700 text-sm font-bold mb-2">
-          Site Address:
-        </label>
-        <input
-          type="text"
-          id="siteAddress"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("siteAddress", { required: "Site address is required" })}
-        />
-        {errors.siteAddress && <p className="text-red-500 text-xs italic">{errors.siteAddress.message}</p>}
-      </div>
-
-      <div className="mb-4">
-        <label htmlFor="additionalDetails" className="block text-gray-700 text-sm font-bold mb-2">
-          Additional Details:
-        </label>
-        <textarea
-          id="additionalDetails"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("additionalDetails")}
+    <div className="min-h-screen relative">
+      {/* Full-screen 3D Background */}
+      <div className="fixed inset-0 z-0">
+        <GazeboPreview
+          ref={gazeboPreviewRef}
+          length={form.watch("length") || 3000}
+          width={form.watch("width") || 3000}
+          height={form.watch("height") || 2400}
+          roofType={form.watch("roofType") || "Gable"}
+          roofPitch={form.watch("roofPitch") || 15}
+          roofCladding={form.watch("roofCladding") || "Corrugated"}
+          hasOverhang={false}
+          overhangSides={[]}
+          overhangSize={300}
+          roofColor={form.watch("roofColor")}
+          postBeamColor={form.watch("postBeamColor")}
         />
       </div>
 
-      <div className="mb-4">
-        <label htmlFor="roofType" className="block text-gray-700 text-sm font-bold mb-2">
-          Roof Type:
-        </label>
-        <input
-          type="text"
-          id="roofType"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("roofType", { required: "Roof type is required" })}
-        />
-        {errors.roofType && <p className="text-red-500 text-xs italic">{errors.roofType.message}</p>}
+      {/* Credit Footer - Bottom Right Corner */}
+      <div className="fixed bottom-4 right-4 z-50 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-gray-200/50">
+        <p className="text-xs text-gray-600 font-medium">
+          Generated by <span className="text-blue-600 font-semibold">Gazi OGUTCU</span> 2025
+        </p>
       </div>
 
-      <div className="mb-4">
-        <label htmlFor="roofCladding" className="block text-gray-700 text-sm font-bold mb-2">
-          Roof Cladding:
-        </label>
-        <input
-          type="text"
-          id="roofCladding"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("roofCladding", { required: "Roof cladding is required" })}
-        />
-        {errors.roofCladding && <p className="text-red-500 text-xs italic">{errors.roofCladding.message}</p>}
+      {/* Screenshot Button - Top Right Corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <Button
+          onClick={testScreenshot}
+          variant="secondary"
+          className="bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200/50 hover:bg-white/70"
+        >
+          📸 Screenshot
+        </Button>
       </div>
 
-      <div className="mb-4">
-        <label htmlFor="roofPitch" className="block text-gray-700 text-sm font-bold mb-2">
-          Roof Pitch:
-        </label>
-        <input
-          type="text"
-          id="roofPitch"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("roofPitch", { required: "Roof pitch is required" })}
-        />
-        {errors.roofPitch && <p className="text-red-500 text-xs italic">{errors.roofPitch.message}</p>}
-      </div>
+      {/* Submit Modal Popup */}
+      <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold">
+              {isSubmitting ? "Submitting Your Inquiry..." : submitStatus?.type === "success" ? "Success!" : "Error"}
+            </DialogTitle>
+          </DialogHeader>
 
-      <div className="mb-4">
-        <label htmlFor="length" className="block text-gray-700 text-sm font-bold mb-2">
-          Length (meters):
-        </label>
-        <input
-          type="number"
-          id="length"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("length", { required: "Length is required", valueAsNumber: true })}
-        />
-        {errors.length && <p className="text-red-500 text-xs italic">{errors.length.message}</p>}
-      </div>
+          <div className="flex flex-col items-center space-y-4 py-6">
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-16 w-16 text-blue-600 animate-spin" />
+                <div className="text-center">
+                  <p className="text-lg font-medium text-gray-900">Processing your patio design...</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    We're capturing your 3D design and sending your inquiry to our team.
+                  </p>
+                </div>
+              </>
+            ) : submitStatus?.type === "success" ? (
+              <>
+                <CheckCircle2 className="h-16 w-16 text-green-600" />
+                <div className="text-center">
+                  <p className="text-lg font-medium text-gray-900">Inquiry Submitted Successfully!</p>
+                  <p className="text-sm text-gray-600 mt-2">{submitStatus.message}</p>
+                  <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-800">
+                      <strong>What happens next?</strong>
+                      <br />• You'll receive a confirmation email shortly
+                      <br />• Our team will review your design
+                      <br />• We'll contact you within 24 hours with a quote
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <XCircle className="h-16 w-16 text-red-600" />
+                <div className="text-center">
+                  <p className="text-lg font-medium text-gray-900">Submission Failed</p>
+                  <p className="text-sm text-gray-600 mt-2">{submitStatus?.message}</p>
+                  <div className="mt-4">
+                    <Button onClick={() => setShowSubmitModal(false)} variant="outline" className="w-full">
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
 
-      <div className="mb-4">
-        <label htmlFor="width" className="block text-gray-700 text-sm font-bold mb-2">
-          Width (meters):
-        </label>
-        <input
-          type="number"
-          id="width"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("width", { required: "Width is required", valueAsNumber: true })}
-        />
-        {errors.width && <p className="text-red-500 text-xs italic">{errors.width.message}</p>}
-      </div>
+            {submitStatus?.type === "success" && (
+              <div className="text-center">
+                <p className="text-xs text-gray-500">This window will close automatically in 5 seconds</p>
+                <Button
+                  onClick={() => {
+                    setShowSubmitModal(false)
+                    form.reset()
+                    setSubmitStatus(null)
+                    setCurrentStep("design")
+                  }}
+                  className="mt-3 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Start New Design
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      <div className="mb-4">
-        <label htmlFor="height" className="block text-gray-700 text-sm font-bold mb-2">
-          Height (meters):
-        </label>
-        <input
-          type="number"
-          id="height"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("height", { required: "Height is required", valueAsNumber: true })}
-        />
-        {errors.height && <p className="text-red-500 text-xs italic">{errors.height.message}</p>}
-      </div>
+      {/* Fixed Left Sidebar Form */}
+      <div className="fixed left-0 top-0 z-10 w-96 h-screen bg-white/95 backdrop-blur-sm shadow-2xl flex flex-col">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 p-6 border-b border-gray-200/50">
+          <h1 className="text-2xl font-bold text-gray-900">Aussie Patio Designer</h1>
+          <p className="text-sm text-gray-600">
+            {isViewMode ? `Viewing saved design ${referenceNumber}` : "Design your perfect patio/gazebo"}
+          </p>
+          {isViewMode && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>This is your saved design!</strong>
+                <br />
+                You can modify it and submit a new inquiry, or{" "}
+                <button onClick={startNewDesign} className="underline font-medium">
+                  start a completely new design
+                </button>
+                .
+              </p>
+            </div>
+          )}
+        </div>
 
-      <div className="mb-4">
-        <label htmlFor="hasOverhang" className="block text-gray-700 text-sm font-bold mb-2">
-          Has Overhang:
-        </label>
-        <input
-          type="checkbox"
-          id="hasOverhang"
-          className="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("hasOverhang")}
-        />
-      </div>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {currentStep === "design" ? (
+                  <>
+                    {/* Design Configuration */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Design Configuration</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="roofType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Roof Type</FormLabel>
+                              <FormControl>
+                                <RadioGroup
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                  className="flex flex-col space-y-2"
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Gable" id="gable" />
+                                    <Label htmlFor="gable" className="text-sm">
+                                      Gable (Traditional peaked)
+                                    </Label>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Skillion" id="skillion" />
+                                    <Label htmlFor="skillion" className="text-sm">
+                                      Skillion (Single slope)
+                                    </Label>
+                                  </div>
+                                </RadioGroup>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-      <div className="mb-4">
-        <label htmlFor="overhangSides" className="block text-gray-700 text-sm font-bold mb-2">
-          Overhang Sides:
-        </label>
-        <input
-          type="text"
-          id="overhangSides"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("overhangSides")}
-        />
-      </div>
+                        <FormField
+                          control={form.control}
+                          name="roofCladding"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Roof Cladding</FormLabel>
+                              <FormControl>
+                                <div className="space-y-3">
+                                  {roofCladdingOptions.map((option) => (
+                                    <div
+                                      key={option.value}
+                                      className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                                        field.value === option.value
+                                          ? "border-blue-500 bg-blue-50"
+                                          : "border-gray-200 hover:border-gray-300"
+                                      }`}
+                                      onClick={() => field.onChange(option.value)}
+                                    >
+                                      <div className="flex items-center space-x-3">
+                                        <input
+                                          type="radio"
+                                          value={option.value}
+                                          checked={field.value === option.value}
+                                          onChange={() => field.onChange(option.value)}
+                                          className="text-blue-600"
+                                        />
+                                        <div className="flex-1">
+                                          <div className="flex items-center space-x-3">
+                                            {option.image && (
+                                              <img
+                                                src={option.image || "/placeholder.svg"}
+                                                alt={option.label}
+                                                className="w-12 h-8 object-cover rounded border"
+                                              />
+                                            )}
+                                            <div>
+                                              <h4 className="text-sm font-medium text-gray-900">{option.label}</h4>
+                                              <p className="text-xs text-gray-600">{option.description}</p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-      <div className="mb-4">
-        <label htmlFor="overhangSize" className="block text-gray-700 text-sm font-bold mb-2">
-          Overhang Size (meters):
-        </label>
-        <input
-          type="number"
-          id="overhangSize"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("overhangSize", { valueAsNumber: true })}
-        />
-      </div>
+                        <FormField
+                          control={form.control}
+                          name="roofPitch"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">
+                                Roof Pitch
+                                <span className="text-xs text-gray-500 ml-1">
+                                  ({form.watch("roofType") === "Gable" ? "15° or 22.5°" : "2° or 5°"})
+                                </span>
+                              </FormLabel>
+                              <FormControl>
+                                <Tabs
+                                  value={field.value?.toString() || (form.watch("roofType") === "Gable" ? "15" : "5")}
+                                  onValueChange={(value) => field.onChange(Number(value))}
+                                >
+                                  <TabsList className="grid grid-cols-3 w-full">
+                                    {getPitchOptions(form.watch("roofType") || "Gable").map((option) => (
+                                      <TabsTrigger key={option.value} value={option.value} className="text-sm">
+                                        {option.label}
+                                      </TabsTrigger>
+                                    ))}
+                                  </TabsList>
+                                </Tabs>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
 
-      <div className="mb-4">
-        <label htmlFor="roofColor" className="block text-gray-700 text-sm font-bold mb-2">
-          Roof Color:
-        </label>
-        <input
-          type="text"
-          id="roofColor"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("roofColor", { required: "Roof color is required" })}
-        />
-        {errors.roofColor && <p className="text-red-500 text-xs italic">{errors.roofColor.message}</p>}
-      </div>
+                    {/* Dimensions */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Dimensions</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="length"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between">
+                                <FormLabel className="text-sm font-medium">Length (m)</FormLabel>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={20}
+                                  step={0.1}
+                                  value={(field.value / 1000).toFixed(1)}
+                                  onChange={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value)) {
+                                      field.onChange(1000)
+                                    } else {
+                                      field.onChange(Math.max(1000, value * 1000))
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value) || value < 1) {
+                                      field.onChange(1000)
+                                    }
+                                  }}
+                                  className="w-16 h-8 text-center text-sm"
+                                />
+                              </div>
+                              <FormControl>
+                                <Slider
+                                  min={1000}
+                                  max={20000}
+                                  step={100}
+                                  value={[field.value]}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                  className="py-2"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-      <div className="mb-4">
-        <label htmlFor="postBeamColor" className="block text-gray-700 text-sm font-bold mb-2">
-          Post Beam Color:
-        </label>
-        <input
-          type="text"
-          id="postBeamColor"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          {...register("postBeamColor", { required: "Post beam color is required" })}
-        />
-        {errors.postBeamColor && <p className="text-red-500 text-xs italic">{errors.postBeamColor.message}</p>}
-      </div>
+                        <FormField
+                          control={form.control}
+                          name="width"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between">
+                                <FormLabel className="text-sm font-medium">Width (m)</FormLabel>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={20}
+                                  step={0.1}
+                                  value={(field.value / 1000).toFixed(1)}
+                                  onChange={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value)) {
+                                      field.onChange(1000)
+                                    } else {
+                                      field.onChange(Math.max(1000, value * 1000))
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value) || value < 1) {
+                                      field.onChange(1000)
+                                    }
+                                  }}
+                                  className="w-16 h-8 text-center text-sm"
+                                />
+                              </div>
+                              <FormControl>
+                                <Slider
+                                  min={1000}
+                                  max={20000}
+                                  step={100}
+                                  value={[field.value]}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                  className="py-2"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-      <div className="mb-4">
-        <label htmlFor="screenshot" className="block text-gray-700 text-sm font-bold mb-2">
-          Screenshot:
-        </label>
-        <input
-          type="file"
-          id="screenshot"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          onChange={handleScreenshotUpload}
-        />
-        {screenshot && <img src={screenshot || "/placeholder.svg"} alt="Screenshot" className="mt-2 max-h-40" />}
-      </div>
+                        <FormField
+                          control={form.control}
+                          name="height"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between">
+                                <FormLabel className="text-sm font-medium">Eave Height (m)</FormLabel>
+                                <Input
+                                  type="number"
+                                  min={2.4}
+                                  max={5}
+                                  step={0.1}
+                                  value={(field.value / 1000).toFixed(1)}
+                                  onChange={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value)) {
+                                      field.onChange(2400)
+                                    } else {
+                                      field.onChange(Math.max(2400, value * 1000))
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const value = Number(e.target.value)
+                                    if (value === 0 || isNaN(value) || value < 2.4) {
+                                      field.onChange(2400)
+                                    }
+                                  }}
+                                  className="w-16 h-8 text-center text-sm"
+                                />
+                              </div>
+                              <FormControl>
+                                <Slider
+                                  min={2400}
+                                  max={5000}
+                                  step={100}
+                                  value={[field.value]}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                  className="py-2"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
 
-      <button
-        type="submit"
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-      >
-        Submit
-      </button>
-    </form>
+                    {/* Color Selection */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Color Selection</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="roofColor"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Roof Color</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select roof color" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {roofColors.map((color) => (
+                                    <SelectItem key={color.value} value={color.value}>
+                                      <div className="flex items-center">
+                                        <div
+                                          className="w-4 h-4 rounded border border-gray-300 mr-2"
+                                          style={{ backgroundColor: color.color }}
+                                        />
+                                        <span className="text-sm">{color.label}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="postBeamColor"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Frame Color</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select frame color" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {postBeamColors.map((color) => (
+                                    <SelectItem key={color.value} value={color.value}>
+                                      <div className="flex items-center">
+                                        <div
+                                          className="w-4 h-4 rounded border border-gray-300 mr-2"
+                                          style={{ backgroundColor: color.color }}
+                                        />
+                                        <span className="text-sm">{color.label}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+
+                    {/* Continue Button */}
+                    <Button
+                      type="button"
+                      onClick={proceedToCustomerDetails}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
+                    >
+                      Continue to Customer Details
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {/* Customer Details */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Customer Information</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="customerName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Customer Name</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Enter your full name"
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                  className="text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="customerEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Email Address</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="email"
+                                  placeholder="Enter your email"
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                  className="text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="customerPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Phone Number</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="tel"
+                                  placeholder="Enter your phone number"
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                  className="text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="siteAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Installation Address</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Enter the full installation address..."
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                  className="min-h-[80px] text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="additionalDetails"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Additional Details</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Any specific requirements, preferences, or questions about your patio/gazebo project..."
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                  className="min-h-[100px] text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+
+                    {/* Navigation Buttons */}
+                    <div className="flex space-x-3">
+                      <Button
+                        type="button"
+                        onClick={backToDesign}
+                        variant="outline"
+                        className="flex-1 font-semibold py-3"
+                      >
+                        Back to Design
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
+                      >
+                        {isSubmitting ? "Submitting..." : "Submit Inquiry"}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </form>
+            </Form>
+          </div>
+        </div>
+
+        {/* Custom Scrollbar Styling */}
+        <style jsx>{`
+          .overflow-y-auto::-webkit-scrollbar {
+            width: 6px;
+          }
+          .overflow-y-auto::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+          }
+          .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+          }
+          .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.5);
+          }
+        `}</style>
+      </div>
+    </div>
   )
 }
-
-export default GazeboInquiryForm
