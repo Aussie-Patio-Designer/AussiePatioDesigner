@@ -6,7 +6,13 @@ export async function POST(request: NextRequest) {
   try {
     console.log("📥 Received inquiry submission")
 
-    const data = await request.json()
+    // Add timeout handling
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Request timeout")), 30000) // 30 second timeout
+    })
+
+    const dataPromise = request.json()
+    const data = await Promise.race([dataPromise, timeoutPromise])
 
     // Log the inquiry data (without sensitive info)
     console.log("📋 Inquiry data received:", {
@@ -19,6 +25,17 @@ export async function POST(request: NextRequest) {
       screenshotSize: data.screenshot ? `${Math.round(data.screenshot.length / 1024)}KB` : "none",
       hasAgentData: !!data.agentData,
     })
+
+    // Validate required fields
+    if (!data.customerName || !data.customerEmail || !data.customerPhone || !data.siteAddress) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Missing required fields. Please fill in all customer information.",
+        },
+        { status: 400 },
+      )
+    }
 
     // Get the referer to determine if this is from an agent page
     const referer = request.headers.get("referer")
@@ -54,61 +71,66 @@ export async function POST(request: NextRequest) {
           const agentSlug = pathSegments[0]
           console.log("🔍 Looking up agent with slug:", agentSlug)
 
-          const sql = neon(process.env.DATABASE_URL!)
+          try {
+            const sql = neon(process.env.DATABASE_URL!)
 
-          // First check if agents table exists
-          const tableCheck = await sql`
-            SELECT EXISTS (
-              SELECT FROM information_schema.tables 
-              WHERE table_schema = 'public' AND table_name = 'agents'
-            );
-          `
-
-          if (!tableCheck[0]?.exists) {
-            console.error("❌ Agents table does not exist")
-          } else {
-            const agentResult = await sql`
-              SELECT id, company_name, email, status, url_slug
-              FROM agents 
-              WHERE url_slug = ${agentSlug} 
-              AND status = 'active'
-              LIMIT 1
+            // First check if agents table exists
+            const tableCheck = await sql`
+              SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' AND table_name = 'agents'
+              );
             `
 
-            if (agentResult.length > 0) {
-              agentInfo = agentResult[0]
-              console.log("✅ Found agent via URL lookup:", {
-                company: agentInfo.company_name,
-                email: agentInfo.email,
-                slug: agentInfo.url_slug,
-              })
+            if (!tableCheck[0]?.exists) {
+              console.error("❌ Agents table does not exist")
             } else {
-              console.log("⚠️ No active agent found for slug:", agentSlug)
-
-              // Debug: check if there's an agent with this slug but inactive
-              const inactiveCheck = await sql`
-                SELECT id, company_name, status, url_slug FROM agents 
+              const agentResult = await sql`
+                SELECT id, company_name, email, status, url_slug
+                FROM agents 
                 WHERE url_slug = ${agentSlug} 
+                AND status = 'active'
                 LIMIT 1
               `
 
-              if (inactiveCheck.length > 0) {
-                console.log(`ℹ️ Found agent with slug "${agentSlug}" but status is: ${inactiveCheck[0].status}`)
+              if (agentResult.length > 0) {
+                agentInfo = agentResult[0]
+                console.log("✅ Found agent via URL lookup:", {
+                  company: agentInfo.company_name,
+                  email: agentInfo.email,
+                  slug: agentInfo.url_slug,
+                })
               } else {
-                // Check for similar slugs
-                const similarCheck = await sql`
-                  SELECT id, url_slug, company_name, status FROM agents 
-                  WHERE lower(url_slug) LIKE ${`%${agentSlug.toLowerCase()}%`}
-                  LIMIT 3
+                console.log("⚠️ No active agent found for slug:", agentSlug)
+
+                // Debug: check if there's an agent with this slug but inactive
+                const inactiveCheck = await sql`
+                  SELECT id, company_name, status, url_slug FROM agents 
+                  WHERE url_slug = ${agentSlug} 
+                  LIMIT 1
                 `
-                if (similarCheck.length > 0) {
-                  console.log(
-                    "ℹ️ Found similar agents:",
-                    similarCheck.map((a) => `${a.url_slug} (${a.status})`),
-                  )
+
+                if (inactiveCheck.length > 0) {
+                  console.log(`ℹ️ Found agent with slug "${agentSlug}" but status is: ${inactiveCheck[0].status}`)
+                } else {
+                  // Check for similar slugs
+                  const similarCheck = await sql`
+                    SELECT id, url_slug, company_name, status FROM agents 
+                    WHERE lower(url_slug) LIKE ${`%${agentSlug.toLowerCase()}%`}
+                    LIMIT 3
+                  `
+                  if (similarCheck.length > 0) {
+                    console.log(
+                      "ℹ️ Found similar agents:",
+                      similarCheck.map((a) => `${a.url_slug} (${a.status})`),
+                    )
+                  }
                 }
               }
             }
+          } catch (dbError) {
+            console.error("❌ Database error during agent lookup:", dbError)
+            // Continue without agent info
           }
         } else {
           console.log("ℹ️ URL doesn't match agent pattern:", pathSegments)
@@ -132,7 +154,12 @@ export async function POST(request: NextRequest) {
       routingMethod: data.agentData ? "client-data" : agentInfo ? "url-lookup" : "default",
     })
 
-    const result = await sendGazeboInquiry(enrichedData)
+    // Process the inquiry with timeout
+    const inquiryPromise = sendGazeboInquiry(enrichedData)
+    const result = await Promise.race([
+      inquiryPromise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Inquiry processing timeout")), 25000)),
+    ])
 
     if (result.success) {
       console.log("✅ Inquiry processed successfully")
@@ -150,10 +177,24 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("💥 Error processing inquiry submission:", error)
+
+    // Provide more specific error messages
+    let errorMessage = "Server error processing inquiry. Please try again."
+
+    if (error instanceof Error) {
+      if (error.message.includes("timeout")) {
+        errorMessage = "Request timed out. Please try again with a smaller image or check your connection."
+      } else if (error.message.includes("network")) {
+        errorMessage = "Network error. Please check your internet connection and try again."
+      } else if (error.message.includes("database")) {
+        errorMessage = "Database error. Please try again in a moment."
+      }
+    }
+
     return NextResponse.json(
       {
         success: false,
-        message: "Server error processing inquiry. Please try again.",
+        message: errorMessage,
         error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },

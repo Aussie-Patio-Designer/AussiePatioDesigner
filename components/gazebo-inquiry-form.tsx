@@ -283,20 +283,23 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
           screenshot = await gazeboPreviewRef.current.captureScreenshot()
           if (screenshot) {
             console.log("✅ Screenshot captured successfully, size:", screenshot.length, "characters")
-            console.log("📸 Screenshot preview:", screenshot.substring(0, 100) + "...")
 
             // Check if it's too large for JSON transmission
             const sizeInMB = screenshot.length / (1024 * 1024)
             console.log("📊 Screenshot size:", sizeInMB.toFixed(2), "MB")
 
             if (sizeInMB > 4) {
-              console.warn("⚠️ Screenshot is very large, may cause issues")
+              console.warn("⚠️ Screenshot is very large, compressing...")
+              // Optionally compress or skip screenshot if too large
+              screenshot = null
             }
           } else {
             console.warn("⚠️ Screenshot capture returned null")
           }
         } catch (error) {
           console.error("❌ Error capturing screenshot:", error)
+          // Continue without screenshot
+          screenshot = null
         }
       } else {
         console.warn("⚠️ Gazebo preview ref not available")
@@ -319,48 +322,95 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
         console.log("🏢 Agent:", agentData.company_name, agentData.email)
       }
 
-      const response = await fetch("/api/inquiries", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submissionData),
-      })
+      // Add retry logic with exponential backoff
+      let lastError: Error | null = null
+      const maxRetries = 3
 
-      const result = await response.json()
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`📤 Attempt ${attempt}/${maxRetries}`)
 
-      if (result.success) {
-        setSubmitStatus({
-          type: "success",
-          message: result.message + (result.emailSent ? "" : " Note: Email confirmation may be delayed."),
-        })
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
-        console.log("✅ Inquiry submitted successfully")
-        console.log("📧 Customer email sent:", result.customerEmailSent)
-        console.log("📧 Sales email sent:", result.salesEmailSent)
-        console.log("📸 Screenshot uploaded:", result.screenshotUploaded)
+          const response = await fetch("/api/inquiries", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(submissionData),
+            signal: controller.signal,
+          })
 
-        // Auto-close modal and reset form after 5 seconds
-        setTimeout(() => {
-          setShowSubmitModal(false)
-          form.reset()
-          setSubmitStatus(null)
-          setCurrentStep("design")
-          setIsViewMode(false)
-          setReferenceNumber("")
-        }, 5000)
-      } else {
-        setSubmitStatus({
-          type: "error",
-          message: result.message || "Failed to submit inquiry. Please check your details and try again.",
-        })
-        console.error("❌ Inquiry submission failed:", result.message)
+          clearTimeout(timeoutId)
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: "Unknown server error" }))
+            throw new Error(errorData.message || `Server error: ${response.status}`)
+          }
+
+          const result = await response.json()
+
+          if (result.success) {
+            setSubmitStatus({
+              type: "success",
+              message: result.message + (result.emailSent ? "" : " Note: Email confirmation may be delayed."),
+            })
+
+            console.log("✅ Inquiry submitted successfully")
+            console.log("📧 Customer email sent:", result.customerEmailSent)
+            console.log("📧 Sales email sent:", result.salesEmailSent)
+            console.log("📸 Screenshot uploaded:", result.screenshotUploaded)
+
+            // Auto-close modal and reset form after 5 seconds
+            setTimeout(() => {
+              setShowSubmitModal(false)
+              form.reset()
+              setSubmitStatus(null)
+              setCurrentStep("design")
+              setIsViewMode(false)
+              setReferenceNumber("")
+            }, 5000)
+
+            return // Success, exit retry loop
+          } else {
+            throw new Error(result.message || "Failed to submit inquiry")
+          }
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error("Unknown error")
+          console.error(`❌ Attempt ${attempt} failed:`, lastError.message)
+
+          if (attempt < maxRetries) {
+            // Wait before retrying (exponential backoff)
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
+            console.log(`⏳ Retrying in ${delay}ms...`)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          }
+        }
       }
+
+      // All retries failed
+      throw lastError || new Error("All retry attempts failed")
     } catch (error) {
-      console.error("❌ Network error during submission:", error)
+      console.error("❌ Final error after all retries:", error)
+
+      let errorMessage = "Failed to submit inquiry. Please try again."
+
+      if (error instanceof Error) {
+        if (error.name === "AbortError" || error.message.includes("timeout")) {
+          errorMessage = "Request timed out. Please check your connection and try again."
+        } else if (error.message.includes("network") || error.message.includes("fetch")) {
+          errorMessage = "Network error. Please check your internet connection and try again."
+        } else if (error.message.includes("server")) {
+          errorMessage = "Server error. Please try again in a moment."
+        } else {
+          errorMessage = error.message
+        }
+      }
+
       setSubmitStatus({
         type: "error",
-        message: "Network error occurred. Please check your internet connection and try again.",
+        message: errorMessage,
       })
     } finally {
       setIsSubmitting(false)
