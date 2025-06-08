@@ -23,6 +23,11 @@ interface InquiryData {
   roofColor: string
   postBeamColor: string
   screenshot?: string
+  agentInfo?: {
+    email: string
+    company_name: string
+  }
+  sourceUrl?: string
 }
 
 // Get the correct domain URL
@@ -1334,6 +1339,38 @@ export async function sendGazeboInquiry(data: InquiryData) {
 
     const inquiryId = dbResult.id
     console.log("✅ Inquiry saved to database with ID:", inquiryId)
+
+    // Determine email recipient
+    let recipientEmail = process.env.SALES_EMAIL_1 || "sales@example.com"
+    let companyName = "Aussie Patio Designer"
+
+    if (data.agentInfo) {
+      recipientEmail = data.agentInfo.email
+      companyName = data.agentInfo.company_name
+      console.log("📧 Routing email to agent:", recipientEmail)
+    } else {
+      console.log("📧 Routing email to default sales team:", recipientEmail)
+    }
+
+    // Update the inquiry record with agent information if available
+    if (data.agentInfo && inquiryId) {
+      try {
+        const { neon } = await import("@neondatabase/serverless")
+        const sql = neon(process.env.DATABASE_URL!)
+
+        await sql`
+          UPDATE gazebo_inquiries 
+          SET 
+            agent_email = ${data.agentInfo.email},
+            agent_company = ${data.agentInfo.company_name},
+            source_url = ${data.sourceUrl || null}
+          WHERE id = ${inquiryId}
+        `
+        console.log("✅ Updated inquiry with agent information")
+      } catch (updateError) {
+        console.error("⚠️ Failed to update inquiry with agent info:", updateError)
+      }
+    }
 
     // Try to upload screenshot if provided (non-blocking)
     let screenshotUrl: string | undefined
