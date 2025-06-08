@@ -147,12 +147,32 @@ export async function POST(request: NextRequest) {
       sourceUrl: referer,
     }
 
+    // 🎯 ENHANCED LOGGING FOR LOCKYER SHEDS DEBUGGING
+    console.log("🎯 LOCKYER SHEDS ROUTING DEBUG:")
     console.log("📤 Processing inquiry with routing info:", {
       hasAgent: !!agentInfo,
       agentCompany: agentInfo?.company_name || "N/A",
       agentEmail: agentInfo?.email || "Default sales team",
       routingMethod: data.agentData ? "client-data" : agentInfo ? "url-lookup" : "default",
+      isLockyerSheds:
+        agentInfo?.company_name?.toLowerCase().includes("lockyer") ||
+        agentInfo?.url_slug?.toLowerCase().includes("lockyer") ||
+        referer?.toLowerCase().includes("lockyer"),
+      refererUrl: referer,
+      pathSegments: referer ? new URL(referer).pathname.split("/").filter(Boolean) : [],
     })
+
+    // Special logging for Lockyer Sheds
+    if (
+      agentInfo?.company_name?.toLowerCase().includes("lockyer") ||
+      agentInfo?.url_slug?.toLowerCase().includes("lockyer") ||
+      referer?.toLowerCase().includes("lockyer")
+    ) {
+      console.log("🏢 LOCKYER SHEDS INQUIRY DETECTED!")
+      console.log("📧 Email will be sent to:", agentInfo?.email || "Default sales team")
+      console.log("🏢 Company:", agentInfo?.company_name || "N/A")
+      console.log("🔗 URL Slug:", agentInfo?.url_slug || "N/A")
+    }
 
     // Process the inquiry with timeout
     const inquiryPromise = sendGazeboInquiry(enrichedData)
@@ -170,6 +190,14 @@ export async function POST(request: NextRequest) {
         salesEmailSent: result.salesEmailSent,
         routedToAgent: !!agentInfo,
       })
+
+      // Additional logging for Lockyer Sheds
+      if (agentInfo?.company_name?.toLowerCase().includes("lockyer")) {
+        console.log("🎯 LOCKYER SHEDS INQUIRY COMPLETED!")
+        console.log("📧 Final email destination:", agentInfo.email)
+        console.log("📝 Inquiry ID:", result.inquiryId)
+      }
+
       return NextResponse.json(result)
     } else {
       console.error("❌ Inquiry processing failed:", result.message)
