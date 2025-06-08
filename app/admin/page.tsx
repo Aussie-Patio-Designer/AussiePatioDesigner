@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddAgentModal } from "@/components/add-agent-modal"
-import { Building2, Users, Plus, RefreshCw, ExternalLink, Copy } from "lucide-react"
 
 interface Inquiry {
   id: number
@@ -206,12 +205,10 @@ export default function AdminDashboard() {
         <Tabs defaultValue="inquiries" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 max-w-md">
             <TabsTrigger value="inquiries" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Customer Inquiries
+              👥 Customer Inquiries
             </TabsTrigger>
             <TabsTrigger value="agents" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              Agent Management
+              🏢 Agent Management
             </TabsTrigger>
           </TabsList>
 
@@ -219,7 +216,7 @@ export default function AdminDashboard() {
           <TabsContent value="inquiries" className="space-y-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Users className="h-5 w-5 text-blue-600" />
+                <span className="text-blue-600">👥</span>
                 <h2 className="text-lg font-semibold text-blue-900">Customer Inquiries Management</h2>
               </div>
               <p className="text-blue-700 text-sm">
@@ -272,13 +269,9 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Customer Inquiries
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2">👥 Customer Inquiries</CardTitle>
                   <Button onClick={fetchData} variant="outline" size="sm" disabled={loading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                    Refresh
+                    {loading ? "Loading..." : "Refresh"}
                   </Button>
                 </div>
 
@@ -296,7 +289,7 @@ export default function AdminDashboard() {
               <CardContent>
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
-                    <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-2"></div>
                     Loading inquiries...
                   </div>
                 ) : (
@@ -346,7 +339,7 @@ export default function AdminDashboard() {
           <TabsContent value="agents" className="space-y-6">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Building2 className="h-5 w-5 text-green-600" />
+                <span className="text-green-600">🏢</span>
                 <h2 className="text-lg font-semibold text-green-900">Partner Agent Management</h2>
               </div>
               <p className="text-green-700 text-sm">
@@ -396,18 +389,13 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Partner Agents
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2">🏢 Partner Agents</CardTitle>
                   <div className="flex gap-2">
                     <Button onClick={fetchAgents} variant="outline" size="sm" disabled={agentsLoading}>
-                      <RefreshCw className={`h-4 w-4 mr-2 ${agentsLoading ? "animate-spin" : ""}`} />
-                      Refresh
+                      {agentsLoading ? "Loading..." : "Refresh"}
                     </Button>
                     <Button onClick={() => setShowAddAgent(true)} className="bg-green-600 hover:bg-green-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add New Agent
+                      ➕ Add New Agent
                     </Button>
                   </div>
                 </div>
@@ -416,7 +404,7 @@ export default function AdminDashboard() {
               <CardContent>
                 {agentsLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mr-2"></div>
                     Loading agents...
                   </div>
                 ) : (
@@ -444,10 +432,9 @@ export default function AdminDashboard() {
                                   href={agent.website}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                  className="text-xs text-blue-600 hover:underline"
                                 >
-                                  <ExternalLink className="h-3 w-3" />
-                                  Website
+                                  🌐 Website
                                 </a>
                               )}
                             </td>
@@ -467,7 +454,7 @@ export default function AdminDashboard() {
                                   }
                                   className="h-6 w-6 p-0"
                                 >
-                                  <Copy className="h-3 w-3" />
+                                  📋
                                 </Button>
                               </div>
                             </td>
@@ -492,12 +479,11 @@ export default function AdminDashboard() {
 
                     {agents.length === 0 && (
                       <div className="text-center py-8 text-gray-500">
-                        <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <div className="text-4xl mb-4">🏢</div>
                         <p className="text-lg font-medium mb-2">No agents found</p>
                         <p className="text-sm mb-4">Start by adding your first partner agent</p>
                         <Button onClick={() => setShowAddAgent(true)} className="bg-green-600 hover:bg-green-700">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add First Agent
+                          ➕ Add First Agent
                         </Button>
                       </div>
                     )}

@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { X, Building2, User, Mail, Phone, Globe, Link, CreditCard } from "lucide-react"
 
 interface AddAgentModalProps {
   isOpen: boolean
@@ -133,11 +132,11 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
         <CardHeader className="bg-green-50 border-b">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-green-600" />
+              <span className="text-green-600">🏢</span>
               <CardTitle className="text-green-900">Add New Partner Agent</CardTitle>
             </div>
             <Button variant="ghost" onClick={handleClose} className="h-8 w-8 p-0">
-              <X className="h-4 w-4" />
+              ✕
             </Button>
           </div>
           <p className="text-sm text-green-700 mt-2">
@@ -150,15 +149,14 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
             {/* Company Information */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b">
-                <Building2 className="h-4 w-4 text-gray-600" />
+                <span>🏢</span>
                 <h3 className="font-medium text-gray-900">Company Information</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="company_name" className="flex items-center gap-2">
-                    <Building2 className="h-3 w-3" />
-                    Company Name *
+                    🏢 Company Name *
                   </Label>
                   <Input
                     id="company_name"
@@ -172,8 +170,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
 
                 <div>
                   <Label htmlFor="website" className="flex items-center gap-2">
-                    <Globe className="h-3 w-3" />
-                    Website
+                    🌐 Website
                   </Label>
                   <Input
                     id="website"
@@ -188,8 +185,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
 
               <div>
                 <Label htmlFor="logo_url" className="flex items-center gap-2">
-                  <Image className="h-3 w-3" />
-                  Logo URL
+                  🖼️ Logo URL
                 </Label>
                 <Input
                   id="logo_url"
@@ -206,15 +202,14 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
             {/* Contact Information */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b">
-                <User className="h-4 w-4 text-gray-600" />
+                <span>👤</span>
                 <h3 className="font-medium text-gray-900">Contact Information</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="contact_name" className="flex items-center gap-2">
-                    <User className="h-3 w-3" />
-                    Contact Name *
+                    👤 Contact Name *
                   </Label>
                   <Input
                     id="contact_name"
@@ -228,8 +223,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
 
                 <div>
                   <Label htmlFor="phone" className="flex items-center gap-2">
-                    <Phone className="h-3 w-3" />
-                    Phone Number
+                    📞 Phone Number
                   </Label>
                   <Input
                     id="phone"
@@ -242,8 +236,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
 
               <div>
                 <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="h-3 w-3" />
-                  Email Address *
+                  📧 Email Address *
                 </Label>
                 <Input
                   id="email"
@@ -261,15 +254,14 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
             {/* System Configuration */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b">
-                <Link className="h-4 w-4 text-gray-600" />
+                <span>🔗</span>
                 <h3 className="font-medium text-gray-900">System Configuration</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="url_slug" className="flex items-center gap-2">
-                    <Link className="h-3 w-3" />
-                    URL Slug *
+                    🔗 URL Slug *
                   </Label>
                   <Input
                     id="url_slug"
@@ -289,8 +281,7 @@ export function AddAgentModal({ isOpen, onClose, onSubmit }: AddAgentModalProps)
 
                 <div>
                   <Label htmlFor="subscription_type" className="flex items-center gap-2">
-                    <CreditCard className="h-3 w-3" />
-                    Subscription Type
+                    💳 Subscription Type
                   </Label>
                   <Select
                     value={formData.subscription_type}
