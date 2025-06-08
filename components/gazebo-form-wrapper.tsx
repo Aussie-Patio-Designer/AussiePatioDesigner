@@ -9,11 +9,22 @@ export function GazeboFormWrapper() {
 
   useEffect(() => {
     // Check if we're on an agent page by looking for the AGENT_DATA script
-    if (typeof window !== "undefined" && window.AGENT_DATA) {
-      console.log("📋 Found agent data:", window.AGENT_DATA)
-      setAgentData(window.AGENT_DATA)
-    } else {
-      console.log("ℹ️ No agent data found, using default form")
+    if (typeof window !== "undefined") {
+      if (window.AGENT_DATA) {
+        console.log("📋 Found agent data:", window.AGENT_DATA)
+        setAgentData(window.AGENT_DATA)
+      } else {
+        console.log("ℹ️ No agent data found, checking URL...")
+
+        // Fallback: try to detect from URL
+        const path = window.location.pathname
+        const segments = path.split("/").filter(Boolean)
+
+        if (segments.length === 1 && !["admin", "api", "debug", "test"].includes(segments[0])) {
+          console.log(`🔍 Detected potential agent URL: ${segments[0]}`)
+          // We'll let the API handle the lookup
+        }
+      }
     }
     setIsLoading(false)
   }, [])

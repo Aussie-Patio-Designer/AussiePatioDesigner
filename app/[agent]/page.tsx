@@ -161,16 +161,20 @@ export default async function AgentPage({ params }: { params: { agent: string } 
         <GazeboFormWrapper />
       </div>
 
-      {/* Hidden agent data for form submission */}
+      {/* Hidden agent data for form submission - Enhanced */}
       <script
         dangerouslySetInnerHTML={{
-          __html: `window.AGENT_DATA = ${JSON.stringify({
-            id: agent.id,
-            company_name: agent.company_name,
-            contact_name: agent.contact_name,
-            email: agent.email,
-            url_slug: agent.url_slug,
-          })};`,
+          __html: `
+      console.log('🏢 Setting up agent data for: ${agent.company_name}');
+      window.AGENT_DATA = ${JSON.stringify({
+        id: agent.id,
+        company_name: agent.company_name,
+        contact_name: agent.contact_name,
+        email: agent.email,
+        url_slug: agent.url_slug,
+      })};
+      console.log('✅ Agent data set:', window.AGENT_DATA);
+    `,
         }}
       />
     </div>
