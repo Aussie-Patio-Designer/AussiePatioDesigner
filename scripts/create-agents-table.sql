@@ -1,4 +1,4 @@
--- Create agents table for partner management
+-- Create agents table if it doesn't exist
 CREATE TABLE IF NOT EXISTS agents (
     id SERIAL PRIMARY KEY,
     company_name VARCHAR(255) NOT NULL,
@@ -15,12 +15,7 @@ CREATE TABLE IF NOT EXISTS agents (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create index for faster lookups
-CREATE INDEX IF NOT EXISTS idx_agents_url_slug ON agents(url_slug);
-CREATE INDEX IF NOT EXISTS idx_agents_email ON agents(email);
-CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
-
--- Insert a test agent to verify the table works
+-- Insert a test record to verify the table works
 INSERT INTO agents (
     company_name, 
     contact_name, 
@@ -30,15 +25,26 @@ INSERT INTO agents (
     url_slug, 
     subscription_type
 ) VALUES (
-    'Test Patio Company',
-    'John Test',
-    'test@example.com',
-    '+61 400 000 000',
-    'https://testpatios.com',
-    'test-patio-company',
+    'Test Agent Company', 
+    'Test Contact', 
+    'test-sql-script@example.com', 
+    '+61 400 123 456', 
+    'https://example.com', 
+    'test-sql-script', 
     'basic'
 ) ON CONFLICT (email) DO NOTHING;
 
--- Verify the table was created successfully
-SELECT 'Agents table created successfully' as message;
-SELECT COUNT(*) as total_agents FROM agents;
+-- Verify the table exists and has the correct structure
+SELECT 
+    column_name, 
+    data_type, 
+    is_nullable
+FROM 
+    information_schema.columns
+WHERE 
+    table_name = 'agents'
+ORDER BY 
+    ordinal_position;
+
+-- Count existing records
+SELECT COUNT(*) FROM agents;
