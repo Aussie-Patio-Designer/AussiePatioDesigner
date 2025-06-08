@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AddAgentModal } from "@/components/add-agent-modal"
 
 interface Inquiry {
   id: number
@@ -27,6 +28,21 @@ interface Inquiry {
   status: string
 }
 
+interface Agent {
+  id: number
+  company_name: string
+  contact_name: string
+  email: string
+  phone?: string
+  website?: string
+  logo_url?: string
+  url_slug: string
+  status: string
+  subscription_type: string
+  subscription_expires_at?: string
+  created_at: string
+}
+
 interface Stats {
   total: number
   new_inquiries: number
@@ -42,10 +58,17 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedStatus, setSelectedStatus] = useState("all")
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [showAddAgent, setShowAddAgent] = useState(false)
+  const [selectedTab, setSelectedTab] = useState("inquiries")
 
   useEffect(() => {
-    fetchData()
-  }, [selectedStatus])
+    if (selectedTab === "inquiries") {
+      fetchData()
+    } else if (selectedTab === "agents") {
+      fetchAgents()
+    }
+  }, [selectedStatus, selectedTab])
 
   const fetchData = async () => {
     try {
@@ -68,6 +91,34 @@ export default function AdminDashboard() {
       console.error("Error fetching data:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchAgents = async () => {
+    try {
+      const response = await fetch("/api/admin/agents")
+      if (response.ok) {
+        const data = await response.json()
+        setAgents(data.agents || [])
+      }
+    } catch (error) {
+      console.error("Error fetching agents:", error)
+    }
+  }
+
+  const handleAddAgent = async (agentData: any) => {
+    try {
+      const response = await fetch("/api/admin/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(agentData),
+      })
+      if (response.ok) {
+        fetchAgents()
+        setShowAddAgent(false)
+      }
+    } catch (error) {
+      console.error("Error adding agent:", error)
     }
   }
 
@@ -168,13 +219,10 @@ export default function AdminDashboard() {
               </Button>
             </div>
 
-            <Tabs value={selectedStatus} onValueChange={setSelectedStatus}>
+            <Tabs value={selectedTab} onValueChange={setSelectedTab}>
               <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="new">New</TabsTrigger>
-                <TabsTrigger value="contacted">Contacted</TabsTrigger>
-                <TabsTrigger value="quoted">Quoted</TabsTrigger>
-                <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
+                <TabsTrigger value="agents">Agent Management</TabsTrigger>
               </TabsList>
             </Tabs>
           </CardHeader>
@@ -219,6 +267,61 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {selectedTab === "agents" && (
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Agent Management</CardTitle>
+                <Button onClick={() => setShowAddAgent(true)}>Add New Agent</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Company</th>
+                      <th className="text-left p-2">Contact</th>
+                      <th className="text-left p-2">Email</th>
+                      <th className="text-left p-2">URL Slug</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-left p-2">Created</th>
+                      <th className="text-left p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agents.map((agent) => (
+                      <tr key={agent.id} className="border-b hover:bg-gray-50">
+                        <td className="p-2 font-medium">{agent.company_name}</td>
+                        <td className="p-2">{agent.contact_name}</td>
+                        <td className="p-2 text-blue-600">{agent.email}</td>
+                        <td className="p-2 font-mono">/{agent.url_slug}</td>
+                        <td className="p-2">
+                          <Badge
+                            className={
+                              agent.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                            }
+                          >
+                            {agent.status}
+                          </Badge>
+                        </td>
+                        <td className="p-2 text-gray-600">{formatDate(agent.created_at)}</td>
+                        <td className="p-2">
+                          <Button variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {agents.length === 0 && <div className="text-center py-8 text-gray-500">No agents found.</div>}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        <AddAgentModal isOpen={showAddAgent} onClose={() => setShowAddAgent(false)} onSubmit={handleAddAgent} />
       </div>
     </div>
   )
