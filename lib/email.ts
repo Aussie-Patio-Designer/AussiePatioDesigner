@@ -23,6 +23,7 @@ interface InquiryData {
   roofColor: string
   postBeamColor: string
   screenshot?: string
+  agentId?: string // Add this line
 }
 
 // Get the correct domain URL
@@ -665,20 +666,47 @@ async function sendSalesTeamNotification(
   const config = getEnvConfig()
   const baseUrl = getBaseUrl()
 
-  // Sales team email addresses
-  const salesTeamEmails = [process.env.SALES_EMAIL_1, process.env.SALES_EMAIL_2, process.env.SALES_EMAIL_3].filter(
-    (email) => email && email.trim() !== "",
-  )
+  // Look up agent if agent parameter is provided
+
+  // Sales team email addresses - use agent email if available
+  let agentInfo: any = null
+  if (data.agentId) {
+    try {
+      const { neon } = await import("@neondatabase/serverless")
+      const sql = neon(process.env.DATABASE_URL!)
+
+      const agentResult = await sql`
+        SELECT * FROM agents WHERE id = ${data.agentId} AND status = 'active'
+      `
+
+      if (agentResult.length > 0) {
+        agentInfo = agentResult[0]
+        console.log("✅ Agent found:", agentInfo.company_name)
+      } else {
+        console.warn("⚠️ Agent not found or inactive:", data.agentId)
+      }
+    } catch (error) {
+      console.error("❌ Error looking up agent:", error)
+    }
+  }
+
+  const salesTeamEmails = agentInfo
+    ? [agentInfo.sales_email]
+    : [process.env.SALES_EMAIL_1, process.env.SALES_EMAIL_2, process.env.SALES_EMAIL_3].filter(
+        (email) => email && email.trim() !== "",
+      )
 
   if (salesTeamEmails.length === 0) {
-    console.log("⚠️ No sales team emails configured in environment variables")
+    console.log("⚠️ No sales team emails configured")
     return { sent: false, error: "No sales team emails configured" }
   }
 
   const referenceNumber = inquiryId ? `#${inquiryId.toString().padStart(6, "0")}` : "N/A"
   const designUrl = `${baseUrl}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
 
-  const subject = `New Patio/Gazebo Inquiry ${referenceNumber} - ${data.customerName}`
+  const subject = agentInfo
+    ? `New Patio/Gazebo Inquiry ${referenceNumber} - ${data.customerName} (via ${agentInfo.company_name})`
+    : `New Patio/Gazebo Inquiry ${referenceNumber} - ${data.customerName}`
 
   // Professional HTML email template for sales team
   const htmlContent = `
@@ -1298,6 +1326,28 @@ export async function sendGazeboInquiry(data: InquiryData) {
     }
   }
 
+  // Look up agent if agent parameter is provided
+  let agentInfo: any = null
+  if (data.agentId) {
+    try {
+      const { neon } = await import("@neondatabase/serverless")
+      const sql = neon(process.env.DATABASE_URL!)
+
+      const agentResult = await sql`
+        SELECT * FROM agents WHERE id = ${data.agentId} AND status = 'active'
+      `
+
+      if (agentResult.length > 0) {
+        agentInfo = agentResult[0]
+        console.log("✅ Agent found:", agentInfo.company_name)
+      } else {
+        console.warn("⚠️ Agent not found or inactive:", data.agentId)
+      }
+    } catch (error) {
+      console.error("❌ Error looking up agent:", error)
+    }
+  }
+
   try {
     // Initialize database
     await initializeDatabase()
@@ -1321,6 +1371,7 @@ export async function sendGazeboInquiry(data: InquiryData) {
       roof_color: data.roofColor,
       post_beam_color: data.postBeamColor,
       screenshot_url: undefined, // Will be updated if upload succeeds
+      agent_id: agentInfo?.id || null,
       status: "new",
     })
 
