@@ -21,6 +21,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 
+// Add this near the top of the file where the props are defined
+interface GazeboInquiryFormProps {
+  agentData?: {
+    id: number
+    company_name: string
+    contact_name: string
+    email: string
+    url_slug: string
+  }
+}
+
 // Fixed form schema with proper validation
 const formSchema = z
   .object({
@@ -103,7 +114,8 @@ const roofCladdingOptions = [
   },
 ]
 
-export default function GazeboInquiryForm() {
+// Update the component definition to accept props
+export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps = {}) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [currentStep, setCurrentStep] = useState<"design" | "customer">("design")
@@ -245,6 +257,7 @@ export default function GazeboInquiryForm() {
     return true
   }
 
+  // In the onSubmit function, add the agent data to the submission
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
     setSubmitStatus(null)
@@ -295,11 +308,16 @@ export default function GazeboInquiryForm() {
         hasOverhang: false,
         overhangSides: [],
         overhangSize: 0,
+        // Include agent data if available
+        agentData: agentData || null,
       }
 
       console.log("🚀 Submitting inquiry for:", submissionData.customerEmail)
       console.log("📸 Screenshot included:", !!screenshot)
       console.log("📊 Submission data size:", JSON.stringify(submissionData).length, "characters")
+      if (agentData) {
+        console.log("🏢 Agent:", agentData.company_name, agentData.email)
+      }
 
       const response = await fetch("/api/inquiries", {
         method: "POST",

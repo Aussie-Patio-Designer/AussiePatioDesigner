@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sendGazeboInquiry } from "@/lib/email"
+import { neon } from "@neondatabase/serverless"
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,19 @@ export async function POST(request: NextRequest) {
     console.log("🔗 Request referer:", referer)
 
     let agentInfo = null
-    if (referer) {
+
+    // First check if client-side AGENT_DATA was included
+    if (data.agentData) {
+      console.log("📋 Agent data found in submission:", data.agentData)
+      agentInfo = {
+        id: data.agentData.id,
+        email: data.agentData.email,
+        company_name: data.agentData.company_name,
+        url_slug: data.agentData.url_slug,
+      }
+    }
+    // If no agent data in submission, try to extract from referer
+    else if (referer) {
       try {
         const url = new URL(referer)
         const pathSegments = url.pathname.split("/").filter(Boolean)
@@ -35,7 +48,6 @@ export async function POST(request: NextRequest) {
           console.log("🔍 Looking up agent with slug:", agentSlug)
 
           // Import neon here to avoid issues
-          const { neon } = await import("@neondatabase/serverless")
           const sql = neon(process.env.DATABASE_URL!)
 
           const agentResult = await sql`
@@ -51,6 +63,17 @@ export async function POST(request: NextRequest) {
             console.log("✅ Found agent:", agentInfo.company_name, agentInfo.email)
           } else {
             console.log("⚠️ No active agent found for slug:", agentSlug)
+
+            // For debugging: check if there's an agent with this slug but inactive
+            const inactiveCheck = await sql`
+              SELECT id, company_name, status FROM agents 
+              WHERE url_slug = ${agentSlug} 
+              LIMIT 1
+            `
+
+            if (inactiveCheck.length > 0) {
+              console.log(`ℹ️ Found agent with slug "${agentSlug}" but status is: ${inactiveCheck[0].status}`)
+            }
           }
         }
       } catch (urlError) {

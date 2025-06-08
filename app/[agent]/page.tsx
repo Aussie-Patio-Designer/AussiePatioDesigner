@@ -19,8 +19,26 @@ interface Agent {
 
 async function getAgent(slug: string): Promise<Agent | null> {
   try {
+    console.log(`🔍 Looking up agent with slug: "${slug}"`)
     const sql = neon(process.env.DATABASE_URL!)
 
+    // First check if the agents table exists
+    const tableCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public'
+        AND table_name = 'agents'
+      );
+    `
+
+    const agentsTableExists = tableCheck[0]?.exists || false
+
+    if (!agentsTableExists) {
+      console.error("❌ Agents table does not exist in database")
+      return null
+    }
+
+    // Get the agent with exact slug match and active status
     const agents = await sql`
       SELECT * FROM agents 
       WHERE url_slug = ${slug} 
@@ -28,9 +46,41 @@ async function getAgent(slug: string): Promise<Agent | null> {
       LIMIT 1
     `
 
-    return agents[0] || null
+    if (agents.length === 0) {
+      console.log(`⚠️ No active agent found with slug: "${slug}"`)
+
+      // For debugging: check if there's an agent with this slug but inactive
+      const inactiveCheck = await sql`
+        SELECT id, company_name, status FROM agents 
+        WHERE url_slug = ${slug} 
+        LIMIT 1
+      `
+
+      if (inactiveCheck.length > 0) {
+        console.log(`ℹ️ Found agent with slug "${slug}" but status is: ${inactiveCheck[0].status}`)
+      }
+
+      // For debugging: check if there are similar slugs
+      const similarCheck = await sql`
+        SELECT id, url_slug, company_name, status FROM agents 
+        WHERE lower(url_slug) LIKE ${`%${slug.toLowerCase()}%`}
+        LIMIT 5
+      `
+
+      if (similarCheck.length > 0) {
+        console.log(
+          `ℹ️ Found similar agents:`,
+          similarCheck.map((a) => `${a.url_slug} (${a.status})`),
+        )
+      }
+
+      return null
+    }
+
+    console.log(`✅ Found active agent: ${agents[0].company_name} (${agents[0].email})`)
+    return agents[0]
   } catch (error) {
-    console.error("Error fetching agent:", error)
+    console.error("❌ Error fetching agent:", error)
     return null
   }
 }
