@@ -4,6 +4,7 @@ import { Resend } from "resend"
 import { createInquiry, initializeDatabase } from "./database"
 import { uploadScreenshot } from "./blob-storage"
 import { getEnvConfig } from "./env-config"
+import { routeInquiryEmail } from "./agent-email-routing"
 
 interface InquiryData {
   customerName: string
@@ -26,6 +27,7 @@ interface InquiryData {
   agentInfo?: {
     email: string
     company_name: string
+    url_slug?: string
   }
   sourceUrl?: string
 }
@@ -670,38 +672,25 @@ async function sendSalesTeamNotification(
   const config = getEnvConfig()
   const baseUrl = getBaseUrl()
 
-  // Determine recipient email based on agent info
-  let recipientEmails: string[] = []
-  let isAgentInquiry = false
-  let companyName = "Aussie Patio Designer"
+  // Determine recipient email using new routing system
+  const routingResult = await routeInquiryEmail(data.agentInfo?.url_slug, data.sourceUrl)
 
-  if (data.agentInfo && data.agentInfo.email) {
-    // Route to specific agent
-    recipientEmails = [data.agentInfo.email]
-    isAgentInquiry = true
-    companyName = data.agentInfo.company_name
-    console.log(`🎯 ROUTING TO AGENT: ${data.agentInfo.email} (${companyName})`)
-  } else {
-    // Route to default sales team
-    const salesTeamEmails = [process.env.SALES_EMAIL_1, process.env.SALES_EMAIL_2, process.env.SALES_EMAIL_3].filter(
-      (email) => email && email.trim() !== "",
-    )
+  const recipientEmails: string[] = [routingResult.primaryEmail]
+  const isAgentInquiry = routingResult.isAgentInquiry
+  const companyName = routingResult.companyName
 
-    if (salesTeamEmails.length === 0) {
-      console.log("⚠️ No sales team emails configured in environment variables")
-      return { sent: false, error: "No sales team emails configured" }
-    }
-
-    recipientEmails = salesTeamEmails
-    console.log(`📧 ROUTING TO DEFAULT SALES TEAM: ${recipientEmails.join(", ")}`)
+  // Add fallback email if available
+  if (routingResult.fallbackEmail) {
+    recipientEmails.push(routingResult.fallbackEmail)
   }
 
-  // 🚨 CRITICAL LOGGING FOR LOCKYER SHEDS
-  console.log("🚨 EMAIL ROUTING DECISION:")
-  console.log("📧 Final Recipients:", recipientEmails)
-  console.log("🏢 Company:", companyName)
-  console.log("🎯 Is Agent Inquiry:", isAgentInquiry)
-  console.log("📍 Source URL:", data.sourceUrl)
+  console.log(`🎯 EMAIL ROUTING RESULT:`, {
+    method: routingResult.routingMethod,
+    primaryEmail: routingResult.primaryEmail,
+    fallbackEmail: routingResult.fallbackEmail,
+    company: companyName,
+    isAgent: isAgentInquiry,
+  })
 
   const referenceNumber = inquiryId ? `#${inquiryId.toString().padStart(6, "0")}` : "N/A"
   const designUrl = `${baseUrl}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
