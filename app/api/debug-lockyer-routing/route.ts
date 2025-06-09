@@ -1,13 +1,18 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { routeInquiryEmail } from "@/lib/agent-email-routing"
 import { neon } from "@neondatabase/serverless"
 
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
-    console.log("🔍 Debugging Lockyer Sheds routing...")
+    const { testUrl, agentSlug } = await request.json()
 
+    console.log("🔍 DEBUGGING LOCKYER SHEDS ROUTING")
+    console.log("Test URL:", testUrl)
+    console.log("Agent Slug:", agentSlug)
+
+    // Test 1: Check if agents table exists and has data
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Check if agents table exists
     const tableCheck = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -15,77 +20,68 @@ export async function GET() {
       );
     `
 
-    if (!tableCheck[0]?.exists) {
-      return NextResponse.json({
-        error: "Agents table does not exist",
-        routing: "Default sales team",
-        emails: [process.env.SALES_EMAIL_1, process.env.SALES_EMAIL_2, process.env.SALES_EMAIL_3].filter(Boolean),
-      })
+    const agentsTableExists = tableCheck[0]?.exists || false
+
+    let agentsInTable = []
+    let lockyerAgent = null
+
+    if (agentsTableExists) {
+      // Get all agents
+      agentsInTable = await sql`SELECT id, company_name, email, url_slug, status FROM agents ORDER BY id`
+
+      // Look specifically for Lockyer Sheds
+      const lockyerResults = await sql`
+        SELECT * FROM agents 
+        WHERE url_slug = 'lockyer-sheds' 
+        OR lower(company_name) LIKE '%lockyer%'
+        OR lower(email) LIKE '%lockyer%'
+      `
+
+      if (lockyerResults.length > 0) {
+        lockyerAgent = lockyerResults[0]
+      }
     }
 
-    // Look for Lockyer Sheds agent
-    const lockyerAgent = await sql`
-      SELECT * FROM agents 
-      WHERE lower(company_name) LIKE '%lockyer%' 
-      OR lower(url_slug) LIKE '%lockyer%'
-      ORDER BY created_at DESC
-    `
+    // Test 2: Test the routing function
+    const routingResult = await routeInquiryEmail(agentSlug, testUrl)
 
-    // Check all agents
-    const allAgents = await sql`
-      SELECT id, company_name, email, url_slug, status, created_at 
-      FROM agents 
-      ORDER BY created_at DESC
-    `
-
-    // Check recent inquiries for Lockyer
-    const recentInquiries = await sql`
-      SELECT 
-        id, 
-        customer_name, 
-        customer_email, 
-        agent_email, 
-        agent_company, 
-        source_url,
-        created_at 
-      FROM gazebo_inquiries 
-      WHERE 
-        lower(agent_company) LIKE '%lockyer%' 
-        OR lower(source_url) LIKE '%lockyer%'
-        OR lower(agent_email) LIKE '%lockyer%'
-      ORDER BY created_at DESC 
-      LIMIT 10
-    `
-
-    // Environment variables check
+    // Test 3: Test environment variables
     const envCheck = {
-      DATABASE_URL: !!process.env.DATABASE_URL,
-      RESEND_API_KEY: !!process.env.RESEND_API_KEY,
-      SALES_EMAIL_1: process.env.SALES_EMAIL_1 || "Not set",
-      SALES_EMAIL_2: process.env.SALES_EMAIL_2 || "Not set",
-      SALES_EMAIL_3: process.env.SALES_EMAIL_3 || "Not set",
+      SALES_EMAIL_1: process.env.SALES_EMAIL_1 || "NOT SET",
+      RESEND_API_KEY: process.env.RESEND_API_KEY ? "SET" : "NOT SET",
+      DATABASE_URL: process.env.DATABASE_URL ? "SET" : "NOT SET",
     }
 
-    return NextResponse.json({
+    const debugResult = {
       timestamp: new Date().toISOString(),
-      lockyerAgent: lockyerAgent.length > 0 ? lockyerAgent[0] : null,
-      allAgents: allAgents,
-      recentLockyerInquiries: recentInquiries,
-      environment: envCheck,
-      routing: {
-        hasLockyerAgent: lockyerAgent.length > 0,
-        activeLockyerAgent: lockyerAgent.find((a) => a.status === "active"),
-        defaultSalesEmails: [process.env.SALES_EMAIL_1, process.env.SALES_EMAIL_2, process.env.SALES_EMAIL_3].filter(
-          Boolean,
-        ),
+      testParameters: {
+        testUrl,
+        agentSlug,
       },
-    })
+      database: {
+        agentsTableExists,
+        totalAgents: agentsInTable.length,
+        allAgents: agentsInTable,
+        lockyerAgent,
+      },
+      routing: routingResult,
+      environment: envCheck,
+      analysis: {
+        shouldRouteToAgent: !!lockyerAgent,
+        actualRoutingTarget: routingResult.primaryEmail,
+        isWorkingCorrectly: lockyerAgent ? routingResult.primaryEmail === lockyerAgent.email : false,
+      },
+    }
+
+    console.log("🎯 DEBUG RESULT:", debugResult)
+
+    return NextResponse.json(debugResult)
   } catch (error) {
-    console.error("❌ Error debugging Lockyer routing:", error)
+    console.error("❌ Debug error:", error)
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unknown error",
-        routing: "Error - falling back to default",
+        stack: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
     )

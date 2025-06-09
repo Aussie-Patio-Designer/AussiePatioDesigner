@@ -6,6 +6,18 @@ export async function POST(request: NextRequest) {
   try {
     console.log("📥 Received inquiry submission")
 
+    // Enhanced debugging for Lockyer Sheds
+    const referer = request.headers.get("referer")
+    console.log("🔗 Request referer:", referer)
+
+    // Check if this is a Lockyer Sheds submission
+    const isLockyerSubmission = referer?.includes("lockyer-sheds") || referer?.includes("lockyer")
+    if (isLockyerSubmission) {
+      console.log("🏢 LOCKYER SHEDS SUBMISSION DETECTED!")
+      // console.log("📋 Agent data in submission:", data.agentData) // data is not defined yet
+      console.log("🔗 Referer URL:", referer)
+    }
+
     // Add timeout handling
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error("Request timeout")), 30000) // 30 second timeout
@@ -38,8 +50,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the referer to determine if this is from an agent page
-    const referer = request.headers.get("referer")
-    console.log("🔗 Request referer:", referer)
+    // const referer = request.headers.get("referer") // Removed redeclaration
+    // console.log("🔗 Request referer:", referer) // referer is already logged above
 
     let agentInfo = null
 
@@ -172,6 +184,16 @@ export async function POST(request: NextRequest) {
       console.log("📧 Email will be sent to:", agentInfo?.email || "Default sales team")
       console.log("🏢 Company:", agentInfo?.company_name || "N/A")
       console.log("🔗 URL Slug:", agentInfo?.url_slug || "N/A")
+    }
+
+    // 🚨 ENHANCED LOCKYER DEBUGGING
+    if (isLockyerSubmission || agentInfo?.company_name?.toLowerCase().includes("lockyer")) {
+      console.log("🚨 LOCKYER SHEDS EMAIL ROUTING DEBUG:")
+      console.log("📧 Agent Info Found:", !!agentInfo)
+      console.log("📧 Agent Email:", agentInfo?.email || "None")
+      console.log("📧 Agent Company:", agentInfo?.company_name || "None")
+      console.log("📧 Routing Method:", data.agentData ? "client-data" : agentInfo ? "url-lookup" : "default")
+      console.log("📧 Will send to:", agentInfo?.email || "Default fallback")
     }
 
     // Process the inquiry with timeout
