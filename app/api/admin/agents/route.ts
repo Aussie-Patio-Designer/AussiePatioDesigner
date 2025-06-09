@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { createAgentWithFallback } from "@/lib/agent-email-routing"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -35,8 +34,7 @@ async function ensureAgentsTableExists() {
           subscription_type VARCHAR(20) DEFAULT 'basic',
           subscription_expires_at TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          fallback_email VARCHAR(255)
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `
 
@@ -60,7 +58,7 @@ export async function GET() {
       SELECT 
         id, company_name, contact_name, email, phone, website, 
         logo_url, url_slug, status, subscription_type, 
-        subscription_expires_at, created_at, updated_at, fallback_email
+        subscription_expires_at, created_at, updated_at
       FROM agents 
       ORDER BY created_at DESC
     `
@@ -119,25 +117,33 @@ export async function POST(request: NextRequest) {
       subscription_type: data.subscription_type || "basic",
     }
 
-    // Use the new agent creation system with fallback emails
-    const result = await createAgentWithFallback(cleanData)
-
-    if (!result.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: result.error || "Failed to create agent",
-        },
-        { status: 400 },
+    // Insert agent
+    const result = await sql`
+      INSERT INTO agents (
+        company_name, contact_name, email, phone, website,
+        logo_url, url_slug, subscription_type, status
+      ) VALUES (
+        ${cleanData.company_name}, 
+        ${cleanData.contact_name}, 
+        ${cleanData.email},
+        ${cleanData.phone}, 
+        ${cleanData.website}, 
+        ${cleanData.logo_url},
+        ${cleanData.url_slug}, 
+        ${cleanData.subscription_type}, 
+        'active'
       )
-    }
+      RETURNING id, company_name, url_slug, email, created_at
+    `
 
+    const agent = result[0]
     return NextResponse.json({
       success: true,
       message: "Agent created successfully",
-      agent: result.agent,
-      fallbackEmailIndex: result.fallbackEmailIndex,
-      fallbackEmail: result.agent?.fallback_email,
+      agent: {
+        ...agent,
+        customer_url: `https://aussie-patio-designer.vercel.app/${agent.url_slug}`,
+      },
     })
   } catch (error) {
     console.error("Error creating agent:", error)

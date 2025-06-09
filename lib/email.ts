@@ -672,25 +672,25 @@ async function sendSalesTeamNotification(
   const config = getEnvConfig()
   const baseUrl = getBaseUrl()
 
-  // Determine recipient email using new routing system
-  const routingResult = await routeInquiryEmail(data.agentInfo?.url_slug, data.sourceUrl)
+  // Use the simple routing system
+  const routingResult = await routeInquiryEmail(data.agentInfo?.url_slug, data.sourceUrl, data.agentInfo)
 
-  const recipientEmails: string[] = [routingResult.primaryEmail]
+  const recipientEmail = routingResult.primaryEmail
   const isAgentInquiry = routingResult.isAgentInquiry
   const companyName = routingResult.companyName
 
-  // Add fallback email if available
-  if (routingResult.fallbackEmail) {
-    recipientEmails.push(routingResult.fallbackEmail)
-  }
-
   console.log(`🎯 EMAIL ROUTING RESULT:`, {
     method: routingResult.routingMethod,
-    primaryEmail: routingResult.primaryEmail,
-    fallbackEmail: routingResult.fallbackEmail,
+    email: recipientEmail,
     company: companyName,
     isAgent: isAgentInquiry,
   })
+
+  // Special logging for specific agents
+  if (companyName.toLowerCase().includes("lockyer")) {
+    console.log("🏢 LOCKYER SHEDS INQUIRY DETECTED!")
+    console.log("📧 Email will be sent to:", recipientEmail)
+  }
 
   const referenceNumber = inquiryId ? `#${inquiryId.toString().padStart(6, "0")}` : "N/A"
   const designUrl = `${baseUrl}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
@@ -715,7 +715,7 @@ async function sendSalesTeamNotification(
       <div class="timestamp">Submitted: ${new Date().toLocaleString()}</div>
     `
 
-  // Rest of the email template remains the same, just update the header section
+  // ... rest of the email template stays the same ...
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -814,100 +814,6 @@ async function sendSalesTeamNotification(
           border-bottom: 1px solid #e0e0e0;
         }
         
-        .info-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 15px;
-        }
-        
-        .info-card {
-          background: #f9f9f9;
-          border: 1px solid #e0e0e0;
-          border-radius: 4px;
-          padding: 15px;
-        }
-        
-        .info-label {
-          font-size: 12px;
-          font-weight: 600;
-          color: #777777;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 5px;
-        }
-        
-        .info-value {
-          font-size: 16px;
-          font-weight: 500;
-          color: #333333;
-          word-break: break-word;
-        }
-        
-        .email-link {
-          color: #555555;
-          text-decoration: none;
-          font-weight: 500;
-        }
-        
-        .email-link:hover {
-          text-decoration: underline;
-        }
-        
-        .specs-table {
-          width: 100%;
-          border-collapse: collapse;
-          background: #ffffff;
-          border: 1px solid #e0e0e0;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-        
-        .specs-table th {
-          background: #555555;
-          color: #ffffff;
-          padding: 12px 15px;
-          text-align: left;
-          font-weight: 500;
-          font-size: 14px;
-        }
-        
-        .specs-table td {
-          padding: 12px 15px;
-          border-bottom: 1px solid #e0e0e0;
-          font-size: 14px;
-        }
-        
-        .specs-table tr:last-child td {
-          border-bottom: none;
-        }
-        
-        .specs-table tr:nth-child(even) {
-          background: #f9f9f9;
-        }
-        
-        .design-preview {
-          background: #f9f9f9;
-          border: 1px solid #e0e0e0;
-          border-radius: 4px;
-          padding: 25px;
-          text-align: center;
-        }
-        
-        .design-preview h3 {
-          font-size: 18px;
-          font-weight: 600;
-          color: #333333;
-          margin-bottom: 15px;
-        }
-        
-        .screenshot {
-          max-width: 100%;
-          height: auto;
-          border: 1px solid #e0e0e0;
-          border-radius: 4px;
-          margin: 15px 0;
-        }
-        
         .priority-banner {
           background: #f9f9f9;
           border: 1px solid #e0e0e0;
@@ -977,122 +883,7 @@ async function sendSalesTeamNotification(
           .content, .header {
             padding: 20px 15px;
           }
-          
-          .info-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .action-buttons {
-            flex-direction: column;
-          }
-          
-          .btn {
-            width: 100%;
-          }
         }
-
-        .action-buttons {
-          display: flex;
-          gap: 12px;
-          justify-content: center;
-          flex-wrap: wrap;
-          margin-top: 25px;
-          padding: 0 10px;
-        }
-
-        .btn {
-          display: inline-block;
-          padding: 14px 24px;
-          border-radius: 6px;
-          text-decoration: none;
-          font-weight: 600;
-          font-size: 15px;
-          text-align: center;
-          min-width: 140px;
-          transition: all 0.2s ease;
-          border: 2px solid transparent;
-          box-sizing: border-box;
-        }
-
-        .btn-primary {
-          background: #2563eb;
-          color: #ffffff;
-          border-color: #2563eb;
-        }
-
-        .btn-primary:hover {
-          background: #1d4ed8;
-          border-color: #1d4ed8;
-        }
-
-        .btn-secondary {
-          background: #ffffff;
-          color: #2563eb;
-          border-color: #2563eb;
-        }
-
-        .btn-secondary:hover {
-          background: #f8fafc;
-          border-color: #1d4ed8;
-          color: #1d4ed8;
-        }
-
-        .cta-button {
-          display: inline-block;
-          background: #2563eb;
-          color: #ffffff;
-          padding: 14px 28px;
-          text-decoration: none;
-          border-radius: 6px;
-          font-weight: 600;
-          font-size: 16px;
-          margin-bottom: 20px;
-          border: 2px solid #2563eb;
-          min-width: 180px;
-          text-align: center;
-          transition: all 0.2s ease;
-        }
-
-        .cta-button:hover {
-          background: #1d4ed8;
-          border-color: #1d4ed8;
-        }
-
-        @media (max-width: 768px) {
-          .action-buttons {
-            flex-direction: column;
-            gap: 10px;
-          }
-          
-          .btn {
-            width: 100%;
-          }
-        }
-
-        /* Email client specific fixes */
-        @media screen and (max-width: 600px) {
-          .action-buttons {
-            display: block !important;
-            width: 100% !important;
-          }
-          
-          .btn {
-            display: block !important;
-            width: 90% !important;
-            margin: 8px auto !important;
-            text-align: center !important;
-          }
-        }
-
-        /* Outlook specific fixes */
-        <!--[if mso]>
-        <style type="text/css">
-        .btn {
-          border: none !important;
-          mso-style-priority: 99 !important;
-        }
-        </style>
-        <![endif]-->
       </style>
     </head>
     <body>
@@ -1296,23 +1087,23 @@ Generated by Gazi OGUTCU 2025
     return { sent: false, error: "Email service not configured" }
   }
 
-  // Send email
+  // Send email to single recipient
   try {
     const resend = new Resend(config.RESEND_API_KEY)
 
-    console.log("🚨 ATTEMPTING TO SEND EMAIL TO:", recipientEmails)
+    console.log("🚨 SENDING EMAIL TO:", recipientEmail)
 
     const result = await resend.emails.send({
       from: "Aussie Patio Inquiries <onboarding@resend.dev>",
-      to: recipientEmails,
+      to: [recipientEmail], // Single email address
       subject: subject,
       text: textContent,
       html: htmlContent,
     })
 
     console.log("✅ Sales team notification sent successfully:", result)
-    console.log(`📧 Email sent to: ${recipientEmails.join(", ")}`)
-    return { sent: true, recipients: recipientEmails }
+    console.log(`📧 Email sent to: ${recipientEmail}`)
+    return { sent: true, recipients: [recipientEmail] }
   } catch (error) {
     console.error("❌ Error sending sales team notification:", error)
     return { sent: false, error: error instanceof Error ? error.message : "Unknown email error" }
