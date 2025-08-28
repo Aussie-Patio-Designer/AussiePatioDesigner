@@ -97,6 +97,14 @@ async function sendCustomerConfirmation(
   const config = getEnvConfig()
   const baseUrl = getBaseUrl()
 
+  const screenshotSrc =
+    screenshotUrl ||
+    (data.screenshot
+      ? data.screenshot.startsWith("data:")
+        ? data.screenshot
+        : `data:image/png;base64,${data.screenshot}`
+      : undefined)
+
   // Create the 3D design URL with inquiry parameters
   const designUrl = `${baseUrl}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
 
@@ -496,8 +504,8 @@ async function sendCustomerConfirmation(
                   <tr style="background: #ffffff;">
                     <td colspan="2" style="padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0;">
                       ${
-                        screenshotUrl
-                          ? `<img src="${screenshotUrl}" alt="3D Patio/Gazebo Design" style="max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 4px;" />`
+                        screenshotSrc
+                          ? `<img src="${screenshotSrc}" alt="3D Patio/Gazebo Design" style="max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 4px;" />`
                           : `<p style="color: #777777; font-style: italic; padding: 30px 0;">Preview image not available</p>`
                       }
                     </td>
@@ -671,6 +679,14 @@ async function sendSalesTeamNotification(
 ): Promise<{ sent: boolean; error?: string; recipients?: string[] }> {
   const config = getEnvConfig()
   const baseUrl = getBaseUrl()
+
+  const screenshotSrc =
+    screenshotUrl ||
+    (data.screenshot
+      ? data.screenshot.startsWith("data:")
+        ? data.screenshot
+        : `data:image/png;base64,${data.screenshot}`
+      : undefined)
 
   // Use the simple routing system
   const routingResult = await routeInquiryEmail(data.agentInfo?.url_slug, data.sourceUrl, data.agentInfo)
@@ -945,8 +961,8 @@ async function sendSalesTeamNotification(
                   <tr style="background: #ffffff;">
                     <td colspan="2" style="padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0;">
                       ${
-                        screenshotUrl
-                          ? `<img src="${screenshotUrl}" alt="3D Patio/Gazebo Design Preview" style="max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 4px;" />`
+                        screenshotSrc
+                          ? `<img src="${screenshotSrc}" alt="3D Patio/Gazebo Design Preview" style="max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 4px;" />`
                           : `<div style="background: #f0f0f0; padding: 30px; border-radius: 4px; color: #777777; font-style: italic; text-align: center;">3D design screenshot not available</div>`
                       }
                     </td>
@@ -1068,7 +1084,7 @@ PATIO/GAZEBO SPECIFICATIONS:
 ${data.additionalDetails ? `\nADDITIONAL DETAILS:\n${data.additionalDetails}\n` : ""}
 
 3D DESIGN:
-${screenshotUrl ? `Screenshot: ${screenshotUrl}` : "Screenshot not available"}
+${screenshotUrl ? `Screenshot: ${screenshotUrl}` : data.screenshot ? "Screenshot embedded in email" : "Screenshot not available"}
 Interactive Design: ${designUrl}
 
 QUICK ACTIONS:
