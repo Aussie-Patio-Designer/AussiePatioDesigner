@@ -96,7 +96,7 @@ export async function routeInquiryEmail(
   }
 
   // Default fallback: Use SALES_EMAIL_1
-  const fallbackEmail = process.env.SALES_EMAIL_1 || "gaziogutcu.go@gmail.com"
+  const fallbackEmail = process.env.SALES_EMAIL_1 || "aussiepatiodesigner@gmail.com"
   console.log("📧 Using default fallback email:", fallbackEmail)
 
   return {
