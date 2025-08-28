@@ -98,7 +98,12 @@ async function sendCustomerConfirmation(
   const baseUrl = getBaseUrl()
 
   const screenshotSrc =
-    screenshotUrl || (data.screenshot ? `data:image/png;base64,${data.screenshot}` : undefined)
+    screenshotUrl ||
+    (data.screenshot
+      ? data.screenshot.startsWith("data:")
+        ? data.screenshot
+        : `data:image/png;base64,${data.screenshot}`
+      : undefined)
 
   // Create the 3D design URL with inquiry parameters
   const designUrl = `${baseUrl}/?ref=${inquiryId}&design=true&roofType=${encodeURIComponent(data.roofType)}&roofCladding=${encodeURIComponent(data.roofCladding)}&roofPitch=${data.roofPitch}&length=${data.length}&width=${data.width}&height=${data.height}&roofColor=${encodeURIComponent(data.roofColor)}&postBeamColor=${encodeURIComponent(data.postBeamColor)}`
@@ -676,7 +681,12 @@ async function sendSalesTeamNotification(
   const baseUrl = getBaseUrl()
 
   const screenshotSrc =
-    screenshotUrl || (data.screenshot ? `data:image/png;base64,${data.screenshot}` : undefined)
+    screenshotUrl ||
+    (data.screenshot
+      ? data.screenshot.startsWith("data:")
+        ? data.screenshot
+        : `data:image/png;base64,${data.screenshot}`
+      : undefined)
 
   // Use the simple routing system
   const routingResult = await routeInquiryEmail(data.agentInfo?.url_slug, data.sourceUrl, data.agentInfo)

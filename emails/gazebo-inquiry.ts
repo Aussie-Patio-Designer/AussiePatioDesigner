@@ -9,6 +9,13 @@ export interface GazeboInquiryEmailProps {
 export function GazeboInquiryEmail({ formData, agentCompany, customerUrl }: GazeboInquiryEmailProps) {
   const { customerDetails, gazeboSpecs, colorSelection, environment, screenshotUrl } = formData
 
+  const screenshotSrc =
+    screenshotUrl && screenshotUrl.length > 0
+      ? screenshotUrl.startsWith("data:")
+        ? screenshotUrl
+        : `data:image/png;base64,${screenshotUrl}`
+      : undefined
+
   const subject = agentCompany
     ? `New Gazebo Inquiry from ${customerDetails.name} via ${agentCompany}`
     : `New Gazebo Inquiry from ${customerDetails.name}`
@@ -78,12 +85,12 @@ export function GazeboInquiryEmail({ formData, agentCompany, customerUrl }: Gaze
         </div>
 
         ${
-          screenshotUrl
+          screenshotSrc
             ? `
           <div class="section">
             <h2>3D Design Preview</h2>
             <div class="screenshot">
-              <img src="${screenshotUrl}" alt="Gazebo 3D Design" />
+              <img src="${screenshotSrc}" alt="Gazebo 3D Design" />
             </div>
           </div>
         `
@@ -133,7 +140,7 @@ Environment:
 - Ground: ${environment.groundType}
 - Sky: ${environment.skyType}
 
-${screenshotUrl ? `3D Preview: ${screenshotUrl}` : ""}
+${screenshotSrc && !screenshotSrc.startsWith('data:') ? `3D Preview: ${screenshotSrc}` : ""}
 ${customerUrl ? `Source: ${customerUrl}` : ""}
 
 Please respond to the customer within 24 hours.
