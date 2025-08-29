@@ -342,22 +342,6 @@ async function sendCustomerConfirmation(
           color: #999999;
         }
         
-        .domain-info {
-          background: #f0f8ff;
-          border: 1px solid #d0e7ff;
-          border-radius: 4px;
-          padding: 15px;
-          margin: 20px 0;
-          text-align: center;
-        }
-        
-        .domain-info p {
-          color: #2563eb;
-          font-size: 14px;
-          font-weight: 500;
-          margin: 0;
-        }
-        
         @media (max-width: 640px) {
           .wrapper {
             padding: 10px;
@@ -506,11 +490,6 @@ async function sendCustomerConfirmation(
               Thank you for submitting your patio/gazebo design inquiry. Your request has been received and is now being processed by our team.
             </div>
             
-            <!-- Domain Info -->
-            <div class="domain-info">
-              <p>🌐 Visit us at: aussie-patio-designer.vercel.app</p>
-            </div>
-            
             <!-- Combined Design Specifications and 3D Preview -->
             <div class="specs-section">
               <div class="specs-title">Your Patio/Gazebo Design</div>
@@ -631,9 +610,6 @@ ${referenceNumber ? `Reference: ${referenceNumber}` : ""}
 Dear ${data.customerName},
 
 Thank you for submitting your patio/gazebo design inquiry. Your request has been received and is now being processed by our team.
-
-Visit us at: aussie-patio-designer.vercel.app
-
 YOUR DESIGN SPECIFICATIONS:
 • Roof Type: ${data.roofType}
 • Roof Material: ${data.roofCladding}
@@ -905,22 +881,6 @@ async function sendSalesTeamNotification(
           color: #999999;
         }
         
-        .domain-info {
-          background: #f0f8ff;
-          border: 1px solid #d0e7ff;
-          border-radius: 4px;
-          padding: 10px;
-          margin: 15px 0;
-          text-align: center;
-        }
-        
-        .domain-info p {
-          color: #2563eb;
-          font-size: 12px;
-          font-weight: 500;
-          margin: 0;
-        }
-        
         @media (max-width: 768px) {
           .wrapper {
             padding: 10px;
@@ -947,11 +907,6 @@ async function sendSalesTeamNotification(
           
           <!-- Content -->
           <div class="content">
-            <!-- Domain Info -->
-            <div class="domain-info">
-              <p>🌐 aussie-patio-designer.vercel.app</p>
-            </div>
-            
             <!-- Customer Information -->
             <div class="section">
               <div class="section-title">Customer Information</div>
@@ -1102,8 +1057,6 @@ async function sendSalesTeamNotification(
   const textContent = `
 NEW PATIO/GAZEBO INQUIRY ${referenceNumber}
 Submitted: ${new Date().toLocaleString()}
-
-Visit: aussie-patio-designer.vercel.app
 
 CUSTOMER INFORMATION:
 - Name: ${data.customerName}
