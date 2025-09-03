@@ -82,7 +82,7 @@ export default function RootLayout({
       <head>
         {/* Google Analytics 4 (GA4) örneği */}
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"
+          src="https://www.googletagmanager.com/gtag/js?id=G-8KSVRMVSDX"
           strategy="afterInteractive"
         />
         <Script id="ga4" strategy="afterInteractive">
@@ -90,7 +90,7 @@ export default function RootLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'G-XXXXXXXXXX', { send_page_view: true });
+            gtag('config', 'G-8KSVRMVSDX', { send_page_view: true });
           `}
         </Script>
 
