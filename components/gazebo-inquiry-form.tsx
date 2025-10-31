@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -96,6 +96,20 @@ const postBeamColors = [
   { value: "DOVER WHITE", label: "DOVER WHITE", color: "#FEFEFE" },
   { value: "WOODLAND GREY", label: "WOODLAND GREY", color: "#3E4A47" },
 ]
+
+const pitchOptionsByRoofType: Record<"Gable" | "Skillion", { value: string; label: string }[]> = {
+  Gable: [
+    { value: "15", label: "15° Classic" },
+    { value: "22.5", label: "22.5° High Peak" },
+  ],
+  Skillion: [
+    { value: "2", label: "2° Low" },
+    { value: "5", label: "5° Standard" },
+  ],
+}
+
+const getPitchOptions = (roofType: "Gable" | "Skillion") =>
+  pitchOptionsByRoofType[roofType] ?? pitchOptionsByRoofType.Gable
 
 // Simplified roof cladding options - only 2 options
 const roofCladdingOptions = [
@@ -248,6 +262,124 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
 
     return () => subscription.unsubscribe()
   }, [form])
+
+  const proceedToCustomerDetails = useCallback(async () => {
+    const isValid = await form.trigger(
+      ["roofType", "roofCladding", "roofPitch", "length", "width", "height", "roofColor", "postBeamColor"],
+      { shouldFocus: true },
+    )
+
+    if (isValid) {
+      setCurrentStep("customer")
+    }
+  }, [form])
+
+  const backToDesign = useCallback(() => {
+    setCurrentStep("design")
+  }, [])
+
+  const startNewDesign = useCallback(() => {
+    setCurrentStep("design")
+    setIsViewMode(false)
+    setReferenceNumber("")
+    setSubmitStatus(null)
+    setShowSubmitModal(false)
+    form.reset({ ...defaultFormValues })
+  }, [defaultFormValues, form])
+
+  const testScreenshot = useCallback(async () => {
+    const capture = gazeboPreviewRef.current?.captureScreenshot
+
+    if (!capture) {
+      console.error("Screenshot capture is not available on the preview component.")
+      return
+    }
+
+    try {
+      const dataUrl = await capture()
+
+      if (!dataUrl) {
+        console.warn("Unable to capture screenshot from the preview.")
+        return
+      }
+
+      if (typeof window !== "undefined") {
+        const previewWindow = window.open("", "_blank")
+
+        if (previewWindow) {
+          previewWindow.document.write(
+            `<img src="${dataUrl}" alt="Gazebo preview screenshot" style="width:100%;height:auto;" />`,
+          )
+        } else {
+          const link = document.createElement("a")
+          link.href = dataUrl
+          link.download = "gazebo-preview.png"
+          link.click()
+        }
+      }
+    } catch (error) {
+      console.error("Error capturing screenshot:", error)
+    }
+  }, [])
+
+  const onSubmit = useCallback(
+    async (values: z.infer<typeof formSchema>) => {
+      setIsSubmitting(true)
+      setSubmitStatus(null)
+      setShowSubmitModal(true)
+
+      try {
+        const screenshot = await gazeboPreviewRef.current?.captureScreenshot?.().catch((error) => {
+          console.error("Failed to capture screenshot before submission:", error)
+          return null
+        })
+
+        const response = await fetch("/api/inquiries", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...values,
+            screenshot,
+            agentData,
+          }),
+        })
+
+        const result = await response.json()
+
+        if (!response.ok || !result?.success) {
+          const message = result?.message ?? "Failed to submit inquiry. Please try again."
+          setSubmitStatus({ type: "error", message })
+          return
+        }
+
+        const successMessage = `${result.message ?? "Inquiry submitted successfully."}${
+          result.emailSent === false ? " Email delivery may be delayed." : ""
+        }`
+
+        setSubmitStatus({ type: "success", message: successMessage })
+
+        setTimeout(() => {
+          setShowSubmitModal(false)
+          setSubmitStatus(null)
+          setCurrentStep("design")
+          setIsViewMode(false)
+          setReferenceNumber("")
+          form.reset({ ...defaultFormValues })
+        }, 5000)
+      } catch (error) {
+        console.error("Error submitting inquiry:", error)
+        setSubmitStatus({
+          type: "error",
+          message: "Something went wrong while submitting your inquiry. Please try again.",
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [agentData, defaultFormValues, form],
+  )
 
   return (
     <div className={`relative min-h-screen ${isMobile ? "bg-slate-100" : ""}`}>
