@@ -20,6 +20,7 @@ import type { GazeboPreviewRef } from "./gazebo-preview"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 // Add this near the top of the file where the props are defined
 interface GazeboInquiryFormProps {
@@ -125,6 +126,7 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
 
   const searchParams = useSearchParams()
   const gazeboPreviewRef = useRef<GazeboPreviewRef>(null)
+  const isMobile = useIsMobile()
 
   // Pure function to extract URL parameters without side effects
   const extractUrlParams = useMemo(() => {
@@ -247,316 +249,61 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
     return () => subscription.unsubscribe()
   }, [form])
 
-  // Custom validation function for roof pitch
-  const validateRoofPitch = (pitch: number, roofType: string) => {
-    if (roofType === "Gable") {
-      return pitch === 15 || pitch === 22.5
-    } else if (roofType === "Skillion") {
-      return pitch === 2 || pitch === 5
-    }
-    return true
-  }
-
-  // In the onSubmit function, add the agent data to the submission
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true)
-    setSubmitStatus(null)
-    setShowSubmitModal(true) // Show the popup immediately
-
-    try {
-      // Additional client-side validation
-      if (!validateRoofPitch(values.roofPitch, values.roofType)) {
-        const errorMessage =
-          values.roofType === "Gable" ? "Gable roof pitch must be 15° or 22.5°" : "Skillion roof pitch must be 2° or 5°"
-
-        form.setError("roofPitch", { message: errorMessage })
-        setIsSubmitting(false)
-        setShowSubmitModal(false) // Hide popup on validation error
-        return
-      }
-
-      // Capture screenshot before submission
-      let screenshot: string | null = null
-      if (gazeboPreviewRef.current) {
-        console.log("📸 Attempting to capture screenshot...")
-        try {
-          screenshot = await gazeboPreviewRef.current.captureScreenshot()
-          if (screenshot) {
-            console.log("✅ Screenshot captured successfully, size:", screenshot.length, "characters")
-
-            // Check if it's too large for JSON transmission
-            const sizeInMB = screenshot.length / (1024 * 1024)
-            console.log("📊 Screenshot size:", sizeInMB.toFixed(2), "MB")
-
-            if (sizeInMB > 4) {
-              console.warn("⚠️ Screenshot is very large, compressing...")
-              // Optionally compress or skip screenshot if too large
-              screenshot = null
-            }
-          } else {
-            console.warn("⚠️ Screenshot capture returned null")
-          }
-        } catch (error) {
-          console.error("❌ Error capturing screenshot:", error)
-          // Continue without screenshot
-          screenshot = null
-        }
-      } else {
-        console.warn("⚠️ Gazebo preview ref not available")
-      }
-
-      const submissionData = {
-        ...values,
-        screenshot: screenshot,
-        hasOverhang: false,
-        overhangSides: [],
-        overhangSize: 0,
-        // Include agent data if available
-        agentData: agentData || null,
-      }
-
-      console.log("🚀 Submitting inquiry for:", submissionData.customerEmail)
-      console.log("📸 Screenshot included:", !!screenshot)
-      console.log("📊 Submission data size:", JSON.stringify(submissionData).length, "characters")
-      if (agentData) {
-        console.log("🏢 Agent:", agentData.company_name, agentData.email)
-      }
-
-      // Add retry logic with exponential backoff
-      let lastError: Error | null = null
-      const maxRetries = 3
-
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          console.log(`📤 Attempt ${attempt}/${maxRetries}`)
-
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-
-          const response = await fetch("/api/inquiries", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(submissionData),
-            signal: controller.signal,
-          })
-
-          clearTimeout(timeoutId)
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: "Unknown server error" }))
-            throw new Error(errorData.message || `Server error: ${response.status}`)
-          }
-
-          const result = await response.json()
-
-          if (result.success) {
-            setSubmitStatus({
-              type: "success",
-              message: result.message + (result.emailSent ? "" : " Note: Email confirmation may be delayed."),
-            })
-
-            console.log("✅ Inquiry submitted successfully")
-            console.log("📧 Customer email sent:", result.customerEmailSent)
-            console.log("📧 Sales email sent:", result.salesEmailSent)
-            console.log("📸 Screenshot uploaded:", result.screenshotUploaded)
-
-            // Auto-close modal and reset form after 5 seconds
-            setTimeout(() => {
-              setShowSubmitModal(false)
-              form.reset()
-              setSubmitStatus(null)
-              setCurrentStep("design")
-              setIsViewMode(false)
-              setReferenceNumber("")
-            }, 5000)
-
-            return // Success, exit retry loop
-          } else {
-            throw new Error(result.message || "Failed to submit inquiry")
-          }
-        } catch (error) {
-          lastError = error instanceof Error ? error : new Error("Unknown error")
-          console.error(`❌ Attempt ${attempt} failed:`, lastError.message)
-
-          if (attempt < maxRetries) {
-            // Wait before retrying (exponential backoff)
-            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
-            console.log(`⏳ Retrying in ${delay}ms...`)
-            await new Promise((resolve) => setTimeout(resolve, delay))
-          }
-        }
-      }
-
-      // All retries failed
-      throw lastError || new Error("All retry attempts failed")
-    } catch (error) {
-      console.error("❌ Final error after all retries:", error)
-
-      let errorMessage = "Failed to submit inquiry. Please try again."
-
-      if (error instanceof Error) {
-        if (error.name === "AbortError" || error.message.includes("timeout")) {
-          errorMessage = "Request timed out. Please check your connection and try again."
-        } else if (error.message.includes("network") || error.message.includes("fetch")) {
-          errorMessage = "Network error. Please check your internet connection and try again."
-        } else if (error.message.includes("server")) {
-          errorMessage = "Server error. Please try again in a moment."
-        } else {
-          errorMessage = error.message
-        }
-      }
-
-      setSubmitStatus({
-        type: "error",
-        message: errorMessage,
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // Test screenshot capture and upload function
-  const testScreenshot = async () => {
-    console.log("🧪 Testing screenshot capture and upload...")
-    if (gazeboPreviewRef.current) {
-      try {
-        const screenshot = await gazeboPreviewRef.current.captureScreenshot()
-        if (screenshot) {
-          console.log("✅ Test screenshot successful!")
-          console.log("📸 Screenshot size:", screenshot.length, "characters")
-          console.log("📸 Screenshot preview:", screenshot.substring(0, 100) + "...")
-
-          // Test the upload process
-          console.log("🧪 Testing upload to blob storage...")
-          try {
-            const uploadResponse = await fetch("/api/test/screenshot", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ screenshot }),
-            })
-
-            const uploadResult = await uploadResponse.json()
-            console.log("📤 Upload test result:", uploadResult)
-
-            if (uploadResult.success) {
-              alert(`Screenshot test successful!\nCapture: ✅\nUpload: ✅\nURL: ${uploadResult.url}`)
-            } else {
-              alert(`Screenshot capture: ✅\nUpload failed: ${uploadResult.error}`)
-            }
-          } catch (uploadError) {
-            console.error("❌ Upload test error:", uploadError)
-            alert(`Screenshot capture: ✅\nUpload test failed: ${uploadError.message}`)
-          }
-
-          // Also create a download link for manual verification
-          const link = document.createElement("a")
-          link.href = screenshot
-          link.download = "test-screenshot.png"
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-        } else {
-          console.error("❌ Test screenshot failed - no data returned")
-          alert("Screenshot capture failed - check console for details")
-        }
-      } catch (error) {
-        console.error("❌ Test screenshot error:", error)
-        alert("Screenshot capture error: " + error.message)
-      }
-    } else {
-      console.error("❌ Gazebo preview ref not available")
-      alert("Gazebo preview not ready")
-    }
-  }
-
-  const proceedToCustomerDetails = () => {
-    setCurrentStep("customer")
-  }
-
-  const backToDesign = () => {
-    setCurrentStep("design")
-  }
-
-  const startNewDesign = () => {
-    // Explicitly reset with proper values
-    const resetValues = {
-      customerName: "",
-      siteAddress: "",
-      customerEmail: "",
-      customerPhone: "",
-      additionalDetails: "",
-      roofType: "Gable" as const,
-      roofCladding: "Corrugated" as const,
-      roofPitch: 15,
-      length: 3000,
-      width: 3000,
-      height: 2400,
-      roofColor: "SURFMIST / BASALT",
-      postBeamColor: "MONUMENT",
-    }
-
-    form.reset(resetValues)
-    setIsViewMode(false)
-    setReferenceNumber("")
-    setCurrentStep("design")
-  }
-
-  // Get available pitch options based on roof type
-  const getPitchOptions = (roofType: string) => {
-    if (roofType === "Gable") {
-      return [
-        { value: "15", label: "15°" },
-        { value: "22.5", label: "22.5°" },
-      ]
-    } else {
-      return [
-        { value: "2", label: "2°" },
-        { value: "5", label: "5°" },
-      ]
-    }
-  }
-
   return (
-    <div className="min-h-screen relative">
-      {/* Full-screen 3D Background */}
-      <div className="fixed inset-0 z-0">
-        <GazeboPreview
-          ref={gazeboPreviewRef}
-          length={form.watch("length") || 3000}
-          width={form.watch("width") || 3000}
-          height={form.watch("height") || 2400}
-          roofType={form.watch("roofType") || "Gable"}
-          roofPitch={form.watch("roofPitch") || 15}
-          roofCladding={form.watch("roofCladding") || "Corrugated"}
-          hasOverhang={false}
-          overhangSides={[]}
-          overhangSize={300}
-          roofColor={form.watch("roofColor")}
-          postBeamColor={form.watch("postBeamColor")}
-        />
-      </div>
+    <div className={`relative min-h-screen ${isMobile ? "bg-slate-100" : ""}`}>
+      {/* 3D Preview */}
+      {isMobile ? (
+        <div className="relative z-0 h-[300px] w-full overflow-hidden shadow-lg sm:h-[360px]">
+          <GazeboPreview
+            ref={gazeboPreviewRef}
+            length={form.watch("length") || 3000}
+            width={form.watch("width") || 3000}
+            height={form.watch("height") || 2400}
+            roofType={form.watch("roofType") || "Gable"}
+            roofPitch={form.watch("roofPitch") || 15}
+            roofCladding={form.watch("roofCladding") || "Corrugated"}
+            hasOverhang={false}
+            overhangSides={[]}
+            overhangSize={300}
+            roofColor={form.watch("roofColor")}
+            postBeamColor={form.watch("postBeamColor")}
+          />
+        </div>
+      ) : (
+        <div className="fixed inset-0 z-0">
+          <GazeboPreview
+            ref={gazeboPreviewRef}
+            length={form.watch("length") || 3000}
+            width={form.watch("width") || 3000}
+            height={form.watch("height") || 2400}
+            roofType={form.watch("roofType") || "Gable"}
+            roofPitch={form.watch("roofPitch") || 15}
+            roofCladding={form.watch("roofCladding") || "Corrugated"}
+            hasOverhang={false}
+            overhangSides={[]}
+            overhangSize={300}
+            roofColor={form.watch("roofColor")}
+            postBeamColor={form.watch("postBeamColor")}
+          />
+        </div>
+      )}
 
-      {/* Credit Footer - Bottom Right Corner */}
-      <div className="fixed bottom-4 right-4 z-50 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-gray-200/50">
-        <p className="text-xs text-gray-600 font-medium">
-          Created by <span className="text-blue-600 font-semibold">Gazi OGUTCU</span> 2025
-        </p>
-      </div>
-
-      {/* Screenshot Button - Top Right Corner */}
-      <div className="fixed top-4 right-4 z-50">
-        <Button
-          onClick={testScreenshot}
-          variant="secondary"
-          className="bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200/50 hover:bg-white/70"
-        >
-          📸 Screenshot
-        </Button>
-      </div>
+      {!isMobile && (
+        <>
+          <div className="fixed bottom-4 right-4 z-50 rounded-lg border border-gray-200/50 bg-white/90 px-3 py-2 text-xs font-medium text-gray-600 shadow-lg backdrop-blur-sm">
+            Created by <span className="font-semibold text-blue-600">Gazi OGUTCU</span> 2025
+          </div>
+          <div className="fixed top-4 right-4 z-50">
+            <Button
+              onClick={testScreenshot}
+              variant="secondary"
+              className="border border-gray-200/50 bg-white/90 shadow-lg backdrop-blur-sm hover:bg-white/70"
+            >
+              📸 Screenshot
+            </Button>
+          </div>
+        </>
+      )}
 
       {/* Submit Modal Popup */}
       <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
@@ -570,10 +317,10 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
           <div className="flex flex-col items-center space-y-4 py-6">
             {isSubmitting ? (
               <>
-                <Loader2 className="h-16 w-16 text-blue-600 animate-spin" />
+                <Loader2 className="h-16 w-16 animate-spin text-blue-600" />
                 <div className="text-center">
                   <p className="text-lg font-medium text-gray-900">Processing your patio design...</p>
-                  <p className="text-sm text-gray-600 mt-2">
+                  <p className="mt-2 text-sm text-gray-600">
                     We're capturing your 3D design and sending your inquiry to our team.
                   </p>
                 </div>
@@ -583,8 +330,8 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                 <CheckCircle2 className="h-16 w-16 text-green-600" />
                 <div className="text-center">
                   <p className="text-lg font-medium text-gray-900">Inquiry Submitted Successfully!</p>
-                  <p className="text-sm text-gray-600 mt-2">{submitStatus.message}</p>
-                  <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <p className="mt-2 text-sm text-gray-600">{submitStatus.message}</p>
+                  <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3">
                     <p className="text-sm text-green-800">
                       <strong>What happens next?</strong>
                       <br />• You'll receive a confirmation email shortly
@@ -599,7 +346,7 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                 <XCircle className="h-16 w-16 text-red-600" />
                 <div className="text-center">
                   <p className="text-lg font-medium text-gray-900">Submission Failed</p>
-                  <p className="text-sm text-gray-600 mt-2">{submitStatus?.message}</p>
+                  <p className="mt-2 text-sm text-gray-600">{submitStatus?.message}</p>
                   <div className="mt-4">
                     <Button onClick={() => setShowSubmitModal(false)} variant="outline" className="w-full">
                       Try Again
@@ -619,7 +366,7 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                     setSubmitStatus(null)
                     setCurrentStep("design")
                   }}
-                  className="mt-3 bg-green-600 hover:bg-green-700 text-white"
+                  className="mt-3 bg-green-600 text-white hover:bg-green-700"
                 >
                   Start New Design
                 </Button>
@@ -629,544 +376,561 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
         </DialogContent>
       </Dialog>
 
-      {/* Fixed Left Sidebar Form */}
-      <div className="fixed left-0 top-0 z-10 w-96 h-screen bg-white/95 backdrop-blur-sm shadow-2xl flex flex-col">
-        {/* Header - Fixed */}
-        <div className="flex-shrink-0 p-6 border-b border-gray-200/50">
-          <h1 className="text-2xl font-bold text-gray-900">Aussie Patio Designer</h1>
-          <p className="text-sm text-gray-600">
-            {isViewMode ? `Viewing saved design ${referenceNumber}` : "Design your perfect patio/gazebo"}
-          </p>
-          {isViewMode && (
-            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <strong>This is your saved design!</strong>
-                <br />
-                You can modify it and submit a new inquiry, or{" "}
-                <button onClick={startNewDesign} className="underline font-medium">
-                  start a completely new design
-                </button>
-                .
-              </p>
+      <div className="relative z-10 flex flex-col md:flex-row">
+        <div className={`w-full md:w-96 ${isMobile ? "px-4 pb-10 pt-6" : ""} md:fixed md:left-0 md:top-0 md:h-screen`}>
+          <div className="mx-auto flex h-full w-full max-w-3xl flex-col rounded-2xl bg-white shadow-xl md:mx-0 md:max-w-none md:rounded-none md:bg-white/95 md:backdrop-blur-sm md:shadow-2xl">
+            <div className="flex flex-col gap-4 border-b border-gray-200/60 px-5 py-6 sm:px-6 md:gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Aussie Patio Designer</h1>
+                  <p className="text-sm text-gray-600">
+                    {isViewMode ? `Viewing saved design ${referenceNumber}` : "Design your perfect patio/gazebo"}
+                  </p>
+                </div>
+                {isMobile && (
+                  <Button onClick={testScreenshot} variant="outline" className="w-full sm:w-auto">
+                    📸 Screenshot
+                  </Button>
+                )}
+              </div>
+              {isViewMode && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                  <strong>This is your saved design!</strong>
+                  <br />
+                  You can modify it and submit a new inquiry, or{" "}
+                  <button onClick={startNewDesign} className="font-medium underline">
+                    start a completely new design
+                  </button>
+                  .
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {currentStep === "design" ? (
-                  <>
-                    {/* Design Configuration */}
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg">Design Configuration</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="roofType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">Roof Type</FormLabel>
-                              <FormControl>
-                                <RadioGroup
-                                  onValueChange={field.onChange}
-                                  value={field.value}
-                                  className="flex flex-col space-y-2"
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Gable" id="gable" />
-                                    <Label htmlFor="gable" className="text-sm">
-                                      Gable (Traditional peaked)
-                                    </Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="Skillion" id="skillion" />
-                                    <Label htmlFor="skillion" className="text-sm">
-                                      Skillion (Single slope)
-                                    </Label>
-                                  </div>
-                                </RadioGroup>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="roofCladding"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">Roof Cladding</FormLabel>
-                              <FormControl>
-                                <div className="space-y-3">
-                                  {roofCladdingOptions.map((option) => (
-                                    <div
-                                      key={option.value}
-                                      className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                                        field.value === option.value
-                                          ? "border-blue-500 bg-blue-50"
-                                          : "border-gray-200 hover:border-gray-300"
-                                      }`}
-                                      onClick={() => field.onChange(option.value)}
+            <div className={`flex-1 ${isMobile ? "" : "overflow-y-auto"}`}>
+              <div className="px-5 py-6 sm:px-6">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    {currentStep === "design" ? (
+                      <>
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg">Design Configuration</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="roofType"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">Roof Type</FormLabel>
+                                  <FormControl>
+                                    <RadioGroup
+                                      onValueChange={field.onChange}
+                                      value={field.value}
+                                      className="flex flex-col space-y-2"
                                     >
-                                      <div className="flex items-center space-x-3">
-                                        <input
-                                          type="radio"
-                                          value={option.value}
-                                          checked={field.value === option.value}
-                                          onChange={() => field.onChange(option.value)}
-                                          className="text-blue-600"
-                                        />
-                                        <div className="flex-1">
+                                      <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="Gable" id="gable" />
+                                        <Label htmlFor="gable" className="text-sm">
+                                          Gable (Traditional peaked)
+                                        </Label>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="Skillion" id="skillion" />
+                                        <Label htmlFor="skillion" className="text-sm">
+                                          Skillion (Single slope)
+                                        </Label>
+                                      </div>
+                                    </RadioGroup>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="roofCladding"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">Roof Cladding</FormLabel>
+                                  <FormControl>
+                                    <div className="space-y-3">
+                                      {roofCladdingOptions.map((option) => (
+                                        <div
+                                          key={option.value}
+                                          className={`cursor-pointer rounded-lg border p-3 transition-all ${
+                                            field.value === option.value
+                                              ? "border-blue-500 bg-blue-50"
+                                              : "border-gray-200 hover:border-gray-300"
+                                          }`}
+                                          onClick={() => field.onChange(option.value)}
+                                        >
                                           <div className="flex items-center space-x-3">
-                                            {option.image && (
-                                              <img
-                                                src={option.image || "/placeholder.svg"}
-                                                alt={option.label}
-                                                className="w-12 h-8 object-cover rounded border"
-                                              />
-                                            )}
-                                            <div>
-                                              <h4 className="text-sm font-medium text-gray-900">{option.label}</h4>
-                                              <p className="text-xs text-gray-600">{option.description}</p>
+                                            <input
+                                              type="radio"
+                                              value={option.value}
+                                              checked={field.value === option.value}
+                                              onChange={() => field.onChange(option.value)}
+                                              className="text-blue-600"
+                                            />
+                                            <div className="flex-1">
+                                              <div className="flex items-center space-x-3">
+                                                {option.image && (
+                                                  <img
+                                                    src={option.image || "/placeholder.svg"}
+                                                    alt={option.label}
+                                                    className="h-8 w-12 rounded border object-cover"
+                                                  />
+                                                )}
+                                                <div>
+                                                  <h4 className="text-sm font-medium text-gray-900">{option.label}</h4>
+                                                  <p className="text-xs text-gray-600">{option.description}</p>
+                                                </div>
+                                              </div>
                                             </div>
                                           </div>
                                         </div>
-                                      </div>
+                                      ))}
                                     </div>
-                                  ))}
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="roofPitch"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">
-                                Roof Pitch
-                                <span className="text-xs text-gray-500 ml-1">
-                                  ({form.watch("roofType") === "Gable" ? "15° or 22.5°" : "2° or 5°"})
-                                </span>
-                              </FormLabel>
-                              <FormControl>
-                                <Tabs
-                                  value={field.value?.toString() || (form.watch("roofType") === "Gable" ? "15" : "5")}
-                                  onValueChange={(value) => field.onChange(Number(value))}
-                                >
-                                  <TabsList className="grid grid-cols-3 w-full">
-                                    {getPitchOptions(form.watch("roofType") || "Gable").map((option) => (
-                                      <TabsTrigger key={option.value} value={option.value} className="text-sm">
-                                        {option.label}
-                                      </TabsTrigger>
-                                    ))}
-                                  </TabsList>
-                                </Tabs>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
+                            <FormField
+                              control={form.control}
+                              name="roofPitch"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">
+                                    Roof Pitch
+                                    <span className="ml-1 text-xs text-gray-500">
+                                      ({form.watch("roofType") === "Gable" ? "15° or 22.5°" : "2° or 5°"})
+                                    </span>
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Tabs
+                                      value={field.value?.toString() || (form.watch("roofType") === "Gable" ? "15" : "5")}
+                                      onValueChange={(value) => field.onChange(Number(value))}
+                                    >
+                                      <TabsList className="grid w-full grid-cols-2 gap-2">
+                                        {getPitchOptions(form.watch("roofType") || "Gable").map((option) => (
+                                          <TabsTrigger key={option.value} value={option.value} className="text-sm">
+                                            {option.label}
+                                          </TabsTrigger>
+                                        ))}
+                                      </TabsList>
+                                    </Tabs>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </CardContent>
+                        </Card>
 
-                    {/* Dimensions */}
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg">Dimensions</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="length"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between">
-                                <FormLabel className="text-sm font-medium">Length (m)</FormLabel>
-                                <Input
-                                  type="number"
-                                  min={1}
-                                  max={20}
-                                  step={0.1}
-                                  value={(field.value / 1000).toFixed(1)}
-                                  onChange={(e) => {
-                                    const value = Number(e.target.value)
-                                    if (value === 0 || isNaN(value)) {
-                                      field.onChange(1000)
-                                    } else {
-                                      field.onChange(Math.max(1000, value * 1000))
-                                    }
-                                  }}
-                                  onBlur={(e) => {
-                                    const value = Number(e.target.value)
-                                    if (value === 0 || isNaN(value) || value < 1) {
-                                      field.onChange(1000)
-                                    }
-                                  }}
-                                  className="w-16 h-8 text-center text-sm"
-                                />
-                              </div>
-                              <FormControl>
-                                <Slider
-                                  min={1000}
-                                  max={20000}
-                                  step={100}
-                                  value={[field.value]}
-                                  onValueChange={(vals) => field.onChange(vals[0])}
-                                  className="py-2"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {/* Dimensions */}
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg">Dimensions</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="length"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <FormLabel className="text-sm font-medium">Length (m)</FormLabel>
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      max={20}
+                                      step={0.1}
+                                      value={(field.value / 1000).toFixed(1)}
+                                      onChange={(e) => {
+                                        const value = Number(e.target.value)
+                                        if (value === 0 || isNaN(value)) {
+                                          field.onChange(1000)
+                                        } else {
+                                          field.onChange(Math.max(1000, value * 1000))
+                                        }
+                                      }}
+                                      onBlur={(e) => {
+                                        const value = Number(e.target.value)
+                                        if (value === 0 || isNaN(value) || value < 1) {
+                                          field.onChange(1000)
+                                        }
+                                      }}
+                                      className="h-8 w-16 text-center text-sm"
+                                    />
+                                  </div>
+                                  <FormControl>
+                                    <Slider
+                                      min={1000}
+                                      max={20000}
+                                      step={100}
+                                      value={[field.value]}
+                                      onValueChange={(vals) => field.onChange(vals[0])}
+                                      className="py-2"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="width"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between">
-                                <FormLabel className="text-sm font-medium">Width (m)</FormLabel>
-                                <Input
-                                  type="number"
-                                  min={1}
-                                  max={20}
-                                  step={0.1}
-                                  value={(field.value / 1000).toFixed(1)}
-                                  onChange={(e) => {
-                                    const value = Number(e.target.value)
-                                    if (value === 0 || isNaN(value)) {
-                                      field.onChange(1000)
-                                    } else {
-                                      field.onChange(Math.max(1000, value * 1000))
-                                    }
-                                  }}
-                                  onBlur={(e) => {
-                                    const value = Number(e.target.value)
-                                    if (value === 0 || isNaN(value) || value < 1) {
-                                      field.onChange(1000)
-                                    }
-                                  }}
-                                  className="w-16 h-8 text-center text-sm"
-                                />
-                              </div>
-                              <FormControl>
-                                <Slider
-                                  min={1000}
-                                  max={20000}
-                                  step={100}
-                                  value={[field.value]}
-                                  onValueChange={(vals) => field.onChange(vals[0])}
-                                  className="py-2"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            <FormField
+                              control={form.control}
+                              name="width"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <FormLabel className="text-sm font-medium">Width (m)</FormLabel>
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      max={20}
+                                      step={0.1}
+                                      value={(field.value / 1000).toFixed(1)}
+                                      onChange={(e) => {
+                                        const value = Number(e.target.value)
+                                        if (value === 0 || isNaN(value)) {
+                                          field.onChange(1000)
+                                        } else {
+                                          field.onChange(Math.max(1000, value * 1000))
+                                        }
+                                      }}
+                                      onBlur={(e) => {
+                                        const value = Number(e.target.value)
+                                        if (value === 0 || isNaN(value) || value < 1) {
+                                          field.onChange(1000)
+                                        }
+                                      }}
+                                      className="h-8 w-16 text-center text-sm"
+                                    />
+                                  </div>
+                                  <FormControl>
+                                    <Slider
+                                      min={1000}
+                                      max={20000}
+                                      step={100}
+                                      value={[field.value]}
+                                      onValueChange={(vals) => field.onChange(vals[0])}
+                                      className="py-2"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="height"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between">
-                                <FormLabel className="text-sm font-medium">Eave Height (m)</FormLabel>
-                                <Input
-                                  type="number"
-                                  min={2.4}
-                                  max={5}
-                                  step={0.1}
-                                  value={(field.value / 1000).toFixed(1)}
-                                  onChange={(e) => {
-                                    const value = Number(e.target.value)
-                                    if (value === 0 || isNaN(value)) {
-                                      field.onChange(2400)
-                                    } else {
-                                      field.onChange(Math.max(2400, value * 1000))
-                                    }
-                                  }}
-                                  onBlur={(e) => {
-                                    const value = Number(e.target.value)
-                                    if (value === 0 || isNaN(value) || value < 2.4) {
-                                      field.onChange(2400)
-                                    }
-                                  }}
-                                  className="w-16 h-8 text-center text-sm"
-                                />
-                              </div>
-                              <FormControl>
-                                <Slider
-                                  min={2400}
-                                  max={5000}
-                                  step={100}
-                                  value={[field.value]}
-                                  onValueChange={(vals) => field.onChange(vals[0])}
-                                  className="py-2"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
+                            <FormField
+                              control={form.control}
+                              name="height"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <FormLabel className="text-sm font-medium">Eave Height (m)</FormLabel>
+                                    <Input
+                                      type="number"
+                                      min={2.4}
+                                      max={5}
+                                      step={0.1}
+                                      value={(field.value / 1000).toFixed(1)}
+                                      onChange={(e) => {
+                                        const value = Number(e.target.value)
+                                        if (value === 0 || isNaN(value)) {
+                                          field.onChange(2400)
+                                        } else {
+                                          field.onChange(Math.max(2400, value * 1000))
+                                        }
+                                      }}
+                                      onBlur={(e) => {
+                                        const value = Number(e.target.value)
+                                        if (value === 0 || isNaN(value) || value < 2.4) {
+                                          field.onChange(2400)
+                                        }
+                                      }}
+                                      className="h-8 w-16 text-center text-sm"
+                                    />
+                                  </div>
+                                  <FormControl>
+                                    <Slider
+                                      min={2400}
+                                      max={5000}
+                                      step={100}
+                                      value={[field.value]}
+                                      onValueChange={(vals) => field.onChange(vals[0])}
+                                      className="py-2"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </CardContent>
+                        </Card>
 
-                    {/* Color Selection */}
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg">Color Selection</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="roofColor"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">Roof Color</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select roof color" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {roofColors.map((color) => (
-                                    <SelectItem key={color.value} value={color.value}>
-                                      <div className="flex items-center">
-                                        <div
-                                          className="w-4 h-4 rounded border border-gray-300 mr-2"
-                                          style={{ backgroundColor: color.color }}
-                                        />
-                                        <span className="text-sm">{color.label}</span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {/* Color Selection */}
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg">Color Selection</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="roofColor"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">Roof Color</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select roof color" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {roofColors.map((color) => (
+                                        <SelectItem key={color.value} value={color.value}>
+                                          <div className="flex items-center">
+                                            <div
+                                              className="mr-2 h-4 w-4 rounded border border-gray-300"
+                                              style={{ backgroundColor: color.color }}
+                                            />
+                                            <span className="text-sm">{color.label}</span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="postBeamColor"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">Frame Color</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select frame color" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {postBeamColors.map((color) => (
-                                    <SelectItem key={color.value} value={color.value}>
-                                      <div className="flex items-center">
-                                        <div
-                                          className="w-4 h-4 rounded border border-gray-300 mr-2"
-                                          style={{ backgroundColor: color.color }}
-                                        />
-                                        <span className="text-sm">{color.label}</span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
+                            <FormField
+                              control={form.control}
+                              name="postBeamColor"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">Frame Color</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select frame color" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {postBeamColors.map((color) => (
+                                        <SelectItem key={color.value} value={color.value}>
+                                          <div className="flex items-center">
+                                            <div
+                                              className="mr-2 h-4 w-4 rounded border border-gray-300"
+                                              style={{ backgroundColor: color.color }}
+                                            />
+                                            <span className="text-sm">{color.label}</span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </CardContent>
+                        </Card>
 
-                    {/* Continue Button */}
-                    <Button
-                      type="button"
-                      onClick={proceedToCustomerDetails}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
-                    >
-                      Continue to Customer Details
-                      <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    {/* Customer Details */}
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg">Customer Information</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="customerName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">Customer Name</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Enter your full name"
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  ref={field.ref}
-                                  className="text-sm"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg">3D Preview Controls</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3 text-sm text-gray-600">
+                            <p>• Rotate with left click or touch drag</p>
+                            <p>• Zoom with mouse wheel or pinch</p>
+                            <p>• Pan with right click or two-finger drag</p>
+                          </CardContent>
+                        </Card>
 
-                        <FormField
-                          control={form.control}
-                          name="customerEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">Email Address</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="email"
-                                  placeholder="Enter your email"
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  ref={field.ref}
-                                  className="text-sm"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <Button
+                          type="button"
+                          onClick={proceedToCustomerDetails}
+                          className="flex w-full items-center justify-center gap-2 bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
+                        >
+                          Continue to Customer Details
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg">Customer Details</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="customerName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">Customer Name</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Enter customer's full name"
+                                      value={field.value || ""}
+                                      onChange={field.onChange}
+                                      onBlur={field.onBlur}
+                                      name={field.name}
+                                      ref={field.ref}
+                                      className="text-sm"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="customerPhone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">Phone Number</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="tel"
-                                  placeholder="Enter your phone number"
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  ref={field.ref}
-                                  className="text-sm"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            <FormField
+                              control={form.control}
+                              name="customerEmail"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">Email Address</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="email"
+                                      placeholder="name@example.com"
+                                      value={field.value || ""}
+                                      onChange={field.onChange}
+                                      onBlur={field.onBlur}
+                                      name={field.name}
+                                      ref={field.ref}
+                                      className="text-sm"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="siteAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">Installation Address</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="Enter the full installation address..."
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  ref={field.ref}
-                                  className="min-h-[80px] text-sm"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            <FormField
+                              control={form.control}
+                              name="customerPhone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">Phone Number</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="tel"
+                                      placeholder="Enter your phone number"
+                                      value={field.value || ""}
+                                      onChange={field.onChange}
+                                      onBlur={field.onBlur}
+                                      name={field.name}
+                                      ref={field.ref}
+                                      className="text-sm"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="additionalDetails"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">Additional Details</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="Any specific requirements, preferences, or questions about your patio/gazebo project..."
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  ref={field.ref}
-                                  className="min-h-[100px] text-sm"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
+                            <FormField
+                              control={form.control}
+                              name="siteAddress"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">Installation Address</FormLabel>
+                                  <FormControl>
+                                    <Textarea
+                                      placeholder="Enter the full installation address..."
+                                      value={field.value || ""}
+                                      onChange={field.onChange}
+                                      onBlur={field.onBlur}
+                                      name={field.name}
+                                      ref={field.ref}
+                                      className="min-h-[80px] text-sm"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                    {/* Navigation Buttons */}
-                    <div className="flex space-x-3">
-                      <Button
-                        type="button"
-                        onClick={backToDesign}
-                        variant="outline"
-                        className="flex-1 font-semibold py-3"
-                      >
-                        Back to Design
-                      </Button>
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
-                      >
-                        {isSubmitting ? "Submitting..." : "Submit Inquiry"}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </form>
-            </Form>
+                            <FormField
+                              control={form.control}
+                              name="additionalDetails"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">Additional Details</FormLabel>
+                                  <FormControl>
+                                    <Textarea
+                                      placeholder="Any specific requirements, preferences, or questions about your patio/gazebo project..."
+                                      value={field.value || ""}
+                                      onChange={field.onChange}
+                                      onBlur={field.onBlur}
+                                      name={field.name}
+                                      ref={field.ref}
+                                      className="min-h-[100px] text-sm"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </CardContent>
+                        </Card>
+
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                          <Button type="button" onClick={backToDesign} variant="outline" className="w-full sm:flex-1">
+                            Back to Design
+                          </Button>
+                          <Button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full sm:flex-1 bg-green-600 text-white hover:bg-green-700"
+                          >
+                            {isSubmitting ? "Submitting..." : "Submit Inquiry"}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </form>
+                </Form>
+              </div>
+            </div>
+
+            {isMobile && (
+              <div className="border-t border-gray-100 px-5 py-4 text-center text-xs text-gray-500">
+                Created by <span className="font-semibold text-blue-600">Gazi OGUTCU</span> 2025
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Custom Scrollbar Styling */}
-        <style jsx>{`
-          .overflow-y-auto::-webkit-scrollbar {
-            width: 6px;
-          }
-          .overflow-y-auto::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 3px;
-          }
-          .overflow-y-auto::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 3px;
-          }
-          .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.5);
-          }
-        `}</style>
+        <div className="md:ml-96" />
       </div>
+
+      <style jsx>{`
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.1);
+          border-radius: 3px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.3);
+          border-radius: 3px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 0, 0, 0.5);
+        }
+      `}</style>
     </div>
   )
 }
