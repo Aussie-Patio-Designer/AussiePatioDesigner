@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sendGazeboInquiry } from "@/lib/email"
-import { neon } from "@neondatabase/serverless"
+import { getSqlClientOrNull } from "@/lib/neon-client"
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,58 +84,62 @@ export async function POST(request: NextRequest) {
           console.log("🔍 Looking up agent with slug:", agentSlug)
 
           try {
-            const sql = neon(process.env.DATABASE_URL!)
+            const sql = getSqlClientOrNull()
 
-            // First check if agents table exists
-            const tableCheck = await sql`
-              SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' AND table_name = 'agents'
-              );
-            `
-
-            if (!tableCheck[0]?.exists) {
-              console.error("❌ Agents table does not exist")
+            if (!sql) {
+              console.error("❌ Database URL is not configured; skipping agent lookup")
             } else {
-              const agentResult = await sql`
-                SELECT id, company_name, email, status, url_slug
-                FROM agents 
-                WHERE url_slug = ${agentSlug} 
-                AND status = 'active'
-                LIMIT 1
+              // First check if agents table exists
+              const tableCheck = await sql`
+                SELECT EXISTS (
+                  SELECT FROM information_schema.tables
+                  WHERE table_schema = 'public' AND table_name = 'agents'
+                );
               `
 
-              if (agentResult.length > 0) {
-                agentInfo = agentResult[0]
-                console.log("✅ Found agent via URL lookup:", {
-                  company: agentInfo.company_name,
-                  email: agentInfo.email,
-                  slug: agentInfo.url_slug,
-                })
+              if (!tableCheck[0]?.exists) {
+                console.error("❌ Agents table does not exist")
               } else {
-                console.log("⚠️ No active agent found for slug:", agentSlug)
-
-                // Debug: check if there's an agent with this slug but inactive
-                const inactiveCheck = await sql`
-                  SELECT id, company_name, status, url_slug FROM agents 
-                  WHERE url_slug = ${agentSlug} 
+                const agentResult = await sql`
+                  SELECT id, company_name, email, status, url_slug
+                  FROM agents
+                  WHERE url_slug = ${agentSlug}
+                  AND status = 'active'
                   LIMIT 1
                 `
 
-                if (inactiveCheck.length > 0) {
-                  console.log(`ℹ️ Found agent with slug "${agentSlug}" but status is: ${inactiveCheck[0].status}`)
+                if (agentResult.length > 0) {
+                  agentInfo = agentResult[0]
+                  console.log("✅ Found agent via URL lookup:", {
+                    company: agentInfo.company_name,
+                    email: agentInfo.email,
+                    slug: agentInfo.url_slug,
+                  })
                 } else {
-                  // Check for similar slugs
-                  const similarCheck = await sql`
-                    SELECT id, url_slug, company_name, status FROM agents 
-                    WHERE lower(url_slug) LIKE ${`%${agentSlug.toLowerCase()}%`}
-                    LIMIT 3
+                  console.log("⚠️ No active agent found for slug:", agentSlug)
+
+                  // Debug: check if there's an agent with this slug but inactive
+                  const inactiveCheck = await sql`
+                    SELECT id, company_name, status, url_slug FROM agents
+                    WHERE url_slug = ${agentSlug}
+                    LIMIT 1
                   `
-                  if (similarCheck.length > 0) {
-                    console.log(
-                      "ℹ️ Found similar agents:",
-                      similarCheck.map((a) => `${a.url_slug} (${a.status})`),
-                    )
+
+                  if (inactiveCheck.length > 0) {
+                    console.log(`ℹ️ Found agent with slug "${agentSlug}" but status is: ${inactiveCheck[0].status}`)
+                  } else {
+                    // Check for similar slugs
+                    const similarCheck = await sql`
+                      SELECT id, url_slug, company_name, status FROM agents
+                      WHERE lower(url_slug) LIKE ${`%${agentSlug.toLowerCase()}%`}
+                      LIMIT 3
+                    `
+                    if (similarCheck.length > 0) {
+                      console.log(
+                        "ℹ️ Found similar agents:",
+                        similarCheck.map((a) => `${a.url_slug} (${a.status})`),
+                      )
+                    }
                   }
                 }
               }

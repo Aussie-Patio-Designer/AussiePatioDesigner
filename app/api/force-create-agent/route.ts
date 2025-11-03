@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function GET() {
+  const resolvedClient = resolveSqlClient("force creating agent via GET")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     console.log("=== FORCE CREATE AGENT TEST ===")
 
@@ -87,8 +93,14 @@ export async function GET() {
 }
 
 export async function POST() {
+  const resolvedClient = resolveSqlClient("force creating agent via POST")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     // Simple agent creation without checks
     const timestamp = Date.now()

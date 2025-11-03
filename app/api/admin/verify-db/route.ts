@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
-
-const sql = neon(process.env.DATABASE_URL!)
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function GET() {
+  const resolvedClient = resolveSqlClient("verifying database configuration")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
+  const { sql } = resolvedClient
+
   try {
     console.log("Starting database verification...")
 

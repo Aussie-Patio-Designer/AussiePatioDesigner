@@ -1,10 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
-
-const sql = neon(process.env.DATABASE_URL!)
+import { resolveSqlClient } from "@/lib/api-db"
+import type { SqlClient } from "@/lib/neon-client"
 
 // Function to ensure the agents table exists
-async function ensureAgentsTableExists() {
+async function ensureAgentsTableExists(sql: SqlClient) {
   try {
     // Check if table exists
     const tableCheck = await sql`
@@ -50,9 +49,17 @@ async function ensureAgentsTableExists() {
 }
 
 export async function GET() {
+  const resolvedClient = resolveSqlClient("fetching agents")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
+  const { sql } = resolvedClient
+
   try {
     // Ensure table exists before querying
-    await ensureAgentsTableExists()
+    await ensureAgentsTableExists(sql)
 
     const agents = await sql`
       SELECT 
@@ -82,9 +89,17 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const resolvedClient = resolveSqlClient("creating agent")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
+  const { sql } = resolvedClient
+
   try {
     // Ensure table exists before inserting
-    await ensureAgentsTableExists()
+    await ensureAgentsTableExists(sql)
 
     const data = await request.json()
 
@@ -170,9 +185,17 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const resolvedClient = resolveSqlClient("updating agent")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
+  const { sql } = resolvedClient
+
   try {
     // Ensure table exists
-    await ensureAgentsTableExists()
+    await ensureAgentsTableExists(sql)
 
     const data = await request.json()
     const { id, ...updateData } = data
@@ -213,9 +236,17 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const resolvedClient = resolveSqlClient("deactivating agent")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
+  const { sql } = resolvedClient
+
   try {
     // Ensure table exists
-    await ensureAgentsTableExists()
+    await ensureAgentsTableExists(sql)
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")

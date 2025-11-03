@@ -1,7 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  const resolvedClient = resolveSqlClient("updating an agent")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     const agentId = Number.parseInt(params.id)
     if (isNaN(agentId)) {
@@ -31,7 +37,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       )
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     // Check if URL slug is already taken by another agent
     const existingAgent = await sql`
@@ -77,6 +83,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const resolvedClient = resolveSqlClient("deleting an agent")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     console.log("🗑️ DELETE request received for agent ID:", params.id)
 
@@ -86,7 +98,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Invalid agent ID" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     try {
       console.log("🔍 Looking up agent details...")

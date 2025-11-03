@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function GET(request: Request) {
+  const resolvedClient = resolveSqlClient("testing agent system")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const slug = searchParams.get("slug") || "lockyersheds"
 
     console.log(`🧪 Testing agent system for slug: "${slug}"`)
 
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     // 1. Check if agents table exists
     const tableExists = await sql`
