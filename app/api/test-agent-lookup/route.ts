@@ -1,7 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function GET(request: NextRequest) {
+  const resolvedClient = resolveSqlClient("testing agent lookup")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const slug = searchParams.get("slug")
@@ -10,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing slug parameter" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     const agentResult = await sql`
       SELECT id, company_name, email, status, url_slug

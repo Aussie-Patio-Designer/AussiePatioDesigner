@@ -1,7 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function POST(request: NextRequest) {
+  const resolvedClient = resolveSqlClient("running database cleanup")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     const body = await request.json()
     const { action, confirm } = body
@@ -10,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Confirmation required" }, { status: 400 })
     }
 
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     let result = {}
 

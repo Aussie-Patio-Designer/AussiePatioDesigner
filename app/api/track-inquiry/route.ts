@@ -1,13 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function POST(request: NextRequest) {
+  const resolvedClient = resolveSqlClient("tracking inquiry")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     const { customerEmail, customerName } = await request.json()
 
     console.log("🔍 Tracking inquiry for:", customerEmail)
 
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     // Get the most recent inquiry for this customer
     const inquiry = await sql`
