@@ -1,0 +1,24 @@
+{
+  "name": "Patio Designer",
+  "short_name": "Patio Designer",
+  "description": "Design and visualise patios or gazebos in 3D with Colorbond colours, roof types, and shareable results.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
