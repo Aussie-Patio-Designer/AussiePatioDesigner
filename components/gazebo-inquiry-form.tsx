@@ -14,13 +14,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import GazeboPreview from "@/components/gazebo-preview"
 import type { GazeboPreviewRef } from "./gazebo-preview"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { cn } from "@/lib/utils"
 
 // Add this near the top of the file where the props are defined
 interface GazeboInquiryFormProps {
@@ -97,6 +98,9 @@ const postBeamColors = [
   { value: "WOODLAND GREY", label: "WOODLAND GREY", color: "#3E4A47" },
 ]
 
+const DESKTOP_SIDEBAR_WIDTH = 384
+const SIDEBAR_STORAGE_KEY = "apd:sidebar-collapsed"
+
 const pitchOptionsByRoofType: Record<"Gable" | "Skillion", { value: string; label: string }[]> = {
   Gable: [
     { value: "15", label: "15° Classic" },
@@ -137,10 +141,24 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [isViewMode, setIsViewMode] = useState(false)
   const [referenceNumber, setReferenceNumber] = useState<string>("")
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   const searchParams = useSearchParams()
   const gazeboPreviewRef = useRef<GazeboPreviewRef>(null)
   const isMobile = useIsMobile()
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const storedValue = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
+    if (storedValue !== null) {
+      setIsSidebarCollapsed(storedValue === "true")
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isSidebarCollapsed))
+  }, [isSidebarCollapsed])
 
   // Pure function to extract URL parameters without side effects
   const extractUrlParams = useMemo(() => {
@@ -270,9 +288,12 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
     )
 
     if (isValid) {
+      if (isSidebarCollapsed && !isMobile) {
+        setIsSidebarCollapsed(false)
+      }
       setCurrentStep("customer")
     }
-  }, [form])
+  }, [form, isMobile, isSidebarCollapsed])
 
   const backToDesign = useCallback(() => {
     setCurrentStep("design")
@@ -380,6 +401,8 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
     },
     [agentData, defaultFormValues, form],
   )
+
+  const toggleButtonLeft = isSidebarCollapsed ? 16 : DESKTOP_SIDEBAR_WIDTH + 24
 
   return (
     <div className={`relative min-h-screen ${isMobile ? "bg-slate-100" : ""}`}>
@@ -508,8 +531,21 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
         </DialogContent>
       </Dialog>
 
-      <div className="relative z-10 flex flex-col md:flex-row">
-        <div className={`w-full md:w-96 ${isMobile ? "px-4 pb-10 pt-6" : ""} md:fixed md:left-0 md:top-0 md:h-screen`}>
+      <div
+        className="relative z-10 flex flex-col md:flex-row"
+        style={!isMobile ? { paddingLeft: isSidebarCollapsed ? 0 : DESKTOP_SIDEBAR_WIDTH } : undefined}
+      >
+        <div
+          id="design-sidebar"
+          className={cn(
+            "w-full md:w-96",
+            isMobile ? "px-4 pb-10 pt-6" : "",
+            "md:fixed md:left-0 md:top-0 md:h-screen md:transition-[transform,opacity] md:duration-300 md:ease-in-out",
+            isSidebarCollapsed
+              ? "md:pointer-events-none md:-translate-x-[calc(100%+1.5rem)] md:opacity-0"
+              : "md:translate-x-0 md:opacity-100",
+          )}
+        >
           <div className="mx-auto flex h-full w-full max-w-3xl flex-col rounded-2xl bg-white shadow-xl md:mx-0 md:max-w-none md:rounded-none md:bg-white/95 md:backdrop-blur-sm md:shadow-2xl">
             <div className="flex flex-col gap-4 border-b border-gray-200/60 px-5 py-6 sm:px-6 md:gap-3">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -536,9 +572,32 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                   .
                 </div>
               )}
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                <span
+                  className={cn(
+                    "rounded-full border px-3 py-1 transition-colors",
+                    currentStep === "design"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-gray-200 bg-gray-50 text-gray-500",
+                  )}
+                >
+                  1. Design Details
+                </span>
+                <ChevronRight className="h-3 w-3 text-gray-300" aria-hidden />
+                <span
+                  className={cn(
+                    "rounded-full border px-3 py-1 transition-colors",
+                    currentStep === "customer"
+                      ? "border-green-500 bg-green-50 text-green-700"
+                      : "border-gray-200 bg-gray-50 text-gray-500",
+                  )}
+                >
+                  2. Customer Info
+                </span>
+              </div>
             </div>
 
-            <div className={`flex-1 ${isMobile ? "" : "overflow-y-auto"}`}>
+            <div className={cn("flex-1", !isMobile && "overflow-y-auto")}>
               <div className="px-5 py-6 sm:px-6">
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -1043,9 +1102,23 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
             )}
           </div>
         </div>
-
-        <div className="md:ml-96" />
       </div>
+
+      {!isMobile && (
+        <button
+          type="button"
+          onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+          aria-expanded={!isSidebarCollapsed}
+          aria-controls="design-sidebar"
+          className="fixed top-32 z-50 hidden h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:flex"
+          style={{ left: `${toggleButtonLeft}px` }}
+        >
+          {isSidebarCollapsed ? <ChevronRight className="h-5 w-5" aria-hidden /> : <ChevronLeft className="h-5 w-5" aria-hidden />}
+          <span className="sr-only">
+            {isSidebarCollapsed ? "Expand design controls" : "Collapse design controls"}
+          </span>
+        </button>
+      )}
 
       <style jsx>{`
         .overflow-y-auto::-webkit-scrollbar {
