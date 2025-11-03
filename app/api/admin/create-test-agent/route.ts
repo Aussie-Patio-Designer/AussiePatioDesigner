@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function GET() {
+  const resolvedClient = resolveSqlClient("creating a test agent")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     console.log("Creating test agent...")
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     // Generate unique values
     const timestamp = Date.now()

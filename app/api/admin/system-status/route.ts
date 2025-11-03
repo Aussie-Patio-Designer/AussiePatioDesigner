@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function GET() {
+  const resolvedClient = resolveSqlClient("checking system status")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     // Test database connection
     await sql`SELECT 1`

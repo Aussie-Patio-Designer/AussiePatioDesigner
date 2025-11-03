@@ -1,13 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function POST(request: NextRequest) {
+  const resolvedClient = resolveSqlClient("debugging agent lookup")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     const { slug } = await request.json()
 
     console.log("🔍 DEBUGGING AGENT LOOKUP FOR:", slug)
 
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     // Check if table exists
     const tableCheck = await sql`

@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless"
+import { getSqlClientOrNull } from "@/lib/neon-client"
 
 interface EmailRoutingResult {
   primaryEmail: string
@@ -45,30 +45,34 @@ export async function routeInquiryEmail(
   // Method 2: Look up agent in database by slug
   if (agentSlug) {
     try {
-      const sql = neon(process.env.DATABASE_URL!)
+      const sql = getSqlClientOrNull()
 
-      const agentResult = await sql`
-        SELECT id, company_name, email, url_slug, status
-        FROM agents 
-        WHERE url_slug = ${agentSlug} 
-        AND status = 'active'
-        LIMIT 1
-      `
+      if (!sql) {
+        console.error("❌ Database URL is not configured; using fallback email")
+      } else {
+        const agentResult = await sql`
+          SELECT id, company_name, email, url_slug, status
+          FROM agents
+          WHERE url_slug = ${agentSlug}
+          AND status = 'active'
+          LIMIT 1
+        `
 
-      if (agentResult.length > 0) {
-        const agent = agentResult[0]
-        console.log("🎯 Found agent in database:", agent.email)
-        return {
-          primaryEmail: agent.email,
-          isAgentInquiry: true,
-          companyName: agent.company_name,
-          routingMethod: "agent-database",
-          agentInfo: {
-            id: agent.id,
-            company_name: agent.company_name,
-            email: agent.email,
-            url_slug: agent.url_slug,
-          },
+        if (agentResult.length > 0) {
+          const agent = agentResult[0]
+          console.log("🎯 Found agent in database:", agent.email)
+          return {
+            primaryEmail: agent.email,
+            isAgentInquiry: true,
+            companyName: agent.company_name,
+            routingMethod: "agent-database",
+            agentInfo: {
+              id: agent.id,
+              company_name: agent.company_name,
+              email: agent.email,
+              url_slug: agent.url_slug,
+            },
+          }
         }
       }
     } catch (error) {
