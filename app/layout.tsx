@@ -57,6 +57,7 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",               // küçük tarayıcı ikonu
     apple: "/apple-touch-icon.png",     // iPhone ana ekran ikonu
   },
+  manifest: "/manifest.webmanifest",
   robots: {
     index: true,
     follow: true,
