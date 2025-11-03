@@ -22,6 +22,7 @@ import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
+import { Switch } from "@/components/ui/switch"
 
 // Add this near the top of the file where the props are defined
 interface GazeboInquiryFormProps {
@@ -33,6 +34,30 @@ interface GazeboInquiryFormProps {
     url_slug: string
   }
 }
+
+const attachmentMethods = ["wall", "gutter_fascia", "roof_penetration"] as const
+
+type AttachmentOptionValue = (typeof attachmentMethods)[number]
+
+const attachmentOptions: { value: AttachmentOptionValue; label: string; description: string }[] = [
+  {
+    value: "wall",
+    label: "Wall Connection",
+    description: "Fix the patio ledger directly to an existing wall or fascia board.",
+  },
+  {
+    value: "gutter_fascia",
+    label: "Gutter / Fascia",
+    description: "Tie into the existing gutter line with hanger brackets and shared drainage.",
+  },
+  {
+    value: "roof_penetration",
+    label: "Roof Penetration",
+    description: "Project the patio roof through the existing roof for a seamless enclosure.",
+  },
+]
+
+const defaultAttachmentType: AttachmentOptionValue = "wall"
 
 // Fixed form schema with proper validation
 const formSchema = z
@@ -58,6 +83,8 @@ const formSchema = z
     height: z.number().min(2400).max(5000).default(2400),
     roofColor: z.string().min(1, "Roof color is required").default("SURFMIST / BASALT"),
     postBeamColor: z.string().min(1, "Frame color is required").default("MONUMENT"),
+    isAttached: z.boolean().default(false),
+    attachmentType: z.enum(attachmentMethods).nullable().default(null),
   })
   .refine(
     (data) => {
@@ -74,6 +101,15 @@ const formSchema = z
       path: ["roofPitch"],
     },
   )
+  .superRefine((data, ctx) => {
+    if (data.isAttached && !data.attachmentType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["attachmentType"],
+        message: "Select how the patio connects to the existing structure.",
+      })
+    }
+  })
 
 // Color options - Updated with exact colors from the color chart
 const roofColors = [
@@ -97,6 +133,7 @@ const postBeamColors = [
   { value: "DOVER WHITE", label: "DOVER WHITE", color: "#FEFEFE" },
   { value: "WOODLAND GREY", label: "WOODLAND GREY", color: "#3E4A47" },
 ]
+
 
 const DESKTOP_SIDEBAR_WIDTH = 384
 const SIDEBAR_STORAGE_KEY = "apd:sidebar-collapsed"
@@ -202,6 +239,8 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
         height: urlParams.height,
         roofColor: urlParams.roofColor,
         postBeamColor: urlParams.postBeamColor,
+        isAttached: false,
+        attachmentType: null,
       }
     }
 
@@ -215,6 +254,8 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
       height: 2400,
       roofColor: "SURFMIST / BASALT",
       postBeamColor: "MONUMENT",
+      isAttached: false,
+      attachmentType: null,
     }
   }, [extractUrlParams])
 
@@ -223,6 +264,19 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
     resolver: zodResolver(formSchema),
     defaultValues: defaultFormValues,
   })
+
+  const isAttachedValue = form.watch("isAttached")
+  const attachmentTypeValue = form.watch("attachmentType")
+
+  useEffect(() => {
+    if (isAttachedValue) {
+      if (!attachmentTypeValue) {
+        form.setValue("attachmentType", defaultAttachmentType)
+      }
+    } else if (attachmentTypeValue) {
+      form.setValue("attachmentType", null)
+    }
+  }, [attachmentTypeValue, form, isAttachedValue])
 
   // Handle URL parameters and view mode - separate from form initialization
   useEffect(() => {
@@ -422,6 +476,8 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
             overhangSize={300}
             roofColor={form.watch("roofColor")}
             postBeamColor={form.watch("postBeamColor")}
+            isAttached={isAttachedValue}
+            attachmentType={attachmentTypeValue ?? undefined}
           />
         </div>
       ) : (
@@ -439,6 +495,8 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
             overhangSize={300}
             roofColor={form.watch("roofColor")}
             postBeamColor={form.watch("postBeamColor")}
+            isAttached={isAttachedValue}
+            attachmentType={attachmentTypeValue ?? undefined}
           />
         </div>
       )}
@@ -719,6 +777,81 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                                 </FormItem>
                               )}
                             />
+
+                            <FormField
+                              control={form.control}
+                              name="isAttached"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-4">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="space-y-1">
+                                        <FormLabel className="text-sm font-medium">Attach to Existing Structure</FormLabel>
+                                        <p className="text-xs text-gray-600">
+                                          Remove the house-side posts and mount against an existing wall or roof.
+                                        </p>
+                                      </div>
+                                      <FormControl>
+                                        <Switch
+                                          checked={field.value}
+                                          onCheckedChange={field.onChange}
+                                          aria-label="Toggle attached mode"
+                                        />
+                                      </FormControl>
+                                    </div>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {isAttachedValue && (
+                              <FormField
+                                control={form.control}
+                                name="attachmentType"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-sm font-medium">Attachment Method</FormLabel>
+                                    <FormControl>
+                                      <RadioGroup
+                                        onValueChange={field.onChange}
+                                        value={field.value ?? undefined}
+                                        className="grid gap-3 sm:grid-cols-3"
+                                      >
+                                        {attachmentOptions.map((option) => {
+                                          const optionId = `attachment-${option.value}`
+                                          const isSelected = field.value === option.value
+
+                                          return (
+                                            <div
+                                              key={option.value}
+                                              className={cn(
+                                                "cursor-pointer rounded-xl border p-4 text-left shadow-sm transition",
+                                                isSelected
+                                                  ? "border-blue-500 bg-blue-50 text-blue-700 shadow-md"
+                                                  : "border-gray-200 bg-white text-gray-700 hover:border-blue-200 hover:shadow-md",
+                                              )}
+                                              onClick={() => field.onChange(option.value)}
+                                            >
+                                              <RadioGroupItem id={optionId} value={option.value} className="sr-only" />
+                                              <Label htmlFor={optionId} className="cursor-pointer">
+                                                <span className="block text-sm font-semibold text-gray-900">
+                                                  {option.label}
+                                                </span>
+                                                <span className="mt-1 block text-xs text-gray-600">
+                                                  {option.description}
+                                                </span>
+                                              </Label>
+                                            </div>
+                                          )
+                                        })}
+                                      </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
                           </CardContent>
                         </Card>
 

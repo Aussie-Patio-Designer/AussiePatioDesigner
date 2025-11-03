@@ -12,6 +12,8 @@ import {
   getOutletMaterialProperties,
 } from "@/lib/colorbond-colors"
 
+type AttachmentMethod = "wall" | "gutter_fascia" | "roof_penetration"
+
 interface GazeboPreviewProps {
   length: number
   width: number
@@ -24,6 +26,8 @@ interface GazeboPreviewProps {
   overhangSize: number
   roofColor?: string
   postBeamColor?: string
+  isAttached?: boolean
+  attachmentType?: AttachmentMethod
 }
 
 export interface GazeboPreviewRef {
@@ -199,6 +203,118 @@ function ConcretePad({ position, size }: { position: [number, number, number]; s
   )
 }
 
+function HouseAttachment({
+  gazeboLength,
+  gazeboWidth,
+  gazeboHeight,
+  roofHighSide,
+  attachmentType,
+}: {
+  gazeboLength: number
+  gazeboWidth: number
+  gazeboHeight: number
+  roofHighSide: number
+  attachmentType: AttachmentMethod
+}) {
+  const houseDepth = 3.2
+  const houseHeight = Math.max(roofHighSide + 0.6, 3.0)
+  const slabThickness = 0.14
+  const wallCenterZ = -gazeboWidth / 2 - houseDepth / 2 + 0.02
+  const frontWallZ = -gazeboWidth / 2 + 0.02
+  const windowBase = 1.0
+  const windowHeight = 1.1
+  const windowWidth = 1.2
+  const roofAngle = Math.PI / 9
+  const roofThickness = 0.18
+  const gutterColor = "#94a3b8"
+  const connectionHeight = Math.max(gazeboHeight, Math.min(roofHighSide, houseHeight - 0.2))
+  const highlightHeight = Math.max(0.2, Math.min(0.6, connectionHeight - 0.2))
+  const highlightY = connectionHeight - highlightHeight / 2
+
+  return (
+    <group>
+      {/* Concrete slab under the sample house */}
+      <mesh position={[0, slabThickness / 2 - 0.05, wallCenterZ]} receiveShadow>
+        <boxGeometry args={[gazeboLength + 4, slabThickness, houseDepth]} />
+        <meshStandardMaterial color="#d1d5db" roughness={0.8} metalness={0.1} />
+      </mesh>
+
+      {/* House body */}
+      <mesh position={[0, houseHeight / 2, wallCenterZ]} castShadow receiveShadow>
+        <boxGeometry args={[gazeboLength + 4, houseHeight, houseDepth]} />
+        <meshStandardMaterial color="#f5f3f0" roughness={0.9} metalness={0.05} />
+      </mesh>
+
+      {/* Simple window band for context */}
+      {Array.from({ length: 3 }).map((_, index) => {
+        const spacing = (gazeboLength + 2) / 4
+        const x = -((gazeboLength + 2) / 2) + spacing * (index + 1)
+        return (
+          <mesh key={`house-window-${index}`} position={[x, windowBase + windowHeight / 2, frontWallZ - 0.05]} castShadow>
+            <boxGeometry args={[windowWidth, windowHeight, 0.08]} />
+            <meshStandardMaterial
+              color="#9ca3af"
+              roughness={0.4}
+              metalness={0.5}
+              emissive="#1f2937"
+              emissiveIntensity={0.08}
+            />
+          </mesh>
+        )
+      })}
+
+      {/* Wall attachment highlight */}
+      {attachmentType === "wall" && (
+        <mesh position={[0, highlightY, frontWallZ - 0.03]} castShadow>
+          <boxGeometry args={[gazeboLength + 0.8, highlightHeight, 0.06]} />
+          <meshStandardMaterial color="#cbd5f5" roughness={0.5} metalness={0.3} />
+        </mesh>
+      )}
+
+      {/* Gutter / fascia connection */}
+      {attachmentType === "gutter_fascia" && (
+        <group>
+          <mesh position={[0, connectionHeight + 0.05, frontWallZ - 0.25]} castShadow>
+            <boxGeometry args={[gazeboLength + 3.2, 0.08, 0.5]} />
+            <meshStandardMaterial color="#e2e8f0" roughness={0.6} metalness={0.2} />
+          </mesh>
+          <mesh position={[0, connectionHeight + 0.12, frontWallZ - 0.45]} castShadow>
+            <boxGeometry args={[gazeboLength + 3.2, 0.12, 0.12]} />
+            <meshStandardMaterial color={gutterColor} roughness={0.4} metalness={0.4} />
+          </mesh>
+          <mesh position={[gazeboLength / 2 - 1, connectionHeight - 0.6, frontWallZ - 0.45]} castShadow>
+            <boxGeometry args={[0.15, 1.2, 0.12]} />
+            <meshStandardMaterial color={gutterColor} roughness={0.4} metalness={0.4} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Roof penetration detail */}
+      {attachmentType === "roof_penetration" && (
+        <group>
+          <mesh
+            position={[0, houseHeight + roofThickness / 2, wallCenterZ - houseDepth / 4]}
+            rotation={[roofAngle, 0, 0]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[gazeboLength + 4.5, roofThickness, houseDepth + 1.2]} />
+            <meshStandardMaterial color="#cbd5f5" roughness={0.35} metalness={0.4} />
+          </mesh>
+          <mesh position={[0, houseHeight + 0.7, frontWallZ - 0.3]} castShadow>
+            <boxGeometry args={[0.6, 0.5, 0.6]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.5} metalness={0.3} />
+          </mesh>
+          <mesh position={[0, connectionHeight + 0.08, frontWallZ - 0.12]} castShadow>
+            <boxGeometry args={[gazeboLength + 0.8, 0.16, 0.2]} />
+            <meshStandardMaterial color="#475569" roughness={0.5} metalness={0.3} />
+          </mesh>
+        </group>
+      )}
+    </group>
+  )
+}
+
 // Create a gutter outlet dripper
 function GutterOutlet({
   position,
@@ -323,6 +439,8 @@ function GazeboStructure(props: GazeboPreviewProps) {
     overhangSize,
     roofColor,
     postBeamColor,
+    isAttached = false,
+    attachmentType,
   } = props
 
   // Convert mm to meters for 3D scene
@@ -330,6 +448,7 @@ function GazeboStructure(props: GazeboPreviewProps) {
   const scaleWidth = width / 1000
   const scaleHeight = height / 1000
   const scaleOverhang = overhangSize / 1000
+  const resolvedAttachmentType: AttachmentMethod = attachmentType ?? "wall"
 
   // Use centralized color system - NO LOCAL COLOR LOGIC
   const frameMaterial = getMaterialProperties(postBeamColor || "MONUMENT")
@@ -507,10 +626,12 @@ function GazeboStructure(props: GazeboPreviewProps) {
 
     if (roofType === "Skillion") {
       // Front edge posts (high side) - extend to roof height
-      postPositions.push({
-        position: [x, 0, -scaleWidth / 2],
-        height: roofHighSide,
-      })
+      if (!isAttached) {
+        postPositions.push({
+          position: [x, 0, -scaleWidth / 2],
+          height: roofHighSide,
+        })
+      }
       // Back edge posts (low side) - normal height
       postPositions.push({
         position: [x, 0, scaleWidth / 2],
@@ -518,10 +639,12 @@ function GazeboStructure(props: GazeboPreviewProps) {
       })
     } else {
       // Gable roof - all posts same height
-      postPositions.push({
-        position: [x, 0, -scaleWidth / 2],
-        height: scaleHeight,
-      })
+      if (!isAttached) {
+        postPositions.push({
+          position: [x, 0, -scaleWidth / 2],
+          height: scaleHeight,
+        })
+      }
       postPositions.push({
         position: [x, 0, scaleWidth / 2],
         height: scaleHeight,
@@ -557,12 +680,24 @@ function GazeboStructure(props: GazeboPreviewProps) {
       // Back gutter outlets
       outletPositions.push([x, roofLowSide - gutterDepth, totalWidth / 2 + gutterWidth / 2 - 0.01])
       // Front gutter outlets
-      outletPositions.push([x, roofLowSide - gutterDepth, -totalWidth / 2 - gutterWidth / 2 + 0.01])
+      if (!isAttached) {
+        outletPositions.push([x, roofLowSide - gutterDepth, -totalWidth / 2 - gutterWidth / 2 + 0.01])
+      }
     }
   }
 
   return (
     <group>
+      {isAttached && (
+        <HouseAttachment
+          gazeboLength={scaleLength}
+          gazeboWidth={scaleWidth}
+          gazeboHeight={scaleHeight}
+          roofHighSide={roofHighSide}
+          attachmentType={resolvedAttachmentType}
+        />
+      )}
+
       <ConcreteArea
         length={length}
         width={width}
@@ -588,11 +723,27 @@ function GazeboStructure(props: GazeboPreviewProps) {
         </mesh>
       ))}
 
+      {/* Ledger connection when attached */}
+      {isAttached && (
+        <mesh
+          position={[0, (roofType === "Skillion" ? roofHighSide : scaleHeight) - 0.06, -scaleWidth / 2 - 0.04]}
+          castShadow
+        >
+          <boxGeometry args={[scaleLength + 0.2, 0.12, 0.08]} />
+          <meshStandardMaterial
+            color={frameMaterial.color}
+            metalness={frameMaterial.metalness}
+            roughness={frameMaterial.roughness}
+            envMapIntensity={frameMaterial.envMapIntensity}
+          />
+        </mesh>
+      )}
+
       {/* Horizontal beams - adjusted for skillion */}
       {roofType === "Gable" ? (
         <>
           {/* Gable roof - standard perimeter beams */}
-          {[-scaleWidth / 2, scaleWidth / 2].map((z, index) => (
+          {(isAttached ? [scaleWidth / 2] : [-scaleWidth / 2, scaleWidth / 2]).map((z, index) => (
             <mesh key={`beam-fb-${index}`} position={[0, scaleHeight - beamHeight / 2, z]} castShadow>
               <boxGeometry args={[scaleLength, beamHeight, beamWidth]} />
               <meshStandardMaterial
@@ -620,15 +771,17 @@ function GazeboStructure(props: GazeboPreviewProps) {
         <>
           {/* Skillion roof - sloped beams */}
           {/* Front beam (high side) */}
-          <mesh position={[0, roofHighSide - beamHeight / 2, -scaleWidth / 2]} castShadow>
-            <boxGeometry args={[scaleLength, beamHeight, beamWidth]} />
-            <meshStandardMaterial
-              color={frameMaterial.color}
-              metalness={frameMaterial.metalness}
-              roughness={frameMaterial.roughness}
-              envMapIntensity={frameMaterial.envMapIntensity}
-            />
-          </mesh>
+          {!isAttached && (
+            <mesh position={[0, roofHighSide - beamHeight / 2, -scaleWidth / 2]} castShadow>
+              <boxGeometry args={[scaleLength, beamHeight, beamWidth]} />
+              <meshStandardMaterial
+                color={frameMaterial.color}
+                metalness={frameMaterial.metalness}
+                roughness={frameMaterial.roughness}
+                envMapIntensity={frameMaterial.envMapIntensity}
+              />
+            </mesh>
+          )}
 
           {/* Back beam (low side) */}
           <mesh position={[0, scaleHeight - beamHeight / 2, scaleWidth / 2]} castShadow>
@@ -732,7 +885,11 @@ function GazeboStructure(props: GazeboPreviewProps) {
           </mesh>
 
           {/* Enhanced Gutters - Front and Back */}
-          {[-totalWidth / 2 - gutterWidth / 2 + 0.01, totalWidth / 2 + gutterWidth / 2 - 0.01].map((z, index) => (
+          {(
+            isAttached
+              ? [totalWidth / 2 + gutterWidth / 2 - 0.01]
+              : [-totalWidth / 2 - gutterWidth / 2 + 0.01, totalWidth / 2 + gutterWidth / 2 - 0.01]
+          ).map((z, index) => (
             <group key={`gutter-fb-${index}`}>
               <mesh position={[0, roofLowSide - gutterDepth / 3, z - gutterWidth / 2 + gutterThickness / 2]} castShadow>
                 <boxGeometry args={[totalLength, gutterDepth * 0.6, gutterThickness]} />
