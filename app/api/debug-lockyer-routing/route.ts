@@ -1,8 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { routeInquiryEmail } from "@/lib/agent-email-routing"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function POST(request: NextRequest) {
+  const resolvedClient = resolveSqlClient("debugging Lockyer routing")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     const { testUrl, agentSlug } = await request.json()
 
@@ -11,7 +17,7 @@ export async function POST(request: NextRequest) {
     console.log("Agent Slug:", agentSlug)
 
     // Test 1: Check if agents table exists and has data
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     const tableCheck = await sql`
       SELECT EXISTS (

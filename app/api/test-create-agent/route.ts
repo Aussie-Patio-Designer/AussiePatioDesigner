@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function GET() {
-  const sql = neon(process.env.DATABASE_URL!)
+  const resolvedClient = resolveSqlClient("running agent creation test")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
 
   try {
+    const { sql } = resolvedClient
     console.log("=== AGENT CREATION TEST START ===")
 
     // Step 1: Test database connection

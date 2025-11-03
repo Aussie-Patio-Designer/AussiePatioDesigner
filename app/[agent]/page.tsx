@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { neon } from "@neondatabase/serverless"
+import { getSqlClientOrNull } from "@/lib/neon-client"
 import { GazeboFormWrapper } from "@/components/gazebo-form-wrapper"
 import AgentHeader from "@/components/agent-header"
 
@@ -19,7 +19,12 @@ interface Agent {
 async function getAgent(slug: string): Promise<Agent | null> {
   try {
     console.log(`🔍 Looking up agent with slug: "${slug}"`)
-    const sql = neon(process.env.DATABASE_URL!)
+    const sql = getSqlClientOrNull()
+
+    if (!sql) {
+      console.error("❌ Database URL is not configured; returning not found")
+      return null
+    }
 
     // First check if the agents table exists
     const tableCheck = await sql`

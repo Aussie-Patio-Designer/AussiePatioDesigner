@@ -1,12 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
 import { Resend } from "resend"
+import { resolveSqlClient } from "@/lib/api-db"
 
 export async function POST(request: NextRequest) {
+  const resolvedClient = resolveSqlClient("testing Lockyer email routing")
+
+  if ("response" in resolvedClient) {
+    return resolvedClient.response
+  }
+
   try {
     console.log("🧪 Testing Lockyer Sheds email routing...")
 
-    const sql = neon(process.env.DATABASE_URL!)
+    const { sql } = resolvedClient
 
     // Get Lockyer agent
     const lockyerAgent = await sql`
