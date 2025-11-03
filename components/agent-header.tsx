@@ -92,6 +92,11 @@ export function AgentHeader({ agent }: AgentHeaderProps) {
       <div className="mx-auto max-w-7xl px-4 py-3">
         <div className="hidden items-center justify-between gap-4 md:flex">
           <div className="flex items-center gap-3">
+            <div>
+              <p className="text-lg font-semibold text-gray-900">Aussie Patio Designer</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Agent navigation</p>
+              <p className="text-sm text-gray-600">Managing {agent.company_name}</p>
+            </div>
             <button
               type="button"
               onClick={() => setIsExpanded((prev) => !prev)}
