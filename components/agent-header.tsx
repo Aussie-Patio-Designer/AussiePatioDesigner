@@ -107,6 +107,10 @@ export function AgentHeader({ agent }: AgentHeaderProps) {
               {isExpanded ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
               <span className="sr-only">Toggle navigation</span>
             </button>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Navigation</p>
+              <p className="text-lg font-semibold text-gray-900">{agent.company_name}</p>
+            </div>
           </div>
           <div className="text-right text-sm text-gray-600">
             <p className="font-medium text-gray-900">{agent.contact_name}</p>
