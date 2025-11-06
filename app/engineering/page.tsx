@@ -3,11 +3,13 @@ import type { Metadata } from "next"
 import EngineeringCalculator from "@/components/engineering/engineering-calculator"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, DraftingCompass, GaugeCircle, ShieldCheck } from "lucide-react"
+import { CheckCircle2, ClipboardCheck, DraftingCompass, ShieldCheck } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Engineering",
   description:
     "SpaceGass-style steel patio analysis. Size rafters, beams and columns with wind, live load and hold-down checks before certification.",
+    "Preliminary structural analysis for patio projects. Estimate wind loads, beam sizes and footing requirements before you lodge engineering.",
 }
 
 const features = [
@@ -34,6 +36,22 @@ const features = [
     description:
       "Deliver a member schedule, base plate concept and hold-down strategy that feeds directly into Form 15/16 deliverables.",
     icon: ShieldCheck,
+    title: "Certified outcomes",
+    description:
+      "Generate a concept-ready summary for our RPEQ and WA structural engineers to certify with Form 15/16 deliverables.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Smart load assumptions",
+    description:
+      "Auto-apply AS/NZS 1170 wind regions, terrain multipliers and roof mass factors based on your selections.",
+    icon: DraftingCompass,
+  },
+  {
+    title: "Ready for quotes",
+    description:
+      "Share the output with builders and suppliers so fabrication, footings and fixings are aligned from day one.",
+    icon: ClipboardCheck,
   },
 ]
 
@@ -57,6 +75,14 @@ export default function EngineeringPage() {
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              Structural clarity for every patio we design
+            </h1>
+            <p className="text-lg leading-8 text-slate-200">
+              Feed in spans, wind regions and roof systems to see uplift pressures, connection demands and the structural members we
+              typically certify. This fast pre-check keeps projects moving while the final RPEQ engineer stamps your drawings.
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
               <Card key={feature.title} className="border border-slate-800 bg-slate-900/70 backdrop-blur">
                 <CardHeader className="flex flex-row items-start gap-4">
@@ -85,6 +111,19 @@ export default function EngineeringPage() {
                 Adjust spans, bay spacing and environmental loads to size RHS/SHS rafters, beams and
                 columns instantly. Export the suggested schedule to accelerate certification turnaround.
               </p>
+            </div>
+              <h2 className="text-3xl font-semibold tracking-tight text-slate-900">Interactive engineering brief</h2>
+              <p className="text-base text-slate-600">
+                Adjust key design inputs and instantly view indicative wind pressures, uplift loads and member sizing. These numbers
+                align with our internal engineering schedules so quotes and certifications stay consistent.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl bg-slate-900/90 px-4 py-3 text-slate-200 shadow-lg">
+              <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+              <div className="text-sm leading-5">
+                <p className="font-semibold">Fast-track certification</p>
+                <p className="text-slate-300">Submit this output with drawings for a 2–3 day engineering turnaround.</p>
+              </div>
             </div>
           </div>
           <EngineeringCalculator />
