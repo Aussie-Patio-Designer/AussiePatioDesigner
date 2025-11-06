@@ -2,16 +2,40 @@ import type { Metadata } from "next"
 
 import EngineeringCalculator from "@/components/engineering/engineering-calculator"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Building2, DraftingCompass, GaugeCircle, ShieldCheck } from "lucide-react"
 import { CheckCircle2, ClipboardCheck, DraftingCompass, ShieldCheck } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Engineering",
   description:
+    "SpaceGass-style steel patio analysis. Size rafters, beams and columns with wind, live load and hold-down checks before certification.",
     "Preliminary structural analysis for patio projects. Estimate wind loads, beam sizes and footing requirements before you lodge engineering.",
 }
 
 const features = [
   {
+    title: "Steel-first modelling",
+    description:
+      "Optimise RHS and SHS members with automatic section modulus checks, deflection ratios and axial utilisation.",
+    icon: GaugeCircle,
+  },
+  {
+    title: "Wind + gravity combos",
+    description:
+      "Applies AS/NZS 1170 terrain and importance multipliers to generate ultimate and service load envelopes.",
+    icon: DraftingCompass,
+  },
+  {
+    title: "SpaceGass-aligned outputs",
+    description:
+      "Mirror the load cases and reporting style our engineers use when building the final finite element model.",
+    icon: Building2,
+  },
+  {
+    title: "Certification ready",
+    description:
+      "Deliver a member schedule, base plate concept and hold-down strategy that feeds directly into Form 15/16 deliverables.",
+    icon: ShieldCheck,
     title: "Certified outcomes",
     description:
       "Generate a concept-ready summary for our RPEQ and WA structural engineers to certify with Form 15/16 deliverables.",
@@ -42,6 +66,15 @@ export default function EngineeringPage() {
               Engineering studio
             </span>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+              Steel structural intelligence for every patio brief
+            </h1>
+            <p className="text-lg leading-8 text-slate-200">
+              Feed in geometry, wind classification and live load intent to obtain indicative
+              RHS/SHS member sizes, capacity ratios and hold-down reactions. The workflow mirrors
+              our in-house SpaceGass models so you can bridge concept design and certification effortlessly.
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               Structural clarity for every patio we design
             </h1>
             <p className="text-lg leading-8 text-slate-200">
@@ -71,6 +104,14 @@ export default function EngineeringPage() {
         <div className="rounded-3xl border border-slate-800 bg-white/95 p-8 shadow-2xl backdrop-blur">
           <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl space-y-3">
+              <h2 className="text-3xl font-semibold tracking-tight text-slate-900">
+                Interactive steel engineering console
+              </h2>
+              <p className="text-base text-slate-600">
+                Adjust spans, bay spacing and environmental loads to size RHS/SHS rafters, beams and
+                columns instantly. Export the suggested schedule to accelerate certification turnaround.
+              </p>
+            </div>
               <h2 className="text-3xl font-semibold tracking-tight text-slate-900">Interactive engineering brief</h2>
               <p className="text-base text-slate-600">
                 Adjust key design inputs and instantly view indicative wind pressures, uplift loads and member sizing. These numbers
