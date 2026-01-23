@@ -49,7 +49,7 @@ function getBaseUrl(): string {
 }
 
 // Validate inquiry data
-function validateInquiryData(data: InquiryData): { valid: boolean; errors: string[] } {
+export function validateInquiryData(data: InquiryData): { valid: boolean; errors: string[] } {
   const errors: string[] = []
 
   // Required fields
