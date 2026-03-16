@@ -422,10 +422,16 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
 
       if (!preset) return
 
-      form.reset({
-        ...form.getValues(),
-        ...preset.values,
-      })
+      form.setValue("roofType", preset.values.roofType)
+      form.setValue("roofCladding", preset.values.roofCladding)
+      form.setValue("roofPitch", preset.values.roofPitch)
+      form.setValue("length", preset.values.length)
+      form.setValue("width", preset.values.width)
+      form.setValue("height", preset.values.height)
+      form.setValue("roofColor", preset.values.roofColor)
+      form.setValue("postBeamColor", preset.values.postBeamColor)
+      form.setValue("isAttached", preset.values.isAttached)
+      form.setValue("attachmentType", preset.values.attachmentType)
 
       form.clearErrors([
         "roofType",
