@@ -170,6 +170,60 @@ const roofCladdingOptions = [
   },
 ]
 
+const designPresets = [
+  {
+    id: "family-entertainer",
+    name: "Family Entertainer",
+    description: "Wide covered area for outdoor dining and gatherings.",
+    values: {
+      roofType: "Gable" as const,
+      roofCladding: "Corrugated" as const,
+      roofPitch: 15,
+      length: 7200,
+      width: 4200,
+      height: 2700,
+      roofColor: "SURFMIST / BASALT",
+      postBeamColor: "MONUMENT",
+      isAttached: true,
+      attachmentType: "wall" as AttachmentOptionValue,
+    },
+  },
+  {
+    id: "poolside-shade",
+    name: "Poolside Shade",
+    description: "Low-profile modern skillion roof ideal for open spaces.",
+    values: {
+      roofType: "Skillion" as const,
+      roofCladding: "Trimclad" as const,
+      roofPitch: 5,
+      length: 6000,
+      width: 3600,
+      height: 2600,
+      roofColor: "SURFMIST / WOODLAND GREY",
+      postBeamColor: "WOODLAND GREY",
+      isAttached: false,
+      attachmentType: null,
+    },
+  },
+  {
+    id: "alfresco-plus",
+    name: "Alfresco Plus",
+    description: "Balanced attached layout that suits most backyard patios.",
+    values: {
+      roofType: "Gable" as const,
+      roofCladding: "Trimclad" as const,
+      roofPitch: 22.5,
+      length: 5400,
+      width: 3200,
+      height: 2550,
+      roofColor: "SURFMIST / PAPERBARK",
+      postBeamColor: "PAPERBARK",
+      isAttached: true,
+      attachmentType: "gutter_fascia" as AttachmentOptionValue,
+    },
+  },
+]
+
 // Update the component definition to accept props
 export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps = {}) {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -361,6 +415,33 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
     setShowSubmitModal(false)
     form.reset({ ...defaultFormValues })
   }, [defaultFormValues, form])
+
+  const applyDesignPreset = useCallback(
+    (presetId: string) => {
+      const preset = designPresets.find((item) => item.id === presetId)
+
+      if (!preset) return
+
+      form.reset({
+        ...form.getValues(),
+        ...preset.values,
+      })
+
+      form.clearErrors([
+        "roofType",
+        "roofCladding",
+        "roofPitch",
+        "length",
+        "width",
+        "height",
+        "roofColor",
+        "postBeamColor",
+        "isAttached",
+        "attachmentType",
+      ])
+    },
+    [form],
+  )
 
   const testScreenshot = useCallback(async () => {
     const capture = gazeboPreviewRef.current?.captureScreenshot
@@ -666,6 +747,28 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                             <CardTitle className="text-lg">Design Configuration</CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4">
+                            <div className="rounded-lg border border-dashed border-blue-200 bg-blue-50/40 p-3">
+                              <div className="mb-2">
+                                <h3 className="text-sm font-semibold text-blue-900">Quick Start Presets</h3>
+                                <p className="text-xs text-blue-700">
+                                  Instantly load a proven layout and continue customizing from there.
+                                </p>
+                              </div>
+                              <div className="grid gap-2">
+                                {designPresets.map((preset) => (
+                                  <button
+                                    key={preset.id}
+                                    type="button"
+                                    onClick={() => applyDesignPreset(preset.id)}
+                                    className="rounded-md border border-blue-200 bg-white px-3 py-2 text-left transition-colors hover:border-blue-400 hover:bg-blue-50"
+                                  >
+                                    <p className="text-sm font-medium text-gray-900">{preset.name}</p>
+                                    <p className="text-xs text-gray-600">{preset.description}</p>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
                             <FormField
                               control={form.control}
                               name="roofType"
