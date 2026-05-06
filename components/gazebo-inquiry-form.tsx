@@ -23,7 +23,6 @@ import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
-import { Switch } from "@/components/ui/switch"
 
 // Add this near the top of the file where the props are defined
 interface GazeboInquiryFormProps {
@@ -35,30 +34,6 @@ interface GazeboInquiryFormProps {
     url_slug: string
   }
 }
-
-const attachmentMethods = ["wall", "gutter_fascia", "roof_penetration"] as const
-
-type AttachmentOptionValue = (typeof attachmentMethods)[number]
-
-const attachmentOptions: { value: AttachmentOptionValue; label: string; description: string }[] = [
-  {
-    value: "wall",
-    label: "Wall Connection",
-    description: "Fix the patio ledger directly to an existing wall or fascia board.",
-  },
-  {
-    value: "gutter_fascia",
-    label: "Gutter / Fascia",
-    description: "Tie into the existing gutter line with hanger brackets and shared drainage.",
-  },
-  {
-    value: "roof_penetration",
-    label: "Roof Penetration",
-    description: "Project the patio roof through the existing roof for a seamless enclosure.",
-  },
-]
-
-const defaultAttachmentType: AttachmentOptionValue = "wall"
 
 // Fixed form schema with proper validation
 const formSchema = z
@@ -84,8 +59,6 @@ const formSchema = z
     height: z.number().min(2400).max(5000).default(2400),
     roofColor: z.string().min(1, "Roof color is required").default("SURFMIST / BASALT"),
     postBeamColor: z.string().min(1, "Frame color is required").default("MONUMENT"),
-    isAttached: z.boolean().default(false),
-    attachmentType: z.enum(attachmentMethods).nullable().default(null),
   })
   .refine(
     (data) => {
@@ -102,15 +75,6 @@ const formSchema = z
       path: ["roofPitch"],
     },
   )
-  .superRefine((data, ctx) => {
-    if (data.isAttached && !data.attachmentType) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["attachmentType"],
-        message: "Select how the patio connects to the existing structure.",
-      })
-    }
-  })
 
 // Color options - Updated with exact colors from the color chart
 const roofColors = [
@@ -168,60 +132,6 @@ const roofCladdingOptions = [
     description: "Modern trapezoidal profile - contemporary industrial look",
     image:
       "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Trimclad_Cb_Surfmist_RoofWall-002-2C4NSajHb5KDRUZxElxmIz7XxLamum.webp",
-  },
-]
-
-const designPresets = [
-  {
-    id: "family-entertainer",
-    name: "Family Entertainer",
-    description: "Wide covered area for outdoor dining and gatherings.",
-    values: {
-      roofType: "Gable" as const,
-      roofCladding: "Corrugated" as const,
-      roofPitch: 15,
-      length: 7200,
-      width: 4200,
-      height: 2700,
-      roofColor: "SURFMIST / BASALT",
-      postBeamColor: "MONUMENT",
-      isAttached: true,
-      attachmentType: "wall" as AttachmentOptionValue,
-    },
-  },
-  {
-    id: "poolside-shade",
-    name: "Poolside Shade",
-    description: "Low-profile modern skillion roof ideal for open spaces.",
-    values: {
-      roofType: "Skillion" as const,
-      roofCladding: "Trimclad" as const,
-      roofPitch: 5,
-      length: 6000,
-      width: 3600,
-      height: 2600,
-      roofColor: "SURFMIST / WOODLAND GREY",
-      postBeamColor: "WOODLAND GREY",
-      isAttached: false,
-      attachmentType: null,
-    },
-  },
-  {
-    id: "alfresco-plus",
-    name: "Alfresco Plus",
-    description: "Balanced attached layout that suits most backyard patios.",
-    values: {
-      roofType: "Gable" as const,
-      roofCladding: "Trimclad" as const,
-      roofPitch: 22.5,
-      length: 5400,
-      width: 3200,
-      height: 2550,
-      roofColor: "SURFMIST / PAPERBARK",
-      postBeamColor: "PAPERBARK",
-      isAttached: true,
-      attachmentType: "gutter_fascia" as AttachmentOptionValue,
-    },
   },
 ]
 
@@ -294,8 +204,6 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
         height: urlParams.height,
         roofColor: urlParams.roofColor,
         postBeamColor: urlParams.postBeamColor,
-        isAttached: false,
-        attachmentType: null,
       }
     }
 
@@ -309,8 +217,6 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
       height: 2400,
       roofColor: "SURFMIST / BASALT",
       postBeamColor: "MONUMENT",
-      isAttached: false,
-      attachmentType: null,
     }
   }, [extractUrlParams])
 
@@ -319,19 +225,6 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
     resolver: zodResolver(formSchema),
     defaultValues: defaultFormValues,
   })
-
-  const isAttachedValue = form.watch("isAttached")
-  const attachmentTypeValue = form.watch("attachmentType")
-
-  useEffect(() => {
-    if (isAttachedValue) {
-      if (!attachmentTypeValue) {
-        form.setValue("attachmentType", defaultAttachmentType)
-      }
-    } else if (attachmentTypeValue) {
-      form.setValue("attachmentType", null)
-    }
-  }, [attachmentTypeValue, form, isAttachedValue])
 
   // Handle URL parameters and view mode - separate from form initialization
   useEffect(() => {
@@ -416,39 +309,6 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
     setShowSubmitModal(false)
     form.reset({ ...defaultFormValues })
   }, [defaultFormValues, form])
-
-  const applyDesignPreset = useCallback(
-    (presetId: string) => {
-      const preset = designPresets.find((item) => item.id === presetId)
-
-      if (!preset) return
-
-      form.setValue("roofType", preset.values.roofType)
-      form.setValue("roofCladding", preset.values.roofCladding)
-      form.setValue("roofPitch", preset.values.roofPitch)
-      form.setValue("length", preset.values.length)
-      form.setValue("width", preset.values.width)
-      form.setValue("height", preset.values.height)
-      form.setValue("roofColor", preset.values.roofColor)
-      form.setValue("postBeamColor", preset.values.postBeamColor)
-      form.setValue("isAttached", preset.values.isAttached)
-      form.setValue("attachmentType", preset.values.attachmentType)
-
-      form.clearErrors([
-        "roofType",
-        "roofCladding",
-        "roofPitch",
-        "length",
-        "width",
-        "height",
-        "roofColor",
-        "postBeamColor",
-        "isAttached",
-        "attachmentType",
-      ])
-    },
-    [form],
-  )
 
   const testScreenshot = useCallback(async () => {
     const capture = gazeboPreviewRef.current?.captureScreenshot
@@ -564,8 +424,6 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
             overhangSize={300}
             roofColor={form.watch("roofColor")}
             postBeamColor={form.watch("postBeamColor")}
-            isAttached={isAttachedValue}
-            attachmentType={attachmentTypeValue ?? undefined}
           />
         </div>
       ) : (
@@ -583,8 +441,6 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
             overhangSize={300}
             roofColor={form.watch("roofColor")}
             postBeamColor={form.watch("postBeamColor")}
-            isAttached={isAttachedValue}
-            attachmentType={attachmentTypeValue ?? undefined}
           />
         </div>
       )}
@@ -766,28 +622,6 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                             <CardTitle className="text-lg">Design Configuration</CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4">
-                            <div className="rounded-lg border border-dashed border-blue-200 bg-blue-50/40 p-3">
-                              <div className="mb-2">
-                                <h3 className="text-sm font-semibold text-blue-900">Quick Start Presets</h3>
-                                <p className="text-xs text-blue-700">
-                                  Instantly load a proven layout and continue customizing from there.
-                                </p>
-                              </div>
-                              <div className="grid gap-2">
-                                {designPresets.map((preset) => (
-                                  <button
-                                    key={preset.id}
-                                    type="button"
-                                    onClick={() => applyDesignPreset(preset.id)}
-                                    className="rounded-md border border-blue-200 bg-white px-3 py-2 text-left transition-colors hover:border-blue-400 hover:bg-blue-50"
-                                  >
-                                    <p className="text-sm font-medium text-gray-900">{preset.name}</p>
-                                    <p className="text-xs text-gray-600">{preset.description}</p>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
                             <FormField
                               control={form.control}
                               name="roofType"
@@ -900,80 +734,6 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                               )}
                             />
 
-                            <FormField
-                              control={form.control}
-                              name="isAttached"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-4">
-                                    <div className="flex items-start justify-between gap-4">
-                                      <div className="space-y-1">
-                                        <FormLabel className="text-sm font-medium">Attach to Existing Structure</FormLabel>
-                                        <p className="text-xs text-gray-600">
-                                          Remove the house-side posts and mount against an existing wall or roof.
-                                        </p>
-                                      </div>
-                                      <FormControl>
-                                        <Switch
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                          aria-label="Toggle attached mode"
-                                        />
-                                      </FormControl>
-                                    </div>
-                                  </div>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            {isAttachedValue && (
-                              <FormField
-                                control={form.control}
-                                name="attachmentType"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-sm font-medium">Attachment Method</FormLabel>
-                                    <FormControl>
-                                      <RadioGroup
-                                        onValueChange={field.onChange}
-                                        value={field.value ?? undefined}
-                                        className="grid gap-3 sm:grid-cols-3"
-                                      >
-                                        {attachmentOptions.map((option) => {
-                                          const optionId = `attachment-${option.value}`
-                                          const isSelected = field.value === option.value
-
-                                          return (
-                                            <div
-                                              key={option.value}
-                                              className={cn(
-                                                "cursor-pointer rounded-xl border p-4 text-left shadow-sm transition",
-                                                isSelected
-                                                  ? "border-blue-500 bg-blue-50 text-blue-700 shadow-md"
-                                                  : "border-gray-200 bg-white text-gray-700 hover:border-blue-200 hover:shadow-md",
-                                              )}
-                                              onClick={() => field.onChange(option.value)}
-                                            >
-                                              <RadioGroupItem id={optionId} value={option.value} className="sr-only" />
-                                              <Label htmlFor={optionId} className="cursor-pointer">
-                                                <span className="block text-sm font-semibold text-gray-900">
-                                                  {option.label}
-                                                </span>
-                                                <span className="mt-1 block text-xs text-gray-600">
-                                                  {option.description}
-                                                </span>
-                                              </Label>
-                                            </div>
-                                          )
-                                        })}
-                                      </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            )}
                           </CardContent>
                         </Card>
 
