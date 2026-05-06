@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -593,7 +594,14 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
           <div className="fixed bottom-4 right-4 z-50 rounded-lg border border-gray-200/50 bg-white/90 px-3 py-2 text-xs font-medium text-gray-600 shadow-lg backdrop-blur-sm">
             Created by <span className="font-semibold text-blue-600">Gazi OGUTCU</span> 2025
           </div>
-          <div className="fixed top-4 right-4 z-50">
+          <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+            <Button
+              asChild
+              variant="secondary"
+              className="border border-gray-200/50 bg-white/90 shadow-lg backdrop-blur-sm hover:bg-white/70"
+            >
+              <Link href="/blog">Blog</Link>
+            </Button>
             <Button
               onClick={testScreenshot}
               variant="secondary"
@@ -701,9 +709,14 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                   </p>
                 </div>
                 {isMobile && (
-                  <Button onClick={testScreenshot} variant="outline" className="w-full sm:w-auto">
-                    📸 Screenshot
-                  </Button>
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <Button asChild variant="outline" className="w-full sm:w-auto">
+                      <Link href="/blog">Blog</Link>
+                    </Button>
+                    <Button onClick={testScreenshot} variant="outline" className="w-full sm:w-auto">
+                      📸 Screenshot
+                    </Button>
+                  </div>
                 )}
               </div>
               {isViewMode && (
