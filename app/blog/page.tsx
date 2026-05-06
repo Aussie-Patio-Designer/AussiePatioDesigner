@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import type { Metadata } from "next"
 import {
@@ -28,12 +29,16 @@ export const metadata: Metadata = {
 }
 
 const featuredPost = {
-  title: "How to plan a patio that suits the Australian climate",
+  title: "Best patio design ideas for Australian homes in 2026",
   excerpt:
-    "Start with orientation, shade, drainage and roof pitch before choosing finishes. These early decisions make your patio more comfortable through summer heat and wet-season storms.",
-  category: "Planning Guide",
+    "Plan a cooler, more practical outdoor area with roof profile, Colorbond-style colour, sizing, shade and quote preparation tips for Australian homes.",
+  category: "SEO Guide",
   date: "May 6, 2026",
-  readTime: "6 min read",
+  readTime: "8 min read",
+  href: "/blog/best-patio-design-ideas-australia",
+  image: "/images/blog/best-patio-design-ideas-australia.svg",
+  imageAlt:
+    "AI-generated illustration of a modern Australian patio with a Colorbond-style roof and outdoor dining area",
   icon: SunMedium,
 }
 
@@ -116,11 +121,21 @@ export default function BlogPage() {
         <section className="grid gap-6 lg:grid-cols-[1.45fr_0.85fr]">
           <Card className="overflow-hidden border-0 bg-slate-950 text-white shadow-2xl shadow-slate-950/20">
             <CardContent className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.75fr_1fr] lg:p-10">
-              <div className="flex min-h-64 items-center justify-center rounded-3xl bg-gradient-to-br from-emerald-400 via-teal-500 to-sky-500 p-8">
-                <div className="rounded-full bg-white/20 p-8 backdrop-blur">
-                  <FeaturedIcon className="size-24 text-white" aria-hidden="true" />
+              <Link
+                href={featuredPost.href}
+                className="relative block min-h-64 overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-400 via-teal-500 to-sky-500"
+              >
+                <Image
+                  src={featuredPost.image}
+                  alt={featuredPost.imageAlt}
+                  width={1600}
+                  height={900}
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 hover:scale-105"
+                />
+                <div className="absolute right-5 top-5 rounded-full bg-white/20 p-4 text-white backdrop-blur">
+                  <FeaturedIcon className="size-8" aria-hidden="true" />
                 </div>
-              </div>
+              </Link>
               <article className="flex flex-col justify-center gap-5">
                 <div className="flex flex-wrap items-center gap-3 text-sm text-emerald-100">
                   <span className="rounded-full bg-white/10 px-3 py-1 font-semibold text-white">
@@ -140,8 +155,8 @@ export default function BlogPage() {
                   <p className="text-lg leading-8 text-slate-200">{featuredPost.excerpt}</p>
                 </div>
                 <Button asChild variant="secondary" className="w-fit">
-                  <Link href="/">
-                    Design with these tips
+                  <Link href={featuredPost.href}>
+                    Read the first article
                     <ArrowRight className="size-4" />
                   </Link>
                 </Button>
