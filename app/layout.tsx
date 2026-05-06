@@ -108,9 +108,7 @@ export default function RootLayout({
         </Script>
 
         {/* Structured Data */}
-        <Script id="ld-website" type="application/ld+json" strategy="beforeInteractive">
-          {JSON.stringify(websiteJsonLd)}
-        </Script>
+        
         <Script id="ld-org" type="application/ld+json" strategy="beforeInteractive">
           {JSON.stringify({
             "@context": "https://schema.org",
