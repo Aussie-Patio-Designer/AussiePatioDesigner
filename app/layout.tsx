@@ -1,10 +1,10 @@
 // app/layout.tsx
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Script from "next/script";
 
 const SITE_URL = "https://patioDesigner.com.au";
-const OG_IMAGE = "/og/og-patio-designer.jpg";    
+const OG_IMAGE = "/og-patio-designer.jpg";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -22,11 +22,17 @@ export const metadata: Metadata = {
     "gable roof",
     "skillion roof",
     "3D configurator",
+    "patio design Australia",
+    "outdoor living design",
+    "patio quote",
     "Queensland",
     "Australia",
   ],
   applicationName: "Patio Designer",
   authors: [{ name: "Patio Designer Team" }],
+  creator: "Patio Designer",
+  publisher: "Patio Designer",
+  category: "Home improvement",
   generator: "Next.js",
   alternates: { canonical: "/" },
   openGraph: {
@@ -54,7 +60,7 @@ export const metadata: Metadata = {
     images: [OG_IMAGE],
   },
   icons: {
-    icon: "/favicon.ico",               // küçük tarayıcı ikonu
+    icon: "/favicon.png",               // küçük tarayıcı ikonu
     apple: "/apple-touch-icon.png",     // iPhone ana ekran ikonu
   },
   manifest: "/manifest.webmanifest",
@@ -69,7 +75,11 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
   themeColor: "#111827",
 };
 
@@ -103,10 +113,22 @@ export default function RootLayout({
             name: "Patio Designer",
             url: SITE_URL,
             logo: `${SITE_URL}/apple-touch-icon.png`,
+            description:
+              "Australian 3D patio and gazebo design tool for planning roof styles, Colorbond colours, dimensions and quote-ready project details.",
             sameAs: [
               "https://www.instagram.com/",
               "https://www.facebook.com/",
             ],
+          })}
+        </Script>
+
+        {/* Structured Data (Website schema) */}
+        <Script id="ld-website" type="application/ld+json" strategy="afterInteractive">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "Patio Designer",
+            url: SITE_URL,
           })}
         </Script>
       </head>
