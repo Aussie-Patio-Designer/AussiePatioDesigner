@@ -13,18 +13,44 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
+const SITE_URL = "https://patiodesigner.com.au"
+const BLOG_PATH = "/blog"
+const BLOG_URL = `${SITE_URL}${BLOG_PATH}`
+
 export const metadata: Metadata = {
-  title: "Blog",
+  title: "Patio Design Blog Australia | Patio Ideas & Planning Guides",
   description:
     "Helpful patio design guides, Colorbond colour advice, roof style comparisons and planning tips for Australian outdoor living projects.",
+  keywords: [
+    "patio design blog Australia",
+    "Australian patio ideas",
+    "Colorbond patio colours",
+    "patio roof styles",
+    "outdoor living planning",
+  ],
   alternates: {
-    canonical: "/blog",
+    canonical: BLOG_PATH,
   },
   openGraph: {
-    title: "Patio Designer Blog",
+    title: "Patio Design Blog Australia",
     description:
       "Practical guides for planning, designing and visualising patios and gazebos in Australia.",
-    url: "/blog",
+    url: BLOG_URL,
+    images: [
+      {
+        url: "/images/blog/best-patio-design-ideas-australia.svg",
+        width: 1600,
+        height: 900,
+        alt: "Modern Australian patio design guide illustration",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Patio Design Blog Australia",
+    description:
+      "Patio ideas, roof style comparisons and Colorbond-style planning tips for Australian homes.",
+    images: ["/images/blog/best-patio-design-ideas-australia.svg"],
   },
 }
 
@@ -78,11 +104,59 @@ const planningTips = [
   "Use a 3D patio preview to test sizes, roof profiles and Colorbond colours before you enquire.",
 ]
 
+const collectionJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Patio Design Blog Australia",
+  description: metadata.description,
+  url: BLOG_URL,
+  inLanguage: "en-AU",
+  mainEntity: {
+    "@type": "ItemList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        url: `${SITE_URL}${featuredPost.href}`,
+        name: featuredPost.title,
+      },
+    ],
+  },
+}
+
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Patio Designer",
+      item: SITE_URL,
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Blog",
+      item: BLOG_URL,
+    },
+  ],
+}
+
 export default function BlogPage() {
   const FeaturedIcon = featuredPost.icon
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
         <header className="flex flex-col gap-6 rounded-[2rem] border border-emerald-100 bg-white/85 p-6 shadow-xl shadow-emerald-950/5 backdrop-blur sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
           <div className="max-w-3xl space-y-5">
