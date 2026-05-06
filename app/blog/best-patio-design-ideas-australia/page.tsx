@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-const SITE_URL = "https://patiodesigner.com.au"
+const SITE_URL = "https://patioDesigner.com.au"
 const ARTICLE_PATH = "/blog/best-patio-design-ideas-australia"
 const ARTICLE_URL = `${SITE_URL}${ARTICLE_PATH}`
 const HERO_IMAGE = "/images/blog/best-patio-design-ideas-australia.svg"
@@ -122,8 +122,6 @@ const articleJsonLd = {
     name: "Patio Designer",
     url: SITE_URL,
   },
-  articleSection: "Patio design",
-  keywords: metadata.keywords,
   publisher: {
     "@type": "Organization",
     name: "Patio Designer",
@@ -136,31 +134,6 @@ const articleJsonLd = {
     "@type": "WebPage",
     "@id": ARTICLE_URL,
   },
-}
-
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    {
-      "@type": "ListItem",
-      position: 1,
-      name: "Patio Designer",
-      item: SITE_URL,
-    },
-    {
-      "@type": "ListItem",
-      position: 2,
-      name: "Blog",
-      item: `${SITE_URL}/blog`,
-    },
-    {
-      "@type": "ListItem",
-      position: 3,
-      name: "Best Patio Design Ideas Australia",
-      item: ARTICLE_URL,
-    },
-  ],
 }
 
 const faqJsonLd = {
@@ -182,10 +155,6 @@ export default function BestPatioDesignIdeasAustraliaPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <script
         type="application/ld+json"
@@ -353,27 +322,6 @@ export default function BestPatioDesignIdeasAustraliaPage() {
             </ul>
           </CardContent>
         </Card>
-
-        <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-xl shadow-emerald-950/5 sm:p-8">
-          <h2 className="text-2xl font-bold text-slate-950">
-            Continue planning your patio
-          </h2>
-          <p className="mt-3 max-w-2xl leading-7 text-slate-600">
-            Turn these ideas into a clearer design brief by testing dimensions,
-            roof profiles and Colorbond-style colours in the 3D patio designer.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Button asChild className="bg-emerald-700 hover:bg-emerald-800">
-              <Link href="/">
-                Open the 3D designer
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/blog">Browse more patio guides</Link>
-            </Button>
-          </div>
-        </section>
 
         <section className="space-y-5">
           <div className="flex items-center gap-3">

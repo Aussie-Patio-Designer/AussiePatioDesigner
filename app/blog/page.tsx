@@ -5,6 +5,7 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
+  Palette,
   Ruler,
   ShieldCheck,
   SunMedium,
@@ -13,44 +14,18 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-const SITE_URL = "https://patiodesigner.com.au"
-const BLOG_PATH = "/blog"
-const BLOG_URL = `${SITE_URL}${BLOG_PATH}`
-
 export const metadata: Metadata = {
-  title: "Patio Design Blog Australia | Patio Ideas & Planning Guides",
+  title: "Blog",
   description:
     "Helpful patio design guides, Colorbond colour advice, roof style comparisons and planning tips for Australian outdoor living projects.",
-  keywords: [
-    "patio design blog Australia",
-    "Australian patio ideas",
-    "Colorbond patio colours",
-    "patio roof styles",
-    "outdoor living planning",
-  ],
   alternates: {
-    canonical: BLOG_PATH,
+    canonical: "/blog",
   },
   openGraph: {
-    title: "Patio Design Blog Australia",
+    title: "Patio Designer Blog",
     description:
       "Practical guides for planning, designing and visualising patios and gazebos in Australia.",
-    url: BLOG_URL,
-    images: [
-      {
-        url: "/images/blog/best-patio-design-ideas-australia.svg",
-        width: 1600,
-        height: 900,
-        alt: "Modern Australian patio design guide illustration",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Patio Design Blog Australia",
-    description:
-      "Patio ideas, roof style comparisons and Colorbond-style planning tips for Australian homes.",
-    images: ["/images/blog/best-patio-design-ideas-australia.svg"],
+    url: "/blog",
   },
 }
 
@@ -70,6 +45,16 @@ const featuredPost = {
 
 const posts = [
   {
+    title: "Colorbond patio colours Australia: best combinations for 2026",
+    excerpt:
+      "Choose roof, post, beam, gutter and deck colours that feel connected to your home and comfortable in Australian sunlight.",
+    category: "Colour Selection",
+    date: "May 6, 2026",
+    readTime: "7 min read",
+    href: "/blog/colorbond-patio-colours-australia",
+    icon: Palette,
+  },
+  {
     title: "Gable, hip or skillion: choosing the right patio roof profile",
     excerpt:
       "Compare common roof styles by airflow, height, visual impact and how each option can tie into an existing home.",
@@ -87,15 +72,6 @@ const posts = [
     readTime: "4 min read",
     icon: CheckCircle2,
   },
-  {
-    title: "What to check before requesting a patio quote",
-    excerpt:
-      "Gather dimensions, site photos, access notes and design preferences so your installer can provide a more accurate estimate.",
-    category: "Quoting Tips",
-    date: "April 18, 2026",
-    readTime: "4 min read",
-    icon: ShieldCheck,
-  },
 ]
 
 const planningTips = [
@@ -104,59 +80,11 @@ const planningTips = [
   "Use a 3D patio preview to test sizes, roof profiles and Colorbond colours before you enquire.",
 ]
 
-const collectionJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "CollectionPage",
-  name: "Patio Design Blog Australia",
-  description: metadata.description,
-  url: BLOG_URL,
-  inLanguage: "en-AU",
-  mainEntity: {
-    "@type": "ItemList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        url: `${SITE_URL}${featuredPost.href}`,
-        name: featuredPost.title,
-      },
-    ],
-  },
-}
-
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    {
-      "@type": "ListItem",
-      position: 1,
-      name: "Patio Designer",
-      item: SITE_URL,
-    },
-    {
-      "@type": "ListItem",
-      position: 2,
-      name: "Blog",
-      item: BLOG_URL,
-    },
-  ],
-}
-
 export default function BlogPage() {
   const FeaturedIcon = featuredPost.icon
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 text-slate-950">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
-
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
         <header className="flex flex-col gap-6 rounded-[2rem] border border-emerald-100 bg-white/85 p-6 shadow-xl shadow-emerald-950/5 backdrop-blur sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
           <div className="max-w-3xl space-y-5">
@@ -291,15 +219,35 @@ export default function BlogPage() {
                       <Icon className="size-6 text-emerald-700" aria-hidden="true" />
                     </div>
                     <div className="space-y-3">
-                      <h3 className="text-xl font-bold leading-tight text-slate-950">
-                        {post.title}
-                      </h3>
+                      {"href" in post ? (
+                        <h3 className="text-xl font-bold leading-tight text-slate-950">
+                          <Link
+                            href={post.href}
+                            className="transition hover:text-emerald-700"
+                          >
+                            {post.title}
+                          </Link>
+                        </h3>
+                      ) : (
+                        <h3 className="text-xl font-bold leading-tight text-slate-950">
+                          {post.title}
+                        </h3>
+                      )}
                       <p className="leading-7 text-slate-600">{post.excerpt}</p>
                     </div>
                     <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-sm text-slate-500">
                       <span>{post.date}</span>
                       <span>{post.readTime}</span>
                     </div>
+                    {"href" in post ? (
+                      <Link
+                        href={post.href}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 transition hover:text-emerald-900"
+                      >
+                        Read article
+                        <ArrowRight className="size-4" />
+                      </Link>
+                    ) : null}
                   </CardContent>
                 </Card>
               )
