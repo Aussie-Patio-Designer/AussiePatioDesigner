@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Only apply to admin routes
   if (request.nextUrl.pathname.startsWith("/admin")) {
     // Get admin credentials from environment variables or use defaults
@@ -47,7 +47,7 @@ export function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
-// Configure the middleware to only run on admin routes
+// Configure the proxy to only run on admin routes
 export const config = {
   matcher: "/admin/:path*",
 }
