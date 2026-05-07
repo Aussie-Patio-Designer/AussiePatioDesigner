@@ -136,6 +136,38 @@ const articleJsonLd = {
   },
 }
 
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Patio Designer",
+      item: SITE_URL,
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Blog",
+      item: `${SITE_URL}/blog`,
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Best Patio Design Ideas Australia",
+      item: ARTICLE_URL,
+    },
+  ],
+}
+
+const relatedArticle = {
+  title: "Colorbond patio colours Australia: best combinations for 2026",
+  href: "/blog/colorbond-patio-colours-australia",
+  description:
+    "Compare roof, post, beam, gutter and deck colour combinations for Australian patios.",
+}
+
 const faqJsonLd = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -159,6 +191,10 @@ export default function BestPatioDesignIdeasAustraliaPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <article className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
@@ -320,6 +356,28 @@ export default function BestPatioDesignIdeasAustraliaPage() {
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-100 bg-emerald-50/80 shadow-lg shadow-emerald-950/5">
+          <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">
+                Related guide
+              </p>
+              <h2 className="text-2xl font-bold text-slate-950">
+                {relatedArticle.title}
+              </h2>
+              <p className="leading-7 text-slate-600">
+                {relatedArticle.description}
+              </p>
+            </div>
+            <Button asChild variant="outline" className="bg-white">
+              <Link href={relatedArticle.href}>
+                Read colour guide
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 

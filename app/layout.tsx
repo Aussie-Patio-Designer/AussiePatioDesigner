@@ -107,34 +107,40 @@ export default function RootLayout({
           `}
         </Script>
 
-        {/* Structured Data */}
-        
-        <Script id="ld-org" type="application/ld+json" strategy="beforeInteractive">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            name: "Patio Designer",
-            alternateName: "Aussie Patio Designer",
-            url: SITE_URL,
-            logo: `${SITE_URL}/apple-touch-icon.png`,
-            description:
-              "Australian 3D patio and gazebo design tool for planning roof styles, Colorbond colours, dimensions and quote-ready project details.",
-            sameAs: [
-              "https://www.instagram.com/",
-              "https://www.facebook.com/",
-            ],
-          })}
-        </Script>
+        {/* Structured Data (Organization schema) */}
+        <script
+          id="ld-org"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Patio Designer",
+              url: SITE_URL,
+              logo: `${SITE_URL}/apple-touch-icon.png`,
+              description:
+                "Australian 3D patio and gazebo design tool for planning roof styles, Colorbond colours, dimensions and quote-ready project details.",
+              sameAs: [
+                "https://www.instagram.com/",
+                "https://www.facebook.com/",
+              ],
+            }),
+          }}
+        />
 
         {/* Structured Data (Website schema) */}
-        <Script id="ld-website" type="application/ld+json" strategy="afterInteractive">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            name: "Patio Designer",
-            url: SITE_URL,
-          })}
-        </Script>
+        <script
+          id="ld-website"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "Patio Designer",
+              url: SITE_URL,
+            }),
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>

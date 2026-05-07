@@ -15,18 +15,53 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 export const metadata: Metadata = {
-  title: "Blog",
+  title: "Patio Design Blog Australia",
   description:
-    "Helpful patio design guides, Colorbond colour advice, roof style comparisons and planning tips for Australian outdoor living projects.",
+    "Australian patio design blog with roof style guides, Colorbond colour ideas, sizing advice and quote-ready outdoor living planning tips.",
+  keywords: [
+    "patio design blog Australia",
+    "Australian patio ideas",
+    "Colorbond patio colours",
+    "patio roof styles",
+    "outdoor living planning",
+  ],
   alternates: {
     canonical: "/blog",
   },
   openGraph: {
-    title: "Patio Designer Blog",
+    title: "Patio Design Blog Australia",
     description:
-      "Practical guides for planning, designing and visualising patios and gazebos in Australia.",
+      "Practical Australian guides for planning, designing and visualising patios and gazebos.",
     url: "/blog",
   },
+}
+
+const blogPosts = [
+  {
+    title: "Best patio design ideas for Australian homes in 2026",
+    href: "/blog/best-patio-design-ideas-australia",
+    description:
+      "Plan a cooler, more practical outdoor area with roof profile, Colorbond-style colour, sizing, shade and quote preparation tips.",
+  },
+  {
+    title: "Colorbond patio colours Australia: best combinations for 2026",
+    href: "/blog/colorbond-patio-colours-australia",
+    description:
+      "Choose roof, post, beam, gutter and deck colours that feel connected to your home and comfortable in Australian sunlight.",
+  },
+]
+
+const blogItemListJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "Patio Designer Blog Articles",
+  itemListElement: blogPosts.map((post, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    url: `https://patioDesigner.com.au${post.href}`,
+    name: post.title,
+    description: post.description,
+  })),
 }
 
 const featuredPost = {
@@ -85,6 +120,10 @@ export default function BlogPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogItemListJsonLd) }}
+      />
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
         <header className="flex flex-col gap-6 rounded-[2rem] border border-emerald-100 bg-white/85 p-6 shadow-xl shadow-emerald-950/5 backdrop-blur sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
           <div className="max-w-3xl space-y-5">

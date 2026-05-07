@@ -1,39 +1,75 @@
 import type { Metadata } from "next"
+
 import GazeboFormWrapper from "@/components/gazebo-form-wrapper"
 
+const SITE_URL = "https://patioDesigner.com.au"
+
 export const metadata: Metadata = {
-  title: "3D Patio Designer Australia | Plan Colorbond Patio Designs",
+  title: "Free 3D Patio Designer Australia",
   description:
-    "Design an Australian patio or gazebo online in 3D. Compare roof profiles, Colorbond-style colours, dimensions and quote-ready options before you enquire.",
+    "Design a patio or gazebo online in 3D with Australian roof profiles, Colorbond-style colours, real dimensions and quote-ready project details.",
+  keywords: [
+    "free patio designer Australia",
+    "3D patio designer",
+    "patio design tool",
+    "gazebo designer",
+    "Colorbond patio colours",
+    "patio quote Australia",
+  ],
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "3D Patio Designer Australia",
+    type: "website",
+    title: "Free 3D Patio Designer Australia",
     description:
-      "Plan patio and gazebo designs with roof profiles, Colorbond-style palettes and real dimensions.",
-    url: "/",
+      "Plan roof type, Colorbond-style colours, size and layout before requesting a patio quote.",
+    url: SITE_URL,
     images: [
       {
         url: "/og-patio-designer.jpg",
         width: 1200,
         height: 630,
-        alt: "3D patio designer interface for Australian outdoor living projects",
+        alt: "3D patio designer for Australian outdoor living projects",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "3D Patio Designer Australia",
+    title: "Free 3D Patio Designer Australia",
     description:
-      "Design your patio or gazebo online with Australian roof and colour options.",
+      "Create a 3D patio concept with roof styles, dimensions and Colorbond-style colours.",
     images: ["/og-patio-designer.jpg"],
+  },
+}
+
+const applicationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Patio Designer",
+  url: SITE_URL,
+  applicationCategory: "DesignApplication",
+  operatingSystem: "Web",
+  description:
+    "Australian 3D patio and gazebo design tool for planning roof styles, Colorbond-style colours, dimensions and quote-ready project details.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "AUD",
+  },
+  areaServed: {
+    "@type": "Country",
+    name: "Australia",
   },
 }
 
 export default function Home() {
   return (
     <main className="flex min-h-screen w-full flex-col items-stretch px-4 py-6 sm:px-6 lg:px-12 xl:px-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(applicationJsonLd) }}
+      />
       <GazeboFormWrapper />
     </main>
   )

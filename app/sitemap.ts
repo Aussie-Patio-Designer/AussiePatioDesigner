@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next"
 
 const SITE_URL = "https://patioDesigner.com.au"
-const UPDATED_AT = new Date("2026-05-06T00:00:00.000Z")
+const UPDATED_AT = new Date("2026-05-07T00:00:00.000Z")
 
 const routes = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
