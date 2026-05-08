@@ -93,27 +93,6 @@ const benefits = [
   },
 ]
 
-const SITE_URL = "https://patioDesigner.com.au"
-
-const applicationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: "Patio Designer",
-  url: SITE_URL,
-  applicationCategory: "DesignApplication",
-  operatingSystem: "Web",
-  description:
-    "Australian 3D patio and gazebo design tool for planning roof styles, Colorbond-style colours, dimensions and quote-ready project details.",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "AUD",
-  },
-  areaServed: {
-    "@type": "Country",
-    name: "Australia",
-  },
-}
 
 export default function Home() {
   return (
