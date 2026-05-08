@@ -1339,8 +1339,8 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           far: 120,
         }}
         shadows
-        dpr={[1, 2]}
-        performance={{ min: 0.75 }}
+        dpr={[1, 1.5]}
+        performance={{ min: 0.5 }}
         gl={{
           antialias: true,
           alpha: false,
@@ -1383,18 +1383,9 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             shadow-normalBias={0.02}
           />
 
-          {/* Fill and bounce lights for better material colour visibility */}
-          <directionalLight position={[5, 8, 3]} intensity={0.32} color="#e0e8ff" />
-          <hemisphereLight args={["#e0f2fe", "#8f7a56", 0.48]} />
-          <ContactShadows
-            position={[0, 0.02, 0]}
-            opacity={0.32}
-            scale={24}
-            blur={2.8}
-            far={7}
-            resolution={1024}
-            color="#1f2937"
-          />
+          {/* Fill light for better color visibility */}
+          <directionalLight position={[5, 8, 3]} intensity={0.25} color="#e0e8ff" />
+          <hemisphereLight args={["#e0f2fe", "#8f7a56", 0.35]} />
 
           <GazeboStructure {...props} />
 
