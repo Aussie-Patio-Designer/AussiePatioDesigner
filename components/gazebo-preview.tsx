@@ -1372,8 +1372,8 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             intensity={0.82}
             color="#fff7ed"
             castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
+            shadow-mapSize-width={1024}
+            shadow-mapSize-height={1024}
             shadow-camera-far={50}
             shadow-camera-left={-20}
             shadow-camera-right={20}

@@ -12,12 +12,14 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME}`,
   },
   description:
-    "Design and visualise your patio or gazebo in 3D. Choose Colorbond colours, roof types (gable, skillion, hip), sizes and options—then share or export your design. Built for Australia.",
+    "Design and visualise your patio or gazebo in 3D. Choose Colorbond colours, roof types (gable, skillion, hip), sizes and options, then share or export your design. Built for Australia.",
   keywords: [
     "patio designer",
     "gazebo configurator",
     "Colorbond",
     "patio builder",
+    "patio design Australia",
+    "patio ideas Australia",
     "gable roof",
     "skillion roof",
     "3D configurator",
@@ -40,7 +42,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: "Design Your Patio in 3D | Patio Designer",
     description:
-      "Fast, accurate 3D patio & gazebo planning with Colorbond colours and real dimensions.",
+      "Fast, accurate 3D patio and gazebo planning with Colorbond-style colours, roof profiles and real dimensions.",
     images: [
       {
         url: OG_IMAGE,
@@ -55,7 +57,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Design Your Patio in 3D",
     description:
-      "Plan your patio or gazebo with Colorbond palettes, roof styles and exact sizes.",
+      "Plan your patio or gazebo with Colorbond-style palettes, roof styles and exact sizes.",
     images: [OG_IMAGE],
   },
   icons: {
