@@ -245,17 +245,8 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
     }
   }, [extractUrlParams])
 
-  // Force reset customer fields when switching to customer step
-  useEffect(() => {
-    if (currentStep === "customer") {
-      // Force reset only customer fields to empty strings
-      form.setValue("customerName", "")
-      form.setValue("customerEmail", "")
-      form.setValue("customerPhone", "")
-      form.setValue("siteAddress", "")
-      form.setValue("additionalDetails", "")
-    }
-  }, [currentStep, form])
+  // Track whether customer step was visited to avoid accidental overwrites
+  // (No forced reset – user-entered data is preserved when toggling steps)
 
   // Handle roof type changes with proper validation
   useEffect(() => {
@@ -1152,19 +1143,19 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
         </button>
       )}
 
-      <style jsx>{`
-        .overflow-y-auto::-webkit-scrollbar {
+      <style>{`
+        #design-sidebar .overflow-y-auto::-webkit-scrollbar {
           width: 6px;
         }
-        .overflow-y-auto::-webkit-scrollbar-track {
+        #design-sidebar .overflow-y-auto::-webkit-scrollbar-track {
           background: rgba(0, 0, 0, 0.1);
           border-radius: 3px;
         }
-        .overflow-y-auto::-webkit-scrollbar-thumb {
+        #design-sidebar .overflow-y-auto::-webkit-scrollbar-thumb {
           background: rgba(0, 0, 0, 0.3);
           border-radius: 3px;
         }
-        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        #design-sidebar .overflow-y-auto::-webkit-scrollbar-thumb:hover {
           background: rgba(0, 0, 0, 0.5);
         }
       `}</style>
