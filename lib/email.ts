@@ -1132,8 +1132,15 @@ export async function sendGazeboInquiry(data: InquiryData) {
   }
 
   try {
-    // Initialize database
-    await initializeDatabase()
+    // Initialize or migrate the database before saving the quote request.
+    const initResult = await initializeDatabase()
+    if (!initResult.success) {
+      return {
+        success: false,
+        message: "Quote request storage is not configured correctly. Please contact us directly or try again later.",
+        error: initResult.error,
+      }
+    }
 
     // Create inquiry record first (without screenshot URL)
     const dbResult = await createInquiry({
@@ -1148,9 +1155,9 @@ export async function sendGazeboInquiry(data: InquiryData) {
       length: data.length,
       width: data.width,
       height: data.height,
-      has_overhang: data.hasOverhang,
-      overhang_sides: data.overhangSides,
-      overhang_size: data.overhangSize,
+      has_overhang: data.hasOverhang ?? false,
+      overhang_sides: data.overhangSides ?? [],
+      overhang_size: data.overhangSize ?? 0,
       roof_color: data.roofColor,
       post_beam_color: data.postBeamColor,
       screenshot_url: undefined, // Will be updated if upload succeeds
@@ -1265,7 +1272,9 @@ export async function sendGazeboInquiry(data: InquiryData) {
     // Return success even if emails failed
     return {
       success: true,
-      message: "Inquiry submitted successfully! You should receive a confirmation email shortly.",
+      message: salesEmailResult.sent
+        ? "Inquiry submitted successfully! You should receive a confirmation email shortly."
+        : "Inquiry saved successfully. Email delivery may be delayed, but our team can still review your quote request.",
       inquiryId: inquiryId,
       screenshotUploaded: !!screenshotUrl,
       customerEmailSent: customerEmailResult.sent,

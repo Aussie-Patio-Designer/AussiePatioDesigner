@@ -1337,16 +1337,17 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           fov: 35, // Reduced FOV for more isometric-like view
         }}
         shadows
+        dpr={[1, 1.5]}
+        performance={{ min: 0.5 }}
         gl={{
           antialias: true,
           alpha: false,
           powerPreference: "high-performance",
           stencil: false,
           depth: true,
-          preserveDrawingBuffer: true, // CRITICAL: This must be true for screenshots
+          preserveDrawingBuffer: true, // Keeps screenshot/export support available.
         }}
         onCreated={({ gl }) => {
-          console.log("🎨 Canvas created with preserveDrawingBuffer:", gl.preserveDrawingBuffer)
           gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFSoftShadowMap
           gl.toneMapping = THREE.ACESFilmicToneMapping
@@ -1368,8 +1369,8 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             intensity={0.5} // Reduced from 0.8 to 0.5 for less dramatic lighting
             color="#f8f8f8"
             castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
+            shadow-mapSize-width={1024}
+            shadow-mapSize-height={1024}
             shadow-camera-far={50}
             shadow-camera-left={-20}
             shadow-camera-right={20}
@@ -1379,7 +1380,8 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           />
 
           {/* Fill light for better color visibility */}
-          <directionalLight position={[5, 8, 3]} intensity={0.2} color="#e0e8ff" />
+          <directionalLight position={[5, 8, 3]} intensity={0.25} color="#e0e8ff" />
+          <hemisphereLight args={["#e0f2fe", "#8f7a56", 0.35]} />
 
           <GazeboStructure {...props} />
 

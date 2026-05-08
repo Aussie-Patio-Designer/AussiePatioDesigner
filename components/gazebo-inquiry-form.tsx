@@ -496,29 +496,42 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
           return null
         })
 
+        const controller = new AbortController()
+        const timeoutId = window.setTimeout(() => controller.abort(), 45000)
+
         const response = await fetch("/api/inquiries", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          signal: controller.signal,
           body: JSON.stringify({
             ...values,
+            hasOverhang: false,
+            overhangSides: [],
+            overhangSize: 0,
             screenshot,
             agentData,
           }),
-        })
+        }).finally(() => window.clearTimeout(timeoutId))
 
-        const result = await response.json()
+        const contentType = response.headers.get("content-type") || ""
+        const result = contentType.includes("application/json")
+          ? await response.json()
+          : { message: await response.text() }
 
         if (!response.ok || !result?.success) {
-          const message = result?.message ?? "Failed to submit inquiry. Please try again."
+          const message = result?.message || result?.error || `Failed to submit inquiry (HTTP ${response.status}). Please try again.`
           setSubmitStatus({ type: "error", message })
           return
         }
 
-        const successMessage = `${result.message ?? "Inquiry submitted successfully."}${
-          result.emailSent === false ? " Email delivery may be delayed." : ""
-        }`
+        const reference = result.inquiryId ? ` Reference #${String(result.inquiryId).padStart(6, "0")}.` : ""
+        const deliveryWarning =
+          result.salesEmailSent === false
+            ? " Email delivery may be delayed, but the quote request was saved."
+            : ""
+        const successMessage = `${result.message ?? "Inquiry submitted successfully."}${reference}${deliveryWarning}`
 
         setSubmitStatus({ type: "success", message: successMessage })
 
@@ -532,9 +545,13 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
         }, 5000)
       } catch (error) {
         console.error("Error submitting inquiry:", error)
+        const message =
+          error instanceof DOMException && error.name === "AbortError"
+            ? "The quote request timed out. Please check your connection and try again."
+            : "Something went wrong while submitting your inquiry. Please try again."
         setSubmitStatus({
           type: "error",
-          message: "Something went wrong while submitting your inquiry. Please try again.",
+          message,
         })
       } finally {
         setIsSubmitting(false)
