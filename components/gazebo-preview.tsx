@@ -1,7 +1,7 @@
 "use client"
 
 import { Canvas, useThree } from "@react-three/fiber"
-import { OrbitControls, Plane, Environment } from "@react-three/drei"
+import { ContactShadows, Environment, OrbitControls, Plane } from "@react-three/drei"
 import { Suspense, useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect, useMemo } from "react"
 import { TextureLoader, BackSide } from "three"
 import * as THREE from "three"
@@ -72,7 +72,7 @@ function SimpleSkybox() {
       </mesh>
 
       {/* Subtle environment for minimal reflections */}
-      <Environment background={false} preset="dawn" intensity={0.2} />
+      <Environment background={false} preset="city" intensity={0.45} />
     </>
   )
 }
@@ -1333,8 +1333,10 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
     <div className="w-full h-full bg-gradient-to-b from-blue-100 to-green-100 rounded-lg overflow-hidden">
       <Canvas
         camera={{
-          position: [-8, 6, -8], // Changed from [8, 6, 8] to opposite side
-          fov: 35, // Reduced FOV for more isometric-like view
+          position: [-8.5, 6.25, -8.5],
+          fov: 32,
+          near: 0.1,
+          far: 120,
         }}
         shadows
         dpr={[1, 1.5]}
@@ -1351,23 +1353,24 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFSoftShadowMap
           gl.toneMapping = THREE.ACESFilmicToneMapping
-          gl.toneMappingExposure = 0.7 // Reduced from 1.0 to 0.7 for less brightness variation
+          gl.toneMappingExposure = 0.9
           gl.outputColorSpace = THREE.SRGBColorSpace
         }}
       >
         <SceneCapture ref={sceneRef} />
 
         <Suspense fallback={null}>
+          <fog attach="fog" args={["#dbeafe", 35, 90]} />
           <SimpleSkybox />
           <GrassGround />
 
           {/* Enhanced lighting setup */}
-          <ambientLight intensity={0.6} color="#ffffff" />
-          {/* Main sun light - repositioned for opposite side view */}
+          <ambientLight intensity={0.72} color="#ffffff" />
+          {/* Main sun light with higher-resolution soft shadows */}
           <directionalLight
-            position={[-5, 10, -5]}
-            intensity={0.5} // Reduced from 0.8 to 0.5 for less dramatic lighting
-            color="#f8f8f8"
+            position={[-6, 11, -5]}
+            intensity={0.82}
+            color="#fff7ed"
             castShadow
             shadow-mapSize-width={1024}
             shadow-mapSize-height={1024}
@@ -1376,7 +1379,8 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             shadow-camera-right={20}
             shadow-camera-top={20}
             shadow-camera-bottom={-20}
-            shadow-bias={-0.0001}
+            shadow-bias={-0.00008}
+            shadow-normalBias={0.02}
           />
 
           {/* Fill light for better color visibility */}
@@ -1393,10 +1397,10 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             maxDistance={40} // Increased from 20 to 40 for more zoom out
             minPolarAngle={Math.PI / 12}
             maxPolarAngle={Math.PI / 1.5}
-            target={[0, 1.5, 0]}
+            target={[0, 1.55, 0]}
             enableDamping={true}
-            dampingFactor={0.05}
-            rotateSpeed={0.7}
+            dampingFactor={0.06}
+            rotateSpeed={0.65}
           />
         </Suspense>
       </Canvas>
