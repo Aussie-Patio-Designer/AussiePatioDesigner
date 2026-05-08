@@ -1,16 +1,15 @@
 // app/layout.tsx
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Script from "next/script";
 
-const SITE_URL = "https://patioDesigner.com.au";
-const OG_IMAGE = "/og/og-patio-designer.jpg";    
+import { OG_IMAGE, SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Patio Designer | Aussie Patio & Gazebo Configurator",
-    template: "%s | Patio Designer",
+    default: `${SITE_NAME} | Aussie Patio & Gazebo Configurator`,
+    template: `%s | ${SITE_NAME}`,
   },
   description:
     "Design and visualise your patio or gazebo in 3D. Choose Colorbond colours, roof types (gable, skillion, hip), sizes and options—then share or export your design. Built for Australia.",
@@ -22,17 +21,23 @@ export const metadata: Metadata = {
     "gable roof",
     "skillion roof",
     "3D configurator",
+    "patio design Australia",
+    "outdoor living design",
+    "patio quote",
     "Queensland",
     "Australia",
   ],
-  applicationName: "Patio Designer",
-  authors: [{ name: "Patio Designer Team" }],
+  applicationName: SITE_NAME,
+  authors: [{ name: `${SITE_NAME} Team` }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: "Home improvement",
   generator: "Next.js",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     url: SITE_URL,
-    siteName: "Patio Designer",
+    siteName: SITE_NAME,
     title: "Design Your Patio in 3D | Patio Designer",
     description:
       "Fast, accurate 3D patio & gazebo planning with Colorbond colours and real dimensions.",
@@ -54,8 +59,8 @@ export const metadata: Metadata = {
     images: [OG_IMAGE],
   },
   icons: {
-    icon: "/favicon.ico",               // küçük tarayıcı ikonu
-    apple: "/apple-touch-icon.png",     // iPhone ana ekran ikonu
+    icon: "/favicon.png",
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.webmanifest",
   robots: {
@@ -69,7 +74,11 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
   themeColor: "#111827",
 };
 
@@ -81,7 +90,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Google Analytics 4 (GA4) örneği */}
+        {/* Google Analytics 4 (GA4) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-8KSVRMVSDX"
           strategy="afterInteractive"
@@ -96,19 +105,39 @@ export default function RootLayout({
         </Script>
 
         {/* Structured Data (Organization schema) */}
-        <Script id="ld-org" type="application/ld+json" strategy="afterInteractive">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            name: "Patio Designer",
-            url: SITE_URL,
-            logo: `${SITE_URL}/apple-touch-icon.png`,
-            sameAs: [
-              "https://www.instagram.com/",
-              "https://www.facebook.com/",
-            ],
-          })}
-        </Script>
+        <script
+          id="ld-org"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: SITE_NAME,
+              url: SITE_URL,
+              logo: `${SITE_URL}/apple-touch-icon.png`,
+              description:
+                "Australian 3D patio and gazebo design tool for planning roof styles, Colorbond colours, dimensions and quote-ready project details.",
+              sameAs: [
+                "https://www.instagram.com/",
+                "https://www.facebook.com/",
+              ],
+            }),
+          }}
+        />
+
+        {/* Structured Data (Website schema) */}
+        <script
+          id="ld-website"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: SITE_NAME,
+              url: SITE_URL,
+            }),
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>

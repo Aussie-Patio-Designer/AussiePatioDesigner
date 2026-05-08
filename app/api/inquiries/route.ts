@@ -2,6 +2,31 @@ import { type NextRequest, NextResponse } from "next/server"
 import { sendGazeboInquiry } from "@/lib/email"
 import { getSqlClientOrNull } from "@/lib/neon-client"
 
+type InquiryPayload = Record<string, any>
+
+function normalizeInquiryPayload(data: InquiryPayload) {
+  return {
+    ...data,
+    customerName: String(data.customerName ?? "").trim(),
+    customerEmail: String(data.customerEmail ?? "").trim(),
+    customerPhone: String(data.customerPhone ?? "").trim(),
+    siteAddress: String(data.siteAddress ?? "").trim(),
+    additionalDetails: String(data.additionalDetails ?? "").trim(),
+    roofType: data.roofType || "Gable",
+    roofCladding: data.roofCladding || "Corrugated",
+    roofPitch: Number(data.roofPitch) || 15,
+    length: Number(data.length) || 3000,
+    width: Number(data.width) || 3000,
+    height: Number(data.height) || 2400,
+    hasOverhang: Boolean(data.hasOverhang),
+    overhangSides: Array.isArray(data.overhangSides) ? data.overhangSides : [],
+    overhangSize: Number(data.overhangSize) || 0,
+    roofColor: data.roofColor || "SURFMIST / BASALT",
+    postBeamColor: data.postBeamColor || "MONUMENT",
+    screenshot: typeof data.screenshot === "string" && data.screenshot.length > 100 ? data.screenshot : undefined,
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log("📥 Received inquiry submission")
@@ -24,7 +49,8 @@ export async function POST(request: NextRequest) {
     })
 
     const dataPromise = request.json()
-    const data = await Promise.race([dataPromise, timeoutPromise])
+    const rawData = (await Promise.race([dataPromise, timeoutPromise])) as InquiryPayload
+    const data = normalizeInquiryPayload(rawData)
 
     // Log the inquiry data (without sensitive info)
     console.log("📋 Inquiry data received:", {
@@ -33,6 +59,7 @@ export async function POST(request: NextRequest) {
       roofType: data.roofType,
       roofCladding: data.roofCladding,
       dimensions: `${data.length}x${data.width}x${data.height}`,
+      overhang: `${data.hasOverhang ? "yes" : "no"} (${data.overhangSides.join(", ") || "none"})`,
       hasScreenshot: !!data.screenshot,
       screenshotSize: data.screenshot ? `${Math.round(data.screenshot.length / 1024)}KB` : "none",
       hasAgentData: !!data.agentData,

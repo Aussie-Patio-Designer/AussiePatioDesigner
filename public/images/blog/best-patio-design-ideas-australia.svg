@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Modern Australian patio design concept</title>
+  <desc id="desc">AI-generated vector illustration of a modern Australian patio with a Colorbond-style roof, timber deck, outdoor dining table and sunny backyard.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#bfe5f7"/>
+      <stop offset="0.68" stop-color="#f8fbf4"/>
+      <stop offset="1" stop-color="#ecf6df"/>
+    </linearGradient>
+    <linearGradient id="lawn" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#7ab66e"/>
+      <stop offset="1" stop-color="#276b41"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#32595b"/>
+      <stop offset="0.55" stop-color="#24484d"/>
+      <stop offset="1" stop-color="#17363d"/>
+    </linearGradient>
+    <linearGradient id="deck" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#d5bd92"/>
+      <stop offset="1" stop-color="#b89362"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0f2f25" flood-opacity="0.24"/>
+    </filter>
+    <pattern id="roofRibs" width="115" height="115" patternUnits="userSpaceOnUse" patternTransform="rotate(14)">
+      <path d="M0 0H7V140H0z" fill="#6f9d9c" opacity="0.58"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1320" cy="210" r="82" fill="#ffd978" opacity="0.9"/>
+  <circle cx="1320" cy="210" r="120" fill="none" stroke="#fff6c9" stroke-width="4" stroke-dasharray="2 12" opacity="0.85"/>
+  <g opacity="0.7" fill="#fff">
+    <ellipse cx="250" cy="135" rx="150" ry="38"/>
+    <ellipse cx="355" cy="120" rx="90" ry="30"/>
+    <ellipse cx="1190" cy="135" rx="170" ry="42"/>
+    <ellipse cx="1320" cy="112" rx="105" ry="30"/>
+  </g>
+  <rect y="560" width="1600" height="340" fill="url(#lawn)"/>
+
+  <g filter="url(#softShadow)">
+    <polygon points="155,360 680,310 1038,386 1038,665 155,665" fill="#eee6d5"/>
+    <polygon points="680,310 1038,386 1038,665 690,662" fill="#dfd8c9"/>
+    <polygon points="130,348 675,268 1078,370 1040,412 675,330 150,400" fill="#425760"/>
+    <polygon points="675,268 1078,370 1040,412 675,330" fill="#506872"/>
+    <rect x="245" y="420" width="224" height="138" fill="#75b1ca"/>
+    <rect x="245" y="415" width="224" height="12" fill="#675e54"/>
+    <rect x="245" y="548" width="224" height="12" fill="#675e54"/>
+    <rect x="354" y="420" width="6" height="138" fill="#675e54"/>
+    <rect x="738" y="438" width="216" height="130" fill="#82bdd0"/>
+    <rect x="735" y="435" width="222" height="13" fill="#675e54"/>
+    <rect x="735" y="558" width="222" height="12" fill="#675e54"/>
+  </g>
+
+  <polygon points="280,625 1240,625 1510,880 90,880" fill="url(#deck)"/>
+  <g stroke="#9d7f55" stroke-width="3" opacity="0.72">
+    <path d="M255 650H1267M230 675H1295M205 700H1324M180 725H1352M155 750H1381M130 775H1410M105 800H1438M96 825H1464M92 850H1488"/>
+    <path d="M320 625 168 880M435 625 293 880M550 625 418 880M665 625 543 880M780 625 668 880M895 625 793 880M1010 625 918 880M1125 625 1043 880M1240 625 1168 880"/>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <polygon points="520,330 1240,390 1395,505 690,455" fill="url(#roof)"/>
+    <polygon points="520,330 690,455 300,520 205,458" fill="#3e6b6d"/>
+    <polygon points="690,455 1395,505 1090,610 300,520" fill="#4e7d7d"/>
+    <polygon points="520,330 1240,390 1395,505 690,455" fill="url(#roofRibs)" opacity="0.55"/>
+    <g stroke="#254147" stroke-width="8" stroke-linecap="round" opacity="0.88">
+      <path d="M460 515 830 458"/>
+      <path d="M590 516 965 462"/>
+      <path d="M720 516 1100 468"/>
+      <path d="M850 516 1234 474"/>
+    </g>
+    <g fill="#4c5c57">
+      <rect x="319" y="512" width="28" height="333" rx="2"/>
+      <rect x="679" y="455" width="28" height="375" rx="2"/>
+      <rect x="1084" y="610" width="28" height="245" rx="2"/>
+      <rect x="1349" y="505" width="28" height="370" rx="2"/>
+    </g>
+    <g fill="#2f3f3d" opacity="0.42">
+      <rect x="344" y="512" width="8" height="333"/>
+      <rect x="704" y="455" width="8" height="375"/>
+      <rect x="1109" y="610" width="8" height="245"/>
+      <rect x="1374" y="505" width="8" height="370"/>
+    </g>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <polygon points="610,675 965,675 1025,775 545,775" fill="#53665d"/>
+    <rect x="625" y="665" width="326" height="32" rx="4" fill="#ded6bd"/>
+    <polygon points="575,705 1000,705 1045,785 535,785" fill="#e0d7bd"/>
+    <g fill="#4c5c57">
+      <rect x="610" y="760" width="24" height="75"/>
+      <rect x="970" y="760" width="24" height="75"/>
+      <rect x="690" y="735" width="18" height="95"/>
+      <rect x="880" y="735" width="18" height="70"/>
+    </g>
+    <rect x="1160" y="700" width="115" height="86" fill="#9b6239"/>
+    <rect x="1168" y="690" width="100" height="20" fill="#b47847"/>
+    <g fill="none" stroke="#3e8b4f" stroke-width="5" stroke-linecap="round">
+      <path d="M1185 696q-20-45-45-15M1205 696q-6-55-32-68M1235 697q18-48 55-26M1246 700q6-40 36-48M1216 696q20-42 8-70"/>
+    </g>
+  </g>
+
+  <path d="M125 890H1485" stroke="#c79c6e" stroke-width="4" opacity="0.9"/>
+</svg>
