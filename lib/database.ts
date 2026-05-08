@@ -11,7 +11,9 @@ export interface GazeboInquiry {
   id?: number
   customer_name: string
   customer_email: string
+  customer_phone: string
   site_address: string
+  additional_details?: string
   roof_type: string
   roof_cladding: string
   roof_pitch: number
@@ -41,7 +43,9 @@ export async function initializeDatabase() {
         id SERIAL PRIMARY KEY,
         customer_name VARCHAR(255) NOT NULL,
         customer_email VARCHAR(255) NOT NULL,
+        customer_phone VARCHAR(20) DEFAULT '',
         site_address TEXT NOT NULL,
+        additional_details TEXT,
         roof_type VARCHAR(50) NOT NULL,
         roof_cladding VARCHAR(100) NOT NULL,
         roof_pitch DECIMAL(4,2) NOT NULL,
@@ -54,6 +58,9 @@ export async function initializeDatabase() {
         roof_color VARCHAR(100),
         post_beam_color VARCHAR(100),
         screenshot_url TEXT,
+        agent_email VARCHAR(255),
+        agent_company VARCHAR(255),
+        source_url VARCHAR(500),
         status VARCHAR(20) DEFAULT 'new',
         notes TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -61,10 +68,20 @@ export async function initializeDatabase() {
       )
     `
 
+    // Keep older databases compatible with the current quote form.
+    await sql`ALTER TABLE gazebo_inquiries ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(20) DEFAULT ''`
+    await sql`ALTER TABLE gazebo_inquiries ADD COLUMN IF NOT EXISTS additional_details TEXT`
+    await sql`ALTER TABLE gazebo_inquiries ADD COLUMN IF NOT EXISTS agent_email VARCHAR(255)`
+    await sql`ALTER TABLE gazebo_inquiries ADD COLUMN IF NOT EXISTS agent_company VARCHAR(255)`
+    await sql`ALTER TABLE gazebo_inquiries ADD COLUMN IF NOT EXISTS source_url VARCHAR(500)`
+
     // Create indexes
     await sql`CREATE INDEX IF NOT EXISTS idx_gazebo_inquiries_email ON gazebo_inquiries(customer_email)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_gazebo_inquiries_phone ON gazebo_inquiries(customer_phone)`
     await sql`CREATE INDEX IF NOT EXISTS idx_gazebo_inquiries_status ON gazebo_inquiries(status)`
     await sql`CREATE INDEX IF NOT EXISTS idx_gazebo_inquiries_created_at ON gazebo_inquiries(created_at DESC)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_gazebo_inquiries_agent_email ON gazebo_inquiries(agent_email)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_gazebo_inquiries_source_url ON gazebo_inquiries(source_url)`
 
     return { success: true }
   } catch (error) {
@@ -85,15 +102,16 @@ export async function createInquiry(inquiry: Omit<GazeboInquiry, "id" | "created
 
     const result = await sql`
       INSERT INTO gazebo_inquiries (
-        customer_name, customer_email, site_address, roof_type, roof_cladding,
-        roof_pitch, length, width, height, has_overhang, overhang_sides,
-        overhang_size, roof_color, post_beam_color, screenshot_url, status
+        customer_name, customer_email, customer_phone, site_address, additional_details,
+        roof_type, roof_cladding, roof_pitch, length, width, height, has_overhang,
+        overhang_sides, overhang_size, roof_color, post_beam_color, screenshot_url, status
       ) VALUES (
-        ${inquiry.customer_name}, ${inquiry.customer_email}, ${inquiry.site_address},
-        ${inquiry.roof_type}, ${inquiry.roof_cladding}, ${inquiry.roof_pitch},
-        ${inquiry.length}, ${inquiry.width}, ${inquiry.height}, ${inquiry.has_overhang},
-        ${inquiry.overhang_sides}, ${inquiry.overhang_size}, ${inquiry.roof_color},
-        ${inquiry.post_beam_color}, ${inquiry.screenshot_url || null}, ${inquiry.status || "new"}
+        ${inquiry.customer_name}, ${inquiry.customer_email}, ${inquiry.customer_phone || ""},
+        ${inquiry.site_address}, ${inquiry.additional_details || null}, ${inquiry.roof_type},
+        ${inquiry.roof_cladding}, ${inquiry.roof_pitch}, ${inquiry.length}, ${inquiry.width},
+        ${inquiry.height}, ${inquiry.has_overhang ?? false}, ${inquiry.overhang_sides || []},
+        ${inquiry.overhang_size ?? 0}, ${inquiry.roof_color}, ${inquiry.post_beam_color},
+        ${inquiry.screenshot_url || null}, ${inquiry.status || "new"}
       )
       RETURNING id
     `

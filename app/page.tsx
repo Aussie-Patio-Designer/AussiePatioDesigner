@@ -93,7 +93,6 @@ const benefits = [
   },
 ]
 
-
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 text-slate-950">
