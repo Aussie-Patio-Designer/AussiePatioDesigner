@@ -13,10 +13,10 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { absoluteUrl, SITE_NAME, SITE_URL } from "@/lib/site"
 
-const SITE_URL = "https://patioDesigner.com.au"
 const ARTICLE_PATH = "/blog/colorbond-patio-colours-australia"
-const ARTICLE_URL = `${SITE_URL}${ARTICLE_PATH}`
+const ARTICLE_URL = absoluteUrl(ARTICLE_PATH)
 const HERO_IMAGE = "/images/blog/colorbond-patio-colours-australia.svg"
 const PUBLISHED_DATE = "2026-05-06"
 const UPDATED_DATE = "2026-05-06"
@@ -113,17 +113,17 @@ const articleJsonLd = {
   "@type": "BlogPosting",
   headline: "Colorbond Patio Colours Australia: Best Combinations for 2026",
   description: metadata.description,
-  image: `${SITE_URL}${HERO_IMAGE}`,
+  image: absoluteUrl(HERO_IMAGE),
   datePublished: PUBLISHED_DATE,
   dateModified: UPDATED_DATE,
   author: {
     "@type": "Organization",
-    name: "Patio Designer",
+    name: SITE_NAME,
     url: SITE_URL,
   },
   publisher: {
     "@type": "Organization",
-    name: "Patio Designer",
+    name: SITE_NAME,
     logo: {
       "@type": "ImageObject",
       url: `${SITE_URL}/apple-touch-icon.png`,
@@ -142,7 +142,7 @@ const breadcrumbJsonLd = {
     {
       "@type": "ListItem",
       position: 1,
-      name: "Patio Designer",
+      name: SITE_NAME,
       item: SITE_URL,
     },
     {

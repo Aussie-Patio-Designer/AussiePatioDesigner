@@ -13,6 +13,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { absoluteUrl } from "@/lib/site"
 
 export const metadata: Metadata = {
   title: "Patio Design Blog Australia",
@@ -58,7 +59,7 @@ const blogItemListJsonLd = {
   itemListElement: blogPosts.map((post, index) => ({
     "@type": "ListItem",
     position: index + 1,
-    url: `https://patioDesigner.com.au${post.href}`,
+    url: absoluteUrl(post.href),
     name: post.title,
     description: post.description,
   })),

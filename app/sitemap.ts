@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next"
 
-const SITE_URL = "https://patioDesigner.com.au"
-const UPDATED_AT = new Date("2026-05-07T00:00:00.000Z")
+import { absoluteUrl, SITE_UPDATED_AT } from "@/lib/site"
 
 const routes = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
@@ -22,8 +21,8 @@ const routes = [
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return routes.map((route) => ({
-    url: `${SITE_URL}${route.path}`,
-    lastModified: UPDATED_AT,
+    url: absoluteUrl(route.path),
+    lastModified: SITE_UPDATED_AT,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }))
