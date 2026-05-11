@@ -11,7 +11,7 @@ import {
   getGutterMaterialProperties,
   getOutletMaterialProperties,
 } from "@/lib/colorbond-colors"
-import { BackyardEnvironment } from "@/components/environment-objects"
+import { BackyardEnvironment, type EnvironmentVisibility } from "@/components/environment-objects"
 
 type AttachmentMethod = "wall" | "gutter_fascia" | "roof_penetration"
 
@@ -29,6 +29,7 @@ interface GazeboPreviewProps {
   postBeamColor?: string
   isAttached?: boolean
   attachmentType?: AttachmentMethod
+  environmentVisibility?: EnvironmentVisibility
 }
 
 export interface GazeboPreviewRef {
@@ -1395,6 +1396,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             gazeboLength={props.length}
             gazeboWidth={props.width}
             isAttached={props.isAttached}
+            visibility={props.environmentVisibility}
           />
 
           <OrbitControls

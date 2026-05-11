@@ -13,10 +13,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import GazeboPreview from "@/components/gazebo-preview"
+import { defaultEnvironmentVisibility, type EnvironmentVisibility } from "@/components/environment-objects"
 import type { GazeboPreviewRef } from "./gazebo-preview"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
@@ -117,6 +119,18 @@ const pitchOptionsByRoofType: Record<"Gable" | "Skillion", { value: string; labe
 const getPitchOptions = (roofType: "Gable" | "Skillion") =>
   pitchOptionsByRoofType[roofType] ?? pitchOptionsByRoofType.Gable
 
+const environmentOptions: { key: keyof EnvironmentVisibility; label: string; description: string }[] = [
+  { key: "house", label: "House", description: "Show the reference house behind the patio" },
+  { key: "pool", label: "Pool", description: "Show the blue swimming pool" },
+  { key: "shed", label: "Shed", description: "Show the backyard garden shed" },
+  { key: "trees", label: "Trees", description: "Show smaller boundary trees" },
+  { key: "fences", label: "Fences", description: "Show Colourbond boundary fences" },
+  { key: "furniture", label: "Furniture", description: "Show outdoor table and BBQ setting" },
+  { key: "gardenBeds", label: "Garden beds", description: "Show landscaping beds" },
+  { key: "clothesline", label: "Clothesline", description: "Show the clothesline" },
+  { key: "driveway", label: "Driveway", description: "Show the concrete driveway" },
+]
+
 // Simplified roof cladding options - only 2 options
 const roofCladdingOptions = [
   {
@@ -144,6 +158,7 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
   const [isViewMode, setIsViewMode] = useState(false)
   const [referenceNumber, setReferenceNumber] = useState<string>("")
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [environmentVisibility, setEnvironmentVisibility] = useState<EnvironmentVisibility>(defaultEnvironmentVisibility)
 
   const searchParams = useSearchParams()
   const gazeboPreviewRef = useRef<GazeboPreviewRef>(null)
@@ -298,8 +313,20 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
     setReferenceNumber("")
     setSubmitStatus(null)
     setShowSubmitModal(false)
+    setEnvironmentVisibility(defaultEnvironmentVisibility)
     form.reset({ ...defaultFormValues })
   }, [defaultFormValues, form])
+
+  const setEnvironmentItem = useCallback((key: keyof EnvironmentVisibility, checked: boolean) => {
+    setEnvironmentVisibility((current) => ({
+      ...current,
+      [key]: checked,
+    }))
+  }, [])
+
+  const resetEnvironment = useCallback(() => {
+    setEnvironmentVisibility(defaultEnvironmentVisibility)
+  }, [])
 
   const testScreenshot = useCallback(async () => {
     const capture = gazeboPreviewRef.current?.captureScreenshot
@@ -393,6 +420,7 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
           setCurrentStep("design")
           setIsViewMode(false)
           setReferenceNumber("")
+          setEnvironmentVisibility(defaultEnvironmentVisibility)
           form.reset({ ...defaultFormValues })
         }, 5000)
       } catch (error) {
@@ -432,6 +460,7 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
             overhangSize={300}
             roofColor={form.watch("roofColor")}
             postBeamColor={form.watch("postBeamColor")}
+            environmentVisibility={environmentVisibility}
           />
         </div>
       ) : (
@@ -449,6 +478,7 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
             overhangSize={300}
             roofColor={form.watch("roofColor")}
             postBeamColor={form.watch("postBeamColor")}
+            environmentVisibility={environmentVisibility}
           />
         </div>
       )}
@@ -534,6 +564,7 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                 <Button
                   onClick={() => {
                     setShowSubmitModal(false)
+                    setEnvironmentVisibility(defaultEnvironmentVisibility)
                     form.reset()
                     setSubmitStatus(null)
                     setCurrentStep("design")
@@ -955,6 +986,35 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                                 </FormItem>
                               )}
                             />
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <CardTitle className="text-lg">Scene Objects</CardTitle>
+                              <Button type="button" variant="outline" size="sm" onClick={resetEnvironment}>
+                                Reset
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {environmentOptions.map((option) => (
+                              <label
+                                key={option.key}
+                                className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:border-blue-300 hover:bg-blue-50/50"
+                              >
+                                <Checkbox
+                                  checked={environmentVisibility[option.key]}
+                                  onCheckedChange={(checked) => setEnvironmentItem(option.key, checked === true)}
+                                  className="mt-0.5"
+                                />
+                                <span>
+                                  <span className="block text-sm font-medium text-gray-900">{option.label}</span>
+                                  <span className="block text-xs leading-5 text-gray-500">{option.description}</span>
+                                </span>
+                              </label>
+                            ))}
                           </CardContent>
                         </Card>
 
