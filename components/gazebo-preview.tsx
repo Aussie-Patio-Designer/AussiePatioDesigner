@@ -11,7 +11,7 @@ import {
   getGutterMaterialProperties,
   getOutletMaterialProperties,
 } from "@/lib/colorbond-colors"
-import { BackyardEnvironment } from "@/components/environment-objects"
+import { BackyardEnvironment, type EnvironmentVisibility } from "@/components/environment-objects"
 
 type AttachmentMethod = "wall" | "gutter_fascia" | "roof_penetration"
 
@@ -29,6 +29,7 @@ interface GazeboPreviewProps {
   postBeamColor?: string
   isAttached?: boolean
   attachmentType?: AttachmentMethod
+  environmentVisibility?: EnvironmentVisibility
 }
 
 export interface GazeboPreviewRef {
@@ -80,46 +81,68 @@ function SimpleSkybox() {
 
 // Update the GrassGround function to use the new grass texture
 function GrassGround() {
-  const [grassTexture, setGrassTexture] = useState(null)
+  const [grassTexture, setGrassTexture] = useState<THREE.Texture | null>(null)
+  const [grassNormalTexture, setGrassNormalTexture] = useState<THREE.Texture | null>(null)
+  const [grassRoughnessTexture, setGrassRoughnessTexture] = useState<THREE.Texture | null>(null)
 
   useEffect(() => {
     const loader = new TextureLoader()
+    const configureGrassTexture = (texture: THREE.Texture, repeat = 26) => {
+      texture.wrapS = THREE.RepeatWrapping
+      texture.wrapT = THREE.RepeatWrapping
+      texture.repeat.set(repeat, repeat)
+      texture.anisotropy = 16
+      return texture
+    }
+
     loader.load(
-      "/textures/grass-texture-background.jpg", // Using your new grass texture
+      "/textures/grass-texture-background.jpg",
       (texture) => {
-        // Enhanced texture settings for tiling
-        texture.wrapS = THREE.RepeatWrapping
-        texture.wrapT = THREE.RepeatWrapping
-        texture.repeat.set(20, 20) // Larger repeat for extended backyard area
-        texture.anisotropy = 16 // Maximum anisotropy for crisp textures
         texture.colorSpace = THREE.SRGBColorSpace
-        setGrassTexture(texture)
+        setGrassTexture(configureGrassTexture(texture))
       },
       undefined,
-      (error) => {
+      () => {
         console.warn("Grass texture failed to load, using fallback color")
         setGrassTexture(null)
       },
     )
+
+    loader.load(
+      "/textures/grass-normal.jpg",
+      (texture) => setGrassNormalTexture(configureGrassTexture(texture)),
+      undefined,
+      () => setGrassNormalTexture(null),
+    )
+
+    loader.load(
+      "/textures/grass-roughness.jpg",
+      (texture) => setGrassRoughnessTexture(configureGrassTexture(texture)),
+      undefined,
+      () => setGrassRoughnessTexture(null),
+    )
   }, [])
 
-  // Create realistic grass material
+  // Create realistic grass material with normal/roughness maps to avoid flat game-like ground.
   const grassMaterial = useMemo(() => {
     if (grassTexture) {
       return new THREE.MeshStandardMaterial({
         map: grassTexture,
-        color: "#ffffff",
-        roughness: 0.8,
+        normalMap: grassNormalTexture ?? undefined,
+        roughnessMap: grassRoughnessTexture ?? undefined,
+        normalScale: new THREE.Vector2(0.32, 0.32),
+        color: "#eef7dc",
+        roughness: 0.92,
         metalness: 0.0,
       })
     } else {
       return new THREE.MeshStandardMaterial({
-        color: "#4ade80",
-        roughness: 0.8,
+        color: "#78b85f",
+        roughness: 0.92,
         metalness: 0.0,
       })
     }
-  }, [grassTexture])
+  }, [grassNormalTexture, grassRoughnessTexture, grassTexture])
 
   return (
     <Plane args={[120, 120]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
@@ -1395,6 +1418,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             gazeboLength={props.length}
             gazeboWidth={props.width}
             isAttached={props.isAttached}
+            visibility={props.environmentVisibility}
           />
 
           <OrbitControls
