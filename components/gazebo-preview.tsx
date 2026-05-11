@@ -1337,6 +1337,7 @@ SceneCapture.displayName = "SceneCapture"
 
 const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, ref) => {
   const sceneRef = useRef<any>()
+  const [isDraggingSceneObject, setIsDraggingSceneObject] = useState(false)
 
   useImperativeHandle(ref, () => ({
     captureScreenshot: async (): Promise<string | null> => {
@@ -1419,9 +1420,11 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
             gazeboWidth={props.width}
             isAttached={props.isAttached}
             visibility={props.environmentVisibility}
+            onObjectDragChange={setIsDraggingSceneObject}
           />
 
           <OrbitControls
+            enabled={!isDraggingSceneObject}
             enablePan={true}
             enableZoom={true}
             enableRotate={true}

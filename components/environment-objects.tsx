@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo } from "react"
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react"
+import type { ThreeEvent } from "@react-three/fiber"
 import * as THREE from "three"
 
 export type EnvironmentVisibility = {
@@ -18,13 +19,76 @@ export type EnvironmentVisibility = {
 export const defaultEnvironmentVisibility: EnvironmentVisibility = {
   house: true,
   pool: true,
-  shed: true,
+  shed: false,
   trees: true,
-  fences: true,
-  furniture: true,
-  gardenBeds: true,
-  clothesline: true,
-  driveway: true,
+  fences: false,
+  furniture: false,
+  gardenBeds: false,
+  clothesline: false,
+  driveway: false,
+}
+
+
+function DraggableSceneObject({
+  initialPosition,
+  children,
+  onDragChange,
+}: {
+  initialPosition: [number, number, number]
+  children: ReactNode
+  onDragChange?: (isDragging: boolean) => void
+}) {
+  const [position, setPosition] = useState<[number, number, number]>(initialPosition)
+  const isDraggingRef = useRef(false)
+  const dragOffsetRef = useRef(new THREE.Vector3())
+  const dragPointRef = useRef(new THREE.Vector3())
+  const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), -initialPosition[1]), [initialPosition])
+
+  const getGroundPoint = useCallback(
+    (event: ThreeEvent<PointerEvent>) => event.ray.intersectPlane(groundPlane, dragPointRef.current),
+    [groundPlane],
+  )
+
+  const stopDragging = useCallback(
+    (event: ThreeEvent<PointerEvent>) => {
+      if (!isDraggingRef.current) return
+
+      event.stopPropagation()
+      isDraggingRef.current = false
+      event.target.releasePointerCapture?.(event.pointerId)
+      onDragChange?.(false)
+    },
+    [onDragChange],
+  )
+
+  return (
+    <group
+      position={position}
+      onPointerDown={(event) => {
+        const point = getGroundPoint(event)
+        if (!point) return
+
+        event.stopPropagation()
+        isDraggingRef.current = true
+        dragOffsetRef.current.set(position[0] - point.x, 0, position[2] - point.z)
+        event.target.setPointerCapture?.(event.pointerId)
+        onDragChange?.(true)
+      }}
+      onPointerMove={(event) => {
+        if (!isDraggingRef.current) return
+        const point = getGroundPoint(event)
+        if (!point) return
+
+        event.stopPropagation()
+        setPosition([point.x + dragOffsetRef.current.x, initialPosition[1], point.z + dragOffsetRef.current.z])
+      }}
+      onPointerUp={stopDragging}
+      onPointerCancel={stopDragging}
+      onLostPointerCapture={stopDragging}
+    >
+      {children}
+    </group>
+  )
 }
 
 // ─────────────────────────────────────────────
@@ -648,8 +712,8 @@ export function OutdoorFurniture({
                   <meshStandardMaterial color="#5c5147" roughness={0.6} metalness={0.1} />
                 </mesh>
               ))}
-              {/* Backrest */}
-              <mesh position={[0, 0.72, side * -0.19]} castShadow>
+              {/* Backrest sits away from the table so each chair faces inward. */}
+              <mesh position={[0, 0.72, side * 0.19]} castShadow>
                 <boxGeometry args={[0.42, 0.5, 0.03]} />
                 <meshStandardMaterial color="#5c5147" roughness={0.7} metalness={0.1} />
               </mesh>
@@ -849,11 +913,13 @@ export function BackyardEnvironment({
   gazeboWidth = 3,
   isAttached = false,
   visibility = defaultEnvironmentVisibility,
+  onObjectDragChange,
 }: {
   gazeboLength?: number
   gazeboWidth?: number
   isAttached?: boolean
   visibility?: EnvironmentVisibility
+  onObjectDragChange?: (isDragging: boolean) => void
 }) {
   // Position objects relative to the gazebo (centred at origin)
   const gl = gazeboLength / 1000
@@ -863,109 +929,104 @@ export function BackyardEnvironment({
     <group>
       {/* House – behind the gazebo if not attached */}
       {visibility.house && !isAttached && (
-        <RealisticHouse
-          position={[0, 0, -(gw / 2 + 7.4)]}
-          rotation={[0, 0, 0]}
-          scale={0.9}
-        />
+        <DraggableSceneObject initialPosition={[0, 0, -(gw / 2 + 7.4)]} onDragChange={onObjectDragChange}>
+          <RealisticHouse position={[0, 0, 0]} rotation={[0, 0, 0]} scale={0.9} />
+        </DraggableSceneObject>
       )}
 
       {/* Swimming pool – to the right */}
       {visibility.pool && (
-        <SwimmingPool
-          position={[gl / 2 + 7.4, 0, gw / 2 + 4.7]}
-          rotation={[0, -0.38, 0]}
-        />
+        <DraggableSceneObject initialPosition={[gl / 2 + 7.4, 0, gw / 2 + 4.7]} onDragChange={onObjectDragChange}>
+          <SwimmingPool position={[0, 0, 0]} rotation={[0, -0.38, 0]} />
+        </DraggableSceneObject>
       )}
 
       {/* Garden shed – back-left corner */}
       {visibility.shed && (
-        <GardenShed
-          position={[-(gl / 2 + 8.2), 0, gw / 2 + 7.2]}
-          rotation={[0, 0.55, 0]}
-        />
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 8.2), 0, gw / 2 + 7.2]} onDragChange={onObjectDragChange}>
+          <GardenShed position={[0, 0, 0]} rotation={[0, 0.55, 0]} />
+        </DraggableSceneObject>
       )}
 
       {/* Outdoor furniture under/near the patio */}
       {visibility.furniture && (
-        <OutdoorFurniture
-          position={[0.25, 0, 0.15]}
-          rotation={[0, 0.18, 0]}
-        />
+        <DraggableSceneObject initialPosition={[0.25, 0, 0.15]} onDragChange={onObjectDragChange}>
+          <OutdoorFurniture position={[0, 0, 0]} rotation={[0, 0.18, 0]} />
+        </DraggableSceneObject>
       )}
 
       {/* Smaller boundary trees that keep the patio visible. */}
       {visibility.trees && (
         <>
-          <AustralianTree position={[-(gl / 2 + 11.5), 0, gw / 2 + 10]} scale={0.72} variant={0} />
-          <AustralianTree position={[gl / 2 + 12.5, 0, gw / 2 + 9.6]} scale={0.78} variant={1} />
-          <AustralianTree position={[gl / 2 + 12, 0, -(gw / 2 + 8.8)]} scale={0.66} variant={2} />
+          <DraggableSceneObject initialPosition={[-(gl / 2 + 11.5), 0, gw / 2 + 10]} onDragChange={onObjectDragChange}>
+            <AustralianTree position={[0, 0, 0]} scale={0.72} variant={0} />
+          </DraggableSceneObject>
+          <DraggableSceneObject initialPosition={[gl / 2 + 12.5, 0, gw / 2 + 9.6]} onDragChange={onObjectDragChange}>
+            <AustralianTree position={[0, 0, 0]} scale={0.78} variant={1} />
+          </DraggableSceneObject>
+          <DraggableSceneObject initialPosition={[gl / 2 + 12, 0, -(gw / 2 + 8.8)]} onDragChange={onObjectDragChange}>
+            <AustralianTree position={[0, 0, 0]} scale={0.66} variant={2} />
+          </DraggableSceneObject>
         </>
       )}
 
       {/* Colourbond fences on boundary */}
       {visibility.fences && (
-        <>
-      <ColourbondFence
-        start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
-        end={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
-        height={1.8}
-        color="#3e4a47"
-      />
-      <ColourbondFence
-        start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
-        end={[-(gl / 2 + 14), 0, gw / 2 + 12]}
-        height={1.8}
-        color="#3e4a47"
-      />
-      <ColourbondFence
-        start={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
-        end={[gl / 2 + 14, 0, gw / 2 + 12]}
-        height={1.8}
-        color="#3e4a47"
-      />
-      <ColourbondFence
-        start={[-(gl / 2 + 14), 0, gw / 2 + 12]}
-        end={[gl / 2 + 14, 0, gw / 2 + 12]}
-        height={1.8}
-        color="#3e4a47"
-      />
-        </>
+        <DraggableSceneObject initialPosition={[0, 0, 0]} onDragChange={onObjectDragChange}>
+          <ColourbondFence
+            start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
+            end={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
+            height={1.8}
+            color="#3e4a47"
+          />
+          <ColourbondFence
+            start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
+            end={[-(gl / 2 + 14), 0, gw / 2 + 12]}
+            height={1.8}
+            color="#3e4a47"
+          />
+          <ColourbondFence
+            start={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
+            end={[gl / 2 + 14, 0, gw / 2 + 12]}
+            height={1.8}
+            color="#3e4a47"
+          />
+          <ColourbondFence
+            start={[-(gl / 2 + 14), 0, gw / 2 + 12]}
+            end={[gl / 2 + 14, 0, gw / 2 + 12]}
+            height={1.8}
+            color="#3e4a47"
+          />
+        </DraggableSceneObject>
       )}
 
       {/* Garden beds */}
       {visibility.gardenBeds && (
         <>
-      <GardenBed
-        position={[-(gl / 2 + 5.5), 0, -(gw / 2 + 5.4)]}
-        width={5}
-        depth={1.0}
-        rotation={[0, 0.1, 0]}
-      />
-      <GardenBed
-        position={[gl / 2 + 5.2, 0, -(gw / 2 + 5.8)]}
-        width={3.5}
-        depth={0.9}
-        rotation={[0, -0.15, 0]}
-      />
-      <GardenBed
-        position={[-(gl / 2 + 11.2), 0, gw / 2 + 4.8]}
-        width={3}
-        depth={1.1}
-        rotation={[0, Math.PI / 2, 0]}
-      />
+          <DraggableSceneObject initialPosition={[-(gl / 2 + 5.5), 0, -(gw / 2 + 5.4)]} onDragChange={onObjectDragChange}>
+            <GardenBed position={[0, 0, 0]} width={5} depth={1.0} rotation={[0, 0.1, 0]} />
+          </DraggableSceneObject>
+          <DraggableSceneObject initialPosition={[gl / 2 + 5.2, 0, -(gw / 2 + 5.8)]} onDragChange={onObjectDragChange}>
+            <GardenBed position={[0, 0, 0]} width={3.5} depth={0.9} rotation={[0, -0.15, 0]} />
+          </DraggableSceneObject>
+          <DraggableSceneObject initialPosition={[-(gl / 2 + 11.2), 0, gw / 2 + 4.8]} onDragChange={onObjectDragChange}>
+            <GardenBed position={[0, 0, 0]} width={3} depth={1.1} rotation={[0, Math.PI / 2, 0]} />
+          </DraggableSceneObject>
         </>
       )}
 
       {/* Clothesline */}
-      {visibility.clothesline && <Clothesline position={[-(gl / 2 + 6.5), 0, gw / 2 + 9.4]} />}
+      {visibility.clothesline && (
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 6.5), 0, gw / 2 + 9.4]} onDragChange={onObjectDragChange}>
+          <Clothesline position={[0, 0, 0]} />
+        </DraggableSceneObject>
+      )}
 
       {/* Driveway */}
       {visibility.driveway && (
-        <Driveway
-          position={[gl / 2 + 10, 0.005, -(gw / 2 + 5.8)]}
-          rotation={[0, -0.12, 0]}
-        />
+        <DraggableSceneObject initialPosition={[gl / 2 + 10, 0.005, -(gw / 2 + 5.8)]} onDragChange={onObjectDragChange}>
+          <Driveway position={[0, 0, 0]} rotation={[0, -0.12, 0]} />
+        </DraggableSceneObject>
       )}
     </group>
   )
