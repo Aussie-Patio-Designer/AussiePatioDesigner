@@ -258,92 +258,131 @@ export function SwimmingPool({
   position?: [number, number, number]
   rotation?: [number, number, number]
 }) {
-  const poolLength = 6
-  const poolWidth = 3
-  const poolDepth = 1.4
-  const copingWidth = 0.25
-  const waterLevel = poolDepth - 0.12
+  const poolLength = 6.4
+  const poolWidth = 3.2
+  const deckLength = poolLength + 2.0
+  const deckWidth = poolWidth + 1.8
+  const copingWidth = 0.28
 
   const waterMaterial = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
-        color: "#0284c7",
-        roughness: 0.05,
-        metalness: 0.1,
+        color: "#039be5",
+        roughness: 0.02,
+        metalness: 0.0,
         transparent: true,
-        opacity: 0.86,
-        transmission: 0.3,
-        thickness: 1.0,
+        opacity: 0.94,
+        transmission: 0.08,
+        thickness: 0.45,
         ior: 1.33,
-        envMapIntensity: 2.0,
+        clearcoat: 1,
+        clearcoatRoughness: 0.08,
+        envMapIntensity: 2.4,
+        emissive: new THREE.Color("#006bb6"),
+        emissiveIntensity: 0.08,
+      }),
+    [],
+  )
+
+  const tileMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#9fe7ff",
+        roughness: 0.28,
+        metalness: 0.02,
       }),
     [],
   )
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Pool shell */}
-      <mesh position={[0, -poolDepth / 2, 0]} receiveShadow>
-        <boxGeometry args={[poolLength, poolDepth, poolWidth]} />
-        <meshStandardMaterial color="#c2dce8" roughness={0.3} metalness={0.05} side={THREE.BackSide} />
+      {/* Paved pool surround sits above the grass so the pool never reads as an empty hole. */}
+      <mesh position={[0, 0.02, 0]} receiveShadow>
+        <boxGeometry args={[deckLength, 0.08, deckWidth]} />
+        <meshStandardMaterial color="#d8c4a4" roughness={0.82} metalness={0.02} />
       </mesh>
 
-      {/* Pool tile lining (interior bottom) */}
-      <mesh position={[0, -poolDepth + 0.02, 0]} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[poolLength - 0.1, poolWidth - 0.1]} />
-        <meshStandardMaterial color="#7fc5d9" roughness={0.25} metalness={0.05} />
-      </mesh>
+      {/* Natural stone paver score lines for scale and texture. */}
+      {Array.from({ length: 7 }, (_, i) => {
+        const x = -deckLength / 2 + (i + 1) * (deckLength / 8)
+        return (
+          <mesh key={`pool-paver-x-${i}`} position={[x, 0.066, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.025, deckWidth]} />
+            <meshStandardMaterial color="#b8a587" roughness={0.9} metalness={0.0} />
+          </mesh>
+        )
+      })}
+      {Array.from({ length: 4 }, (_, i) => {
+        const z = -deckWidth / 2 + (i + 1) * (deckWidth / 5)
+        return (
+          <mesh key={`pool-paver-z-${i}`} position={[0, 0.067, z]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+            <planeGeometry args={[0.025, deckLength]} />
+            <meshStandardMaterial color="#b8a587" roughness={0.9} metalness={0.0} />
+          </mesh>
+        )
+      })}
 
-      {/* Water surface */}
-      <mesh position={[0, -poolDepth + waterLevel, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[poolLength - 0.08, poolWidth - 0.08]} />
+      {/* Visible tiled basin and walls. */}
+      <mesh position={[0, -0.08, 0]} receiveShadow>
+        <boxGeometry args={[poolLength, 0.12, poolWidth]} />
+        <primitive object={tileMaterial} attach="material" />
+      </mesh>
+      {[
+        { pos: [0, 0.02, poolWidth / 2 - 0.04] as [number, number, number], size: [poolLength, 0.24, 0.08] as [number, number, number] },
+        { pos: [0, 0.02, -poolWidth / 2 + 0.04] as [number, number, number], size: [poolLength, 0.24, 0.08] as [number, number, number] },
+        { pos: [poolLength / 2 - 0.04, 0.02, 0] as [number, number, number], size: [0.08, 0.24, poolWidth] as [number, number, number] },
+        { pos: [-poolLength / 2 + 0.04, 0.02, 0] as [number, number, number], size: [0.08, 0.24, poolWidth] as [number, number, number] },
+      ].map((wall, i) => (
+        <mesh key={`pool-wall-${i}`} position={wall.pos} receiveShadow>
+          <boxGeometry args={wall.size} />
+          <primitive object={tileMaterial} attach="material" />
+        </mesh>
+      ))}
+
+      {/* Strong blue underlay plus reflective water plane: this prevents grass showing through. */}
+      <mesh position={[0, 0.058, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[poolLength - 0.22, poolWidth - 0.22]} />
+        <meshStandardMaterial color="#0277bd" roughness={0.18} metalness={0.0} emissive="#01579b" emissiveIntensity={0.12} />
+      </mesh>
+      <mesh position={[0, 0.072, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[poolLength - 0.26, poolWidth - 0.26, 32, 16]} />
         <primitive object={waterMaterial} attach="material" />
       </mesh>
 
-      {/* Coping stones around pool edge */}
-      {/* Long sides */}
-      {[-1, 1].map((side, i) => (
-        <mesh
-          key={`coping-l-${i}`}
-          position={[0, 0.04, (side * (poolWidth + copingWidth)) / 2]}
-          receiveShadow
-          castShadow
-        >
-          <boxGeometry args={[poolLength + copingWidth * 2, 0.08, copingWidth]} />
-          <meshStandardMaterial color="#e8e1d5" roughness={0.7} metalness={0.05} />
-        </mesh>
-      ))}
-      {/* Short sides */}
-      {[-1, 1].map((side, i) => (
-        <mesh
-          key={`coping-s-${i}`}
-          position={[(side * (poolLength + copingWidth)) / 2, 0.04, 0]}
-          receiveShadow
-          castShadow
-        >
-          <boxGeometry args={[copingWidth, 0.08, poolWidth + copingWidth * 2]} />
-          <meshStandardMaterial color="#e8e1d5" roughness={0.7} metalness={0.05} />
+      {/* Subtle water ripples, kept blue/white and above the surface. */}
+      {[-1.9, -0.8, 0.35, 1.55].map((x, i) => (
+        <mesh key={`pool-ripple-${i}`} position={[x, 0.078 + i * 0.001, -0.35 + (i % 2) * 0.7]} rotation={[-Math.PI / 2, 0, 0.12 * i]}>
+          <ringGeometry args={[0.38, 0.405, 48]} />
+          <meshBasicMaterial color="#dff8ff" transparent opacity={0.32} side={THREE.DoubleSide} />
         </mesh>
       ))}
 
-      {/* Pool decking area */}
-      <mesh position={[0, 0.01, poolWidth / 2 + copingWidth + 0.8]} receiveShadow>
-        <boxGeometry args={[poolLength + 1.5, 0.04, 1.8]} />
-        <meshStandardMaterial color="#b5957a" roughness={0.75} metalness={0.05} />
-      </mesh>
+      {/* Coping stones around pool edge. */}
+      {[-1, 1].map((side, i) => (
+        <mesh key={`coping-l-${i}`} position={[0, 0.11, (side * (poolWidth + copingWidth)) / 2]} receiveShadow castShadow>
+          <boxGeometry args={[poolLength + copingWidth * 2, 0.1, copingWidth]} />
+          <meshStandardMaterial color="#eee3d0" roughness={0.72} metalness={0.02} />
+        </mesh>
+      ))}
+      {[-1, 1].map((side, i) => (
+        <mesh key={`coping-s-${i}`} position={[(side * (poolLength + copingWidth)) / 2, 0.11, 0]} receiveShadow castShadow>
+          <boxGeometry args={[copingWidth, 0.1, poolWidth + copingWidth * 2]} />
+          <meshStandardMaterial color="#eee3d0" roughness={0.72} metalness={0.02} />
+        </mesh>
+      ))}
 
-      {/* Pool ladder */}
-      <group position={[poolLength / 2 - 0.5, 0, -poolWidth / 2 + 0.3]}>
-        {[-0.15, 0.15].map((xOff, i) => (
-          <mesh key={`rail-${i}`} position={[xOff, -0.3, 0]} castShadow>
-            <cylinderGeometry args={[0.02, 0.02, 1.0, 8]} />
-            <meshStandardMaterial color="#c0c0c0" metalness={0.7} roughness={0.25} />
+      {/* Stainless pool ladder. */}
+      <group position={[poolLength / 2 - 0.65, 0.08, -poolWidth / 2 + 0.45]}>
+        {[-0.16, 0.16].map((xOff, i) => (
+          <mesh key={`rail-${i}`} position={[xOff, 0.28, 0]} castShadow>
+            <cylinderGeometry args={[0.025, 0.025, 0.9, 16]} />
+            <meshStandardMaterial color="#d7dde2" metalness={0.85} roughness={0.18} />
           </mesh>
         ))}
-        {[0, -0.25, -0.5].map((yOff, i) => (
+        {[0.08, 0.3, 0.52].map((yOff, i) => (
           <mesh key={`step-${i}`} position={[0, yOff, 0]} castShadow>
-            <boxGeometry args={[0.3, 0.02, 0.06]} />
-            <meshStandardMaterial color="#c0c0c0" metalness={0.7} roughness={0.25} />
+            <boxGeometry args={[0.42, 0.025, 0.08]} />
+            <meshStandardMaterial color="#d7dde2" metalness={0.85} roughness={0.18} />
           </mesh>
         ))}
       </group>
@@ -442,42 +481,50 @@ export function AustralianTree({
   scale?: number
   variant?: number
 }) {
-  const trunkHeight = (2.5 + variant * 0.5) * scale
-  const trunkRadius = 0.12 * scale
-  const canopyRadius = (1.8 + variant * 0.4) * scale
+  const trunkHeight = (2.4 + variant * 0.28) * scale
+  const trunkRadius = 0.095 * scale
+  const canopyRadius = (1.25 + variant * 0.18) * scale
 
-  // Slightly different greens for variety
-  const greens = ["#4a7a3e", "#3d6b35", "#567f48", "#3a5e30"]
+  const greens = ["#5f8f55", "#4f7f49", "#6f9861", "#456f3f"]
   const canopyColor = greens[variant % greens.length]
-  const trunkColor = variant % 2 === 0 ? "#8b7355" : "#7a6548"
+  const trunkColor = variant % 2 === 0 ? "#9a8061" : "#806a4d"
+  const lean = (variant % 2 === 0 ? -0.08 : 0.07) * scale
 
   return (
     <group position={position}>
-      {/* Trunk */}
-      <mesh position={[0, trunkHeight / 2, 0]} castShadow>
-        <cylinderGeometry args={[trunkRadius * 0.7, trunkRadius, trunkHeight, 8]} />
-        <meshStandardMaterial color={trunkColor} roughness={0.9} metalness={0.0} />
+      {/* Tapered trunk with bark-toned branches. */}
+      <mesh position={[lean * 0.5, trunkHeight / 2, 0]} rotation={[0, 0, lean * 0.08]} castShadow>
+        <cylinderGeometry args={[trunkRadius * 0.65, trunkRadius, trunkHeight, 16]} />
+        <meshStandardMaterial color={trunkColor} roughness={0.95} metalness={0.0} />
       </mesh>
+      {[-0.55, 0.35, 0.95].map((angle, i) => (
+        <mesh
+          key={`branch-${i}`}
+          position={[Math.sin(angle) * 0.28 * scale, trunkHeight * (0.62 + i * 0.08), Math.cos(angle) * 0.18 * scale]}
+          rotation={[0.55, angle, 0.9]}
+          castShadow
+        >
+          <cylinderGeometry args={[trunkRadius * 0.28, trunkRadius * 0.42, 0.9 * scale, 12]} />
+          <meshStandardMaterial color={trunkColor} roughness={0.95} metalness={0.0} />
+        </mesh>
+      ))}
 
-      {/* Main canopy – layered spheres for organic shape */}
-      <mesh position={[0, trunkHeight + canopyRadius * 0.5, 0]} castShadow>
-        <sphereGeometry args={[canopyRadius, 12, 10]} />
-        <meshStandardMaterial color={canopyColor} roughness={0.85} metalness={0.0} />
-      </mesh>
-      <mesh
-        position={[canopyRadius * 0.3, trunkHeight + canopyRadius * 0.8, canopyRadius * 0.2]}
-        castShadow
-      >
-        <sphereGeometry args={[canopyRadius * 0.7, 10, 8]} />
-        <meshStandardMaterial color={canopyColor} roughness={0.85} metalness={0.0} />
-      </mesh>
-      <mesh
-        position={[-canopyRadius * 0.35, trunkHeight + canopyRadius * 0.35, -canopyRadius * 0.15]}
-        castShadow
-      >
-        <sphereGeometry args={[canopyRadius * 0.65, 10, 8]} />
-        <meshStandardMaterial color={canopyColor} roughness={0.85} metalness={0.0} />
-      </mesh>
+      {/* Softer eucalyptus canopy: smaller, oval clusters instead of blocky balls. */}
+      {[
+        { pos: [0, trunkHeight + canopyRadius * 0.45, 0] as [number, number, number], size: [1.05, 0.72, 0.9] as [number, number, number] },
+        { pos: [canopyRadius * 0.42, trunkHeight + canopyRadius * 0.65, canopyRadius * 0.15] as [number, number, number], size: [0.72, 0.55, 0.65] as [number, number, number] },
+        { pos: [-canopyRadius * 0.46, trunkHeight + canopyRadius * 0.36, -canopyRadius * 0.12] as [number, number, number], size: [0.72, 0.52, 0.62] as [number, number, number] },
+        { pos: [canopyRadius * 0.05, trunkHeight + canopyRadius * 0.9, -canopyRadius * 0.18] as [number, number, number], size: [0.58, 0.42, 0.52] as [number, number, number] },
+      ].map((cluster, i) => (
+        <mesh key={`canopy-${i}`} position={cluster.pos} scale={cluster.size} castShadow>
+          <sphereGeometry args={[canopyRadius, 24, 18]} />
+          <meshStandardMaterial
+            color={i % 2 === 0 ? canopyColor : new THREE.Color(canopyColor).multiplyScalar(0.88).getStyle()}
+            roughness={0.9}
+            metalness={0.0}
+          />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -817,7 +864,7 @@ export function BackyardEnvironment({
       {/* House – behind the gazebo if not attached */}
       {visibility.house && !isAttached && (
         <RealisticHouse
-          position={[0, 0, -(gw / 2 + 6)]}
+          position={[0, 0, -(gw / 2 + 7.4)]}
           rotation={[0, 0, 0]}
           scale={0.9}
         />
@@ -826,33 +873,33 @@ export function BackyardEnvironment({
       {/* Swimming pool – to the right */}
       {visibility.pool && (
         <SwimmingPool
-          position={[gl / 2 + 5, 0, gw / 2 + 1]}
-          rotation={[0, -0.1, 0]}
+          position={[gl / 2 + 7.4, 0, gw / 2 + 4.7]}
+          rotation={[0, -0.38, 0]}
         />
       )}
 
       {/* Garden shed – back-left corner */}
       {visibility.shed && (
         <GardenShed
-          position={[-(gl / 2 + 6), 0, gw / 2 + 4]}
-          rotation={[0, 0.25, 0]}
+          position={[-(gl / 2 + 8.2), 0, gw / 2 + 7.2]}
+          rotation={[0, 0.55, 0]}
         />
       )}
 
       {/* Outdoor furniture under/near the patio */}
       {visibility.furniture && (
         <OutdoorFurniture
-          position={[0.3, 0, 0.2]}
-          rotation={[0, 0.05, 0]}
+          position={[0.25, 0, 0.15]}
+          rotation={[0, 0.18, 0]}
         />
       )}
 
       {/* Smaller boundary trees that keep the patio visible. */}
       {visibility.trees && (
         <>
-          <AustralianTree position={[-(gl / 2 + 10), 0, gw / 2 + 8]} scale={0.75} variant={0} />
-          <AustralianTree position={[gl / 2 + 11, 0, gw / 2 + 8.5]} scale={0.82} variant={1} />
-          <AustralianTree position={[gl / 2 + 10.5, 0, -(gw / 2 + 8)]} scale={0.7} variant={2} />
+          <AustralianTree position={[-(gl / 2 + 11.5), 0, gw / 2 + 10]} scale={0.72} variant={0} />
+          <AustralianTree position={[gl / 2 + 12.5, 0, gw / 2 + 9.6]} scale={0.78} variant={1} />
+          <AustralianTree position={[gl / 2 + 12, 0, -(gw / 2 + 8.8)]} scale={0.66} variant={2} />
         </>
       )}
 
@@ -890,19 +937,19 @@ export function BackyardEnvironment({
       {visibility.gardenBeds && (
         <>
       <GardenBed
-        position={[-(gl / 2 + 2), 0, -(gw / 2 + 3)]}
+        position={[-(gl / 2 + 5.5), 0, -(gw / 2 + 5.4)]}
         width={5}
         depth={1.0}
         rotation={[0, 0.1, 0]}
       />
       <GardenBed
-        position={[gl / 2 + 2.5, 0, -(gw / 2 + 4)]}
+        position={[gl / 2 + 5.2, 0, -(gw / 2 + 5.8)]}
         width={3.5}
         depth={0.9}
         rotation={[0, -0.15, 0]}
       />
       <GardenBed
-        position={[-(gl / 2 + 10), 0, gw / 2 + 2]}
+        position={[-(gl / 2 + 11.2), 0, gw / 2 + 4.8]}
         width={3}
         depth={1.1}
         rotation={[0, Math.PI / 2, 0]}
@@ -911,13 +958,13 @@ export function BackyardEnvironment({
       )}
 
       {/* Clothesline */}
-      {visibility.clothesline && <Clothesline position={[-(gl / 2 + 5), 0, gw / 2 + 7]} />}
+      {visibility.clothesline && <Clothesline position={[-(gl / 2 + 6.5), 0, gw / 2 + 9.4]} />}
 
       {/* Driveway */}
       {visibility.driveway && (
         <Driveway
-          position={[gl / 2 + 8, 0.005, -(gw / 2 + 5)]}
-          rotation={[0, 0.05, 0]}
+          position={[gl / 2 + 10, 0.005, -(gw / 2 + 5.8)]}
+          rotation={[0, -0.12, 0]}
         />
       )}
     </group>
