@@ -3,6 +3,30 @@
 import { useMemo } from "react"
 import * as THREE from "three"
 
+export type EnvironmentVisibility = {
+  house: boolean
+  pool: boolean
+  shed: boolean
+  trees: boolean
+  fences: boolean
+  furniture: boolean
+  gardenBeds: boolean
+  clothesline: boolean
+  driveway: boolean
+}
+
+export const defaultEnvironmentVisibility: EnvironmentVisibility = {
+  house: true,
+  pool: true,
+  shed: true,
+  trees: true,
+  fences: true,
+  furniture: true,
+  gardenBeds: true,
+  clothesline: true,
+  driveway: true,
+}
+
 // ─────────────────────────────────────────────
 // REALISTIC AUSTRALIAN HOUSE
 // ─────────────────────────────────────────────
@@ -132,7 +156,7 @@ function RoofShape({
   peakHeight,
   baseY,
   color,
-  scale,
+  scale: _scale,
 }: {
   width: number
   depth: number
@@ -142,29 +166,36 @@ function RoofShape({
   scale: number
 }) {
   const roofGeo = useMemo(() => {
-    const shape = new THREE.Shape()
     const hw = width / 2
     const hd = depth / 2
-    // triangular cross-section extruded along length
-    shape.moveTo(-hd, 0)
-    shape.lineTo(0, peakHeight)
-    shape.lineTo(hd, 0)
-    shape.lineTo(-hd, 0)
-
-    const extrudeSettings = {
-      steps: 1,
-      depth: width,
-      bevelEnabled: false,
-    }
-    const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings)
-    geo.rotateY(Math.PI / 2)
-    geo.translate(0, 0, 0)
+    const vertices = new Float32Array([
+      -hw, 0, -hd,
+      hw, 0, -hd,
+      0, peakHeight, -hd,
+      -hw, 0, hd,
+      hw, 0, hd,
+      0, peakHeight, hd,
+    ])
+    const indices = [
+      0, 1, 2,
+      3, 5, 4,
+      0, 3, 1,
+      1, 3, 4,
+      1, 4, 2,
+      2, 4, 5,
+      2, 5, 0,
+      0, 5, 3,
+    ]
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute("position", new THREE.BufferAttribute(vertices, 3))
+    geo.setIndex(indices)
+    geo.computeVertexNormals()
     return geo
   }, [width, depth, peakHeight])
 
   return (
-    <mesh geometry={roofGeo} position={[width / 2, baseY, 0]} castShadow receiveShadow>
-      <meshStandardMaterial color={color} roughness={0.5} metalness={0.35} side={THREE.DoubleSide} />
+    <mesh geometry={roofGeo} position={[0, baseY, 0]} castShadow receiveShadow>
+      <meshStandardMaterial color={color} roughness={0.55} metalness={0.2} side={THREE.DoubleSide} />
     </mesh>
   )
 }
@@ -236,15 +267,15 @@ export function SwimmingPool({
   const waterMaterial = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
-        color: "#1a8fb5",
+        color: "#0284c7",
         roughness: 0.05,
         metalness: 0.1,
         transparent: true,
-        opacity: 0.75,
+        opacity: 0.86,
         transmission: 0.3,
         thickness: 1.0,
         ior: 1.33,
-        envMapIntensity: 1.5,
+        envMapIntensity: 2.0,
       }),
     [],
   )
@@ -770,10 +801,12 @@ export function BackyardEnvironment({
   gazeboLength = 3,
   gazeboWidth = 3,
   isAttached = false,
+  visibility = defaultEnvironmentVisibility,
 }: {
   gazeboLength?: number
   gazeboWidth?: number
   isAttached?: boolean
+  visibility?: EnvironmentVisibility
 }) {
   // Position objects relative to the gazebo (centred at origin)
   const gl = gazeboLength / 1000
@@ -782,7 +815,7 @@ export function BackyardEnvironment({
   return (
     <group>
       {/* House – behind the gazebo if not attached */}
-      {!isAttached && (
+      {visibility.house && !isAttached && (
         <RealisticHouse
           position={[0, 0, -(gw / 2 + 6)]}
           rotation={[0, 0, 0]}
@@ -791,32 +824,41 @@ export function BackyardEnvironment({
       )}
 
       {/* Swimming pool – to the right */}
-      <SwimmingPool
-        position={[gl / 2 + 5, 0, gw / 2 + 1]}
-        rotation={[0, -0.1, 0]}
-      />
+      {visibility.pool && (
+        <SwimmingPool
+          position={[gl / 2 + 5, 0, gw / 2 + 1]}
+          rotation={[0, -0.1, 0]}
+        />
+      )}
 
       {/* Garden shed – back-left corner */}
-      <GardenShed
-        position={[-(gl / 2 + 6), 0, gw / 2 + 4]}
-        rotation={[0, 0.25, 0]}
-      />
+      {visibility.shed && (
+        <GardenShed
+          position={[-(gl / 2 + 6), 0, gw / 2 + 4]}
+          rotation={[0, 0.25, 0]}
+        />
+      )}
 
       {/* Outdoor furniture under/near the patio */}
-      <OutdoorFurniture
-        position={[0.3, 0, 0.2]}
-        rotation={[0, 0.05, 0]}
-      />
+      {visibility.furniture && (
+        <OutdoorFurniture
+          position={[0.3, 0, 0.2]}
+          rotation={[0, 0.05, 0]}
+        />
+      )}
 
-      {/* Trees scattered around the yard */}
-      <AustralianTree position={[-(gl / 2 + 8), 0, -(gw / 2 + 2)]} scale={1.1} variant={0} />
-      <AustralianTree position={[gl / 2 + 10, 0, -(gw / 2 + 1)]} scale={0.9} variant={1} />
-      <AustralianTree position={[gl / 2 + 3, 0, gw / 2 + 8]} scale={1.3} variant={2} />
-      <AustralianTree position={[-(gl / 2 + 4), 0, gw / 2 + 9]} scale={0.8} variant={3} />
-      <AustralianTree position={[-(gl / 2 + 12), 0, 3]} scale={1.0} variant={0} />
-      <AustralianTree position={[gl / 2 + 12, 0, 5]} scale={1.15} variant={2} />
+      {/* Smaller boundary trees that keep the patio visible. */}
+      {visibility.trees && (
+        <>
+          <AustralianTree position={[-(gl / 2 + 10), 0, gw / 2 + 8]} scale={0.75} variant={0} />
+          <AustralianTree position={[gl / 2 + 11, 0, gw / 2 + 8.5]} scale={0.82} variant={1} />
+          <AustralianTree position={[gl / 2 + 10.5, 0, -(gw / 2 + 8)]} scale={0.7} variant={2} />
+        </>
+      )}
 
       {/* Colourbond fences on boundary */}
+      {visibility.fences && (
+        <>
       <ColourbondFence
         start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
         end={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
@@ -841,8 +883,12 @@ export function BackyardEnvironment({
         height={1.8}
         color="#3e4a47"
       />
+        </>
+      )}
 
       {/* Garden beds */}
+      {visibility.gardenBeds && (
+        <>
       <GardenBed
         position={[-(gl / 2 + 2), 0, -(gw / 2 + 3)]}
         width={5}
@@ -861,15 +907,19 @@ export function BackyardEnvironment({
         depth={1.1}
         rotation={[0, Math.PI / 2, 0]}
       />
+        </>
+      )}
 
       {/* Clothesline */}
-      <Clothesline position={[-(gl / 2 + 5), 0, gw / 2 + 7]} />
+      {visibility.clothesline && <Clothesline position={[-(gl / 2 + 5), 0, gw / 2 + 7]} />}
 
       {/* Driveway */}
-      <Driveway
-        position={[gl / 2 + 8, 0.005, -(gw / 2 + 5)]}
-        rotation={[0, 0.05, 0]}
-      />
+      {visibility.driveway && (
+        <Driveway
+          position={[gl / 2 + 8, 0.005, -(gw / 2 + 5)]}
+          rotation={[0, 0.05, 0]}
+        />
+      )}
     </group>
   )
 }
