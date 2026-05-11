@@ -1,7 +1,139 @@
 "use client"
 
-import { useMemo } from "react"
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type { ThreeEvent } from "@react-three/fiber"
 import * as THREE from "three"
+
+export type EnvironmentVisibility = {
+  house: boolean
+  pool: boolean
+  shed: boolean
+  trees: boolean
+  fences: boolean
+  furniture: boolean
+  gardenBeds: boolean
+  clothesline: boolean
+  driveway: boolean
+}
+
+export const defaultEnvironmentVisibility: EnvironmentVisibility = {
+  house: true,
+  pool: true,
+  shed: false,
+  trees: true,
+  fences: false,
+  furniture: false,
+  gardenBeds: false,
+  clothesline: false,
+  driveway: false,
+}
+
+
+
+function useRepeatedTexture(url: string, repeat: [number, number], isColorMap = true) {
+  const [texture, setTexture] = useState<THREE.Texture | null>(null)
+  const [repeatX, repeatY] = repeat
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader()
+    loader.load(
+      url,
+      (loadedTexture) => {
+        loadedTexture.wrapS = THREE.RepeatWrapping
+        loadedTexture.wrapT = THREE.RepeatWrapping
+        loadedTexture.repeat.set(repeatX, repeatY)
+        loadedTexture.anisotropy = 16
+        if (isColorMap) {
+          loadedTexture.colorSpace = THREE.SRGBColorSpace
+        }
+        setTexture(loadedTexture)
+      },
+      undefined,
+      () => setTexture(null),
+    )
+  }, [isColorMap, repeatX, repeatY, url])
+
+  return texture
+}
+
+function DraggableSceneObject({
+  initialPosition,
+  children,
+  onDragChange,
+}: {
+  initialPosition: [number, number, number]
+  children: ReactNode
+  onDragChange?: (isDragging: boolean) => void
+}) {
+  const [position, setPosition] = useState<[number, number, number]>(initialPosition)
+  const [rotationY, setRotationY] = useState(0)
+  const interactionModeRef = useRef<"move" | "rotate" | null>(null)
+  const dragOffsetRef = useRef(new THREE.Vector3())
+  const dragPointRef = useRef(new THREE.Vector3())
+  const startPointerXRef = useRef(0)
+  const startRotationYRef = useRef(0)
+  const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), -initialPosition[1]), [initialPosition])
+
+  const getGroundPoint = useCallback(
+    (event: ThreeEvent<PointerEvent>) => event.ray.intersectPlane(groundPlane, dragPointRef.current),
+    [groundPlane],
+  )
+
+  const stopDragging = useCallback(
+    (event: ThreeEvent<PointerEvent>) => {
+      if (!interactionModeRef.current) return
+
+      event.stopPropagation()
+      interactionModeRef.current = null
+      event.target.releasePointerCapture?.(event.pointerId)
+      onDragChange?.(false)
+    },
+    [onDragChange],
+  )
+
+  return (
+    <group
+      position={position}
+      rotation={[0, rotationY, 0]}
+      onDoubleClick={(event) => {
+        event.stopPropagation()
+        setRotationY((current) => current + Math.PI / 12)
+      }}
+      onPointerDown={(event) => {
+        const point = getGroundPoint(event)
+        if (!point) return
+
+        event.stopPropagation()
+        interactionModeRef.current = event.shiftKey ? "rotate" : "move"
+        dragOffsetRef.current.set(position[0] - point.x, 0, position[2] - point.z)
+        startPointerXRef.current = event.nativeEvent.clientX
+        startRotationYRef.current = rotationY
+        event.target.setPointerCapture?.(event.pointerId)
+        onDragChange?.(true)
+      }}
+      onPointerMove={(event) => {
+        if (!interactionModeRef.current) return
+
+        event.stopPropagation()
+
+        if (interactionModeRef.current === "rotate") {
+          const deltaX = event.nativeEvent.clientX - startPointerXRef.current
+          setRotationY(startRotationYRef.current + deltaX * 0.015)
+          return
+        }
+
+        const point = getGroundPoint(event)
+        if (!point) return
+        setPosition([point.x + dragOffsetRef.current.x, initialPosition[1], point.z + dragOffsetRef.current.z])
+      }}
+      onPointerUp={stopDragging}
+      onPointerCancel={stopDragging}
+      onLostPointerCapture={stopDragging}
+    >
+      {children}
+    </group>
+  )
+}
 
 // ─────────────────────────────────────────────
 // REALISTIC AUSTRALIAN HOUSE
@@ -132,7 +264,10 @@ function RoofShape({
   peakHeight,
   baseY,
   color,
-  scale,
+  scale: _scale,
+  map,
+  normalMap,
+  roughnessMap,
 }: {
   width: number
   depth: number
@@ -140,31 +275,58 @@ function RoofShape({
   baseY: number
   color: string
   scale: number
+  map?: THREE.Texture | null
+  normalMap?: THREE.Texture | null
+  roughnessMap?: THREE.Texture | null
 }) {
   const roofGeo = useMemo(() => {
-    const shape = new THREE.Shape()
     const hw = width / 2
     const hd = depth / 2
-    // triangular cross-section extruded along length
-    shape.moveTo(-hd, 0)
-    shape.lineTo(0, peakHeight)
-    shape.lineTo(hd, 0)
-    shape.lineTo(-hd, 0)
-
-    const extrudeSettings = {
-      steps: 1,
-      depth: width,
-      bevelEnabled: false,
-    }
-    const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings)
-    geo.rotateY(Math.PI / 2)
-    geo.translate(0, 0, 0)
+    const vertices = new Float32Array([
+      -hw, 0, -hd,
+      hw, 0, -hd,
+      0, peakHeight, -hd,
+      -hw, 0, hd,
+      hw, 0, hd,
+      0, peakHeight, hd,
+    ])
+    const indices = [
+      0, 1, 2,
+      3, 5, 4,
+      0, 3, 1,
+      1, 3, 4,
+      1, 4, 2,
+      2, 4, 5,
+      2, 5, 0,
+      0, 5, 3,
+    ]
+    const geo = new THREE.BufferGeometry()
+    const uvs = new Float32Array([
+      0, 0,
+      1, 0,
+      0.5, 1,
+      0, 0,
+      1, 0,
+      0.5, 1,
+    ])
+    geo.setAttribute("position", new THREE.BufferAttribute(vertices, 3))
+    geo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2))
+    geo.setIndex(indices)
+    geo.computeVertexNormals()
     return geo
   }, [width, depth, peakHeight])
 
   return (
-    <mesh geometry={roofGeo} position={[width / 2, baseY, 0]} castShadow receiveShadow>
-      <meshStandardMaterial color={color} roughness={0.5} metalness={0.35} side={THREE.DoubleSide} />
+    <mesh geometry={roofGeo} position={[0, baseY, 0]} castShadow receiveShadow>
+      <meshStandardMaterial
+        map={map ?? undefined}
+        normalMap={normalMap ?? undefined}
+        roughnessMap={roughnessMap ?? undefined}
+        color={color}
+        roughness={0.55}
+        metalness={0.2}
+        side={THREE.DoubleSide}
+      />
     </mesh>
   )
 }
@@ -227,92 +389,131 @@ export function SwimmingPool({
   position?: [number, number, number]
   rotation?: [number, number, number]
 }) {
-  const poolLength = 6
-  const poolWidth = 3
-  const poolDepth = 1.4
-  const copingWidth = 0.25
-  const waterLevel = poolDepth - 0.12
+  const poolLength = 6.4
+  const poolWidth = 3.2
+  const deckLength = poolLength + 2.0
+  const deckWidth = poolWidth + 1.8
+  const copingWidth = 0.28
 
   const waterMaterial = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
-        color: "#1a8fb5",
-        roughness: 0.05,
-        metalness: 0.1,
+        color: "#039be5",
+        roughness: 0.02,
+        metalness: 0.0,
         transparent: true,
-        opacity: 0.75,
-        transmission: 0.3,
-        thickness: 1.0,
+        opacity: 0.94,
+        transmission: 0.08,
+        thickness: 0.45,
         ior: 1.33,
-        envMapIntensity: 1.5,
+        clearcoat: 1,
+        clearcoatRoughness: 0.08,
+        envMapIntensity: 2.4,
+        emissive: new THREE.Color("#006bb6"),
+        emissiveIntensity: 0.08,
+      }),
+    [],
+  )
+
+  const tileMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#9fe7ff",
+        roughness: 0.28,
+        metalness: 0.02,
       }),
     [],
   )
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Pool shell */}
-      <mesh position={[0, -poolDepth / 2, 0]} receiveShadow>
-        <boxGeometry args={[poolLength, poolDepth, poolWidth]} />
-        <meshStandardMaterial color="#c2dce8" roughness={0.3} metalness={0.05} side={THREE.BackSide} />
+      {/* Paved pool surround sits above the grass so the pool never reads as an empty hole. */}
+      <mesh position={[0, 0.02, 0]} receiveShadow>
+        <boxGeometry args={[deckLength, 0.08, deckWidth]} />
+        <meshStandardMaterial color="#d8c4a4" roughness={0.82} metalness={0.02} />
       </mesh>
 
-      {/* Pool tile lining (interior bottom) */}
-      <mesh position={[0, -poolDepth + 0.02, 0]} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[poolLength - 0.1, poolWidth - 0.1]} />
-        <meshStandardMaterial color="#7fc5d9" roughness={0.25} metalness={0.05} />
-      </mesh>
+      {/* Natural stone paver score lines for scale and texture. */}
+      {Array.from({ length: 7 }, (_, i) => {
+        const x = -deckLength / 2 + (i + 1) * (deckLength / 8)
+        return (
+          <mesh key={`pool-paver-x-${i}`} position={[x, 0.066, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.025, deckWidth]} />
+            <meshStandardMaterial color="#b8a587" roughness={0.9} metalness={0.0} />
+          </mesh>
+        )
+      })}
+      {Array.from({ length: 4 }, (_, i) => {
+        const z = -deckWidth / 2 + (i + 1) * (deckWidth / 5)
+        return (
+          <mesh key={`pool-paver-z-${i}`} position={[0, 0.067, z]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+            <planeGeometry args={[0.025, deckLength]} />
+            <meshStandardMaterial color="#b8a587" roughness={0.9} metalness={0.0} />
+          </mesh>
+        )
+      })}
 
-      {/* Water surface */}
-      <mesh position={[0, -poolDepth + waterLevel, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[poolLength - 0.08, poolWidth - 0.08]} />
+      {/* Visible tiled basin and walls. */}
+      <mesh position={[0, -0.08, 0]} receiveShadow>
+        <boxGeometry args={[poolLength, 0.12, poolWidth]} />
+        <primitive object={tileMaterial} attach="material" />
+      </mesh>
+      {[
+        { pos: [0, 0.02, poolWidth / 2 - 0.04] as [number, number, number], size: [poolLength, 0.24, 0.08] as [number, number, number] },
+        { pos: [0, 0.02, -poolWidth / 2 + 0.04] as [number, number, number], size: [poolLength, 0.24, 0.08] as [number, number, number] },
+        { pos: [poolLength / 2 - 0.04, 0.02, 0] as [number, number, number], size: [0.08, 0.24, poolWidth] as [number, number, number] },
+        { pos: [-poolLength / 2 + 0.04, 0.02, 0] as [number, number, number], size: [0.08, 0.24, poolWidth] as [number, number, number] },
+      ].map((wall, i) => (
+        <mesh key={`pool-wall-${i}`} position={wall.pos} receiveShadow>
+          <boxGeometry args={wall.size} />
+          <primitive object={tileMaterial} attach="material" />
+        </mesh>
+      ))}
+
+      {/* Strong blue underlay plus reflective water plane: this prevents grass showing through. */}
+      <mesh position={[0, 0.058, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[poolLength - 0.22, poolWidth - 0.22]} />
+        <meshStandardMaterial color="#0277bd" roughness={0.18} metalness={0.0} emissive="#01579b" emissiveIntensity={0.12} />
+      </mesh>
+      <mesh position={[0, 0.072, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[poolLength - 0.26, poolWidth - 0.26, 32, 16]} />
         <primitive object={waterMaterial} attach="material" />
       </mesh>
 
-      {/* Coping stones around pool edge */}
-      {/* Long sides */}
-      {[-1, 1].map((side, i) => (
-        <mesh
-          key={`coping-l-${i}`}
-          position={[0, 0.04, (side * (poolWidth + copingWidth)) / 2]}
-          receiveShadow
-          castShadow
-        >
-          <boxGeometry args={[poolLength + copingWidth * 2, 0.08, copingWidth]} />
-          <meshStandardMaterial color="#e8e1d5" roughness={0.7} metalness={0.05} />
-        </mesh>
-      ))}
-      {/* Short sides */}
-      {[-1, 1].map((side, i) => (
-        <mesh
-          key={`coping-s-${i}`}
-          position={[(side * (poolLength + copingWidth)) / 2, 0.04, 0]}
-          receiveShadow
-          castShadow
-        >
-          <boxGeometry args={[copingWidth, 0.08, poolWidth + copingWidth * 2]} />
-          <meshStandardMaterial color="#e8e1d5" roughness={0.7} metalness={0.05} />
+      {/* Subtle water ripples, kept blue/white and above the surface. */}
+      {[-1.9, -0.8, 0.35, 1.55].map((x, i) => (
+        <mesh key={`pool-ripple-${i}`} position={[x, 0.078 + i * 0.001, -0.35 + (i % 2) * 0.7]} rotation={[-Math.PI / 2, 0, 0.12 * i]}>
+          <ringGeometry args={[0.38, 0.405, 48]} />
+          <meshBasicMaterial color="#dff8ff" transparent opacity={0.32} side={THREE.DoubleSide} />
         </mesh>
       ))}
 
-      {/* Pool decking area */}
-      <mesh position={[0, 0.01, poolWidth / 2 + copingWidth + 0.8]} receiveShadow>
-        <boxGeometry args={[poolLength + 1.5, 0.04, 1.8]} />
-        <meshStandardMaterial color="#b5957a" roughness={0.75} metalness={0.05} />
-      </mesh>
+      {/* Coping stones around pool edge. */}
+      {[-1, 1].map((side, i) => (
+        <mesh key={`coping-l-${i}`} position={[0, 0.11, (side * (poolWidth + copingWidth)) / 2]} receiveShadow castShadow>
+          <boxGeometry args={[poolLength + copingWidth * 2, 0.1, copingWidth]} />
+          <meshStandardMaterial color="#eee3d0" roughness={0.72} metalness={0.02} />
+        </mesh>
+      ))}
+      {[-1, 1].map((side, i) => (
+        <mesh key={`coping-s-${i}`} position={[(side * (poolLength + copingWidth)) / 2, 0.11, 0]} receiveShadow castShadow>
+          <boxGeometry args={[copingWidth, 0.1, poolWidth + copingWidth * 2]} />
+          <meshStandardMaterial color="#eee3d0" roughness={0.72} metalness={0.02} />
+        </mesh>
+      ))}
 
-      {/* Pool ladder */}
-      <group position={[poolLength / 2 - 0.5, 0, -poolWidth / 2 + 0.3]}>
-        {[-0.15, 0.15].map((xOff, i) => (
-          <mesh key={`rail-${i}`} position={[xOff, -0.3, 0]} castShadow>
-            <cylinderGeometry args={[0.02, 0.02, 1.0, 8]} />
-            <meshStandardMaterial color="#c0c0c0" metalness={0.7} roughness={0.25} />
+      {/* Stainless pool ladder. */}
+      <group position={[poolLength / 2 - 0.65, 0.08, -poolWidth / 2 + 0.45]}>
+        {[-0.16, 0.16].map((xOff, i) => (
+          <mesh key={`rail-${i}`} position={[xOff, 0.28, 0]} castShadow>
+            <cylinderGeometry args={[0.025, 0.025, 0.9, 16]} />
+            <meshStandardMaterial color="#d7dde2" metalness={0.85} roughness={0.18} />
           </mesh>
         ))}
-        {[0, -0.25, -0.5].map((yOff, i) => (
+        {[0.08, 0.3, 0.52].map((yOff, i) => (
           <mesh key={`step-${i}`} position={[0, yOff, 0]} castShadow>
-            <boxGeometry args={[0.3, 0.02, 0.06]} />
-            <meshStandardMaterial color="#c0c0c0" metalness={0.7} roughness={0.25} />
+            <boxGeometry args={[0.42, 0.025, 0.08]} />
+            <meshStandardMaterial color="#d7dde2" metalness={0.85} roughness={0.18} />
           </mesh>
         ))}
       </group>
@@ -330,71 +531,126 @@ export function GardenShed({
   position?: [number, number, number]
   rotation?: [number, number, number]
 }) {
-  const shedW = 2.4
-  const shedD = 3.0
-  const shedH = 2.2
-  const roofPeak = 0.5
-  const shedColor = "#8b7d6b"
-  const roofColor = "#5a5e5f"
+  const shedW = 2.6
+  const shedD = 3.2
+  const shedH = 2.15
+  const roofPeak = 0.62
+  const slabThickness = 0.1
+  const wallColor = "#6f7f5a"
+  const trimColor = "#d6d0bf"
+  const roofColor = "#4f5f4f"
+  const shedWallMap = useRepeatedTexture("/textures/roof-basecolor.png", [1.7, 1.15])
+  const shedWallNormal = useRepeatedTexture("/textures/roof-normal.png", [1.7, 1.15], false)
+  const shedRoofMap = useRepeatedTexture("/textures/roof-basecolor.png", [1.25, 1.7])
+  const shedRoofNormal = useRepeatedTexture("/textures/roof-normal.png", [1.25, 1.7], false)
+  const shedRoofRoughness = useRepeatedTexture("/textures/roof-orm.png", [1.25, 1.7], false)
+  const concreteMap = useRepeatedTexture("/textures/concrete-texture.jpg", [1.4, 1.6])
+  const concreteNormal = useRepeatedTexture("/textures/concrete-normal.jpg", [1.4, 1.6], false)
+  const corrugationRidges = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => -shedW / 2 + (i + 0.5) * (shedW / 12)),
+    [shedW],
+  )
 
   return (
     <group position={position} rotation={rotation}>
       {/* Concrete pad */}
-      <mesh position={[0, 0.04, 0]} receiveShadow>
-        <boxGeometry args={[shedW + 0.3, 0.08, shedD + 0.3]} />
-        <meshStandardMaterial color="#c0bbb4" roughness={0.85} metalness={0.05} />
+      <mesh position={[0, slabThickness / 2 - 0.01, 0]} receiveShadow>
+        <boxGeometry args={[shedW + 0.55, slabThickness, shedD + 0.55]} />
+        <meshStandardMaterial
+          map={concreteMap ?? undefined}
+          normalMap={concreteNormal ?? undefined}
+          color={concreteMap ? "#ffffff" : "#bdb8ae"}
+          roughness={0.9}
+          metalness={0.02}
+        />
       </mesh>
 
-      {/* Walls */}
-      <mesh position={[0, shedH / 2 + 0.08, 0]} castShadow receiveShadow>
+      {/* Corrugated metal wall shell */}
+      <mesh position={[0, shedH / 2 + slabThickness, 0]} castShadow receiveShadow>
         <boxGeometry args={[shedW, shedH, shedD]} />
-        <meshStandardMaterial color={shedColor} roughness={0.75} metalness={0.25} />
+        <meshStandardMaterial
+          map={shedWallMap ?? undefined}
+          normalMap={shedWallNormal ?? undefined}
+          color={wallColor}
+          roughness={0.66}
+          metalness={0.34}
+          envMapIntensity={0.55}
+        />
       </mesh>
 
-      {/* Corrugated wall texture strips */}
-      {Array.from({ length: 8 }, (_, i) => (
-        <mesh
-          key={`strip-${i}`}
-          position={[0, 0.35 + i * (shedH / 8), shedD / 2 + 0.005]}
-          castShadow
-        >
-          <boxGeometry args={[shedW - 0.04, 0.015, 0.01]} />
-          <meshStandardMaterial
-            color={i % 2 === 0 ? "#7d7063" : shedColor}
-            roughness={0.6}
-            metalness={0.3}
-          />
+      {/* Raised front ribs add real geometry on top of the normal map. */}
+      {corrugationRidges.map((x, i) => (
+        <mesh key={`shed-front-rib-${i}`} position={[x, shedH / 2 + slabThickness, shedD / 2 + 0.014]} castShadow>
+          <boxGeometry args={[0.035, shedH - 0.12, 0.035]} />
+          <meshStandardMaterial color={i % 2 === 0 ? "#5f704f" : "#7d8c68"} roughness={0.62} metalness={0.35} />
         </mesh>
       ))}
 
-      {/* Gable roof */}
-      <mesh
-        position={[0, shedH + 0.08 + roofPeak / 2, -shedD * 0.25]}
-        rotation={[Math.atan2(roofPeak, shedD / 2), 0, 0]}
-        castShadow
-      >
-        <boxGeometry args={[shedW + 0.2, 0.04, shedD / 2 / Math.cos(Math.atan2(roofPeak, shedD / 2)) + 0.1]} />
-        <meshStandardMaterial color={roofColor} roughness={0.5} metalness={0.35} />
-      </mesh>
-      <mesh
-        position={[0, shedH + 0.08 + roofPeak / 2, shedD * 0.25]}
-        rotation={[-Math.atan2(roofPeak, shedD / 2), 0, 0]}
-        castShadow
-      >
-        <boxGeometry args={[shedW + 0.2, 0.04, shedD / 2 / Math.cos(Math.atan2(roofPeak, shedD / 2)) + 0.1]} />
-        <meshStandardMaterial color={roofColor} roughness={0.5} metalness={0.35} />
-      </mesh>
+      {/* Correctly centred gable roof sitting on the wall top. */}
+      <RoofShape
+        width={shedW + 0.55}
+        depth={shedD + 0.7}
+        peakHeight={roofPeak}
+        baseY={shedH + slabThickness}
+        color={roofColor}
+        scale={1}
+        map={shedRoofMap}
+        normalMap={shedRoofNormal}
+        roughnessMap={shedRoofRoughness}
+      />
 
-      {/* Door */}
-      <mesh position={[0, shedH * 0.45 + 0.08, shedD / 2 + 0.015]} castShadow>
-        <boxGeometry args={[1.0, shedH * 0.85, 0.04]} />
-        <meshStandardMaterial color="#6b5d4f" roughness={0.7} metalness={0.2} />
+      {/* Ridge cap and gutters/fascia for a more realistic shed profile. */}
+      <mesh position={[0, shedH + slabThickness + roofPeak + 0.02, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.045, 0.045, shedD + 0.78, 16]} />
+        <meshStandardMaterial color="#d7d2c3" roughness={0.45} metalness={0.35} />
       </mesh>
-      {/* Door handle */}
-      <mesh position={[0.35, shedH * 0.45 + 0.08, shedD / 2 + 0.05]}>
-        <boxGeometry args={[0.08, 0.03, 0.03]} />
-        <meshStandardMaterial color="#999" metalness={0.6} roughness={0.3} />
-      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={`shed-gutter-${side}`} position={[side * (shedW / 2 + 0.22), shedH + slabThickness + 0.03, 0]} castShadow>
+          <boxGeometry args={[0.12, 0.12, shedD + 0.72]} />
+          <meshStandardMaterial color="#d7d2c3" roughness={0.45} metalness={0.35} />
+        </mesh>
+      ))}
+
+      {/* Door with frame and diagonal bracing */}
+      <group position={[0, 0, shedD / 2 + 0.035]}>
+        <mesh position={[0, shedH * 0.43 + slabThickness, 0]} castShadow>
+          <boxGeometry args={[1.05, shedH * 0.82, 0.045]} />
+          <meshStandardMaterial
+            map={shedWallMap ?? undefined}
+            normalMap={shedWallNormal ?? undefined}
+            color="#566b4d"
+            roughness={0.65}
+            metalness={0.32}
+          />
+        </mesh>
+        {[
+          { pos: [0, shedH * 0.84 + slabThickness, 0.03] as [number, number, number], size: [1.16, 0.07, 0.04] as [number, number, number] },
+          { pos: [0, shedH * 0.03 + slabThickness, 0.03] as [number, number, number], size: [1.16, 0.07, 0.04] as [number, number, number] },
+          { pos: [-0.56, shedH * 0.43 + slabThickness, 0.03] as [number, number, number], size: [0.07, shedH * 0.84, 0.04] as [number, number, number] },
+          { pos: [0.56, shedH * 0.43 + slabThickness, 0.03] as [number, number, number], size: [0.07, shedH * 0.84, 0.04] as [number, number, number] },
+        ].map((trim, i) => (
+          <mesh key={`shed-door-trim-${i}`} position={trim.pos} castShadow>
+            <boxGeometry args={trim.size} />
+            <meshStandardMaterial color={trimColor} roughness={0.55} metalness={0.2} />
+          </mesh>
+        ))}
+        <mesh position={[0.36, shedH * 0.46 + slabThickness, 0.07]} castShadow>
+          <boxGeometry args={[0.08, 0.04, 0.045]} />
+          <meshStandardMaterial color="#c9c2b2" metalness={0.65} roughness={0.22} />
+        </mesh>
+      </group>
+
+      {/* Side window */}
+      <group position={[shedW / 2 + 0.035, 1.35, -0.55]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.72, 0.48, 0.04]} />
+          <meshStandardMaterial color="#d7d2c3" roughness={0.45} metalness={0.25} />
+        </mesh>
+        <mesh position={[0, 0, 0.026]}>
+          <boxGeometry args={[0.62, 0.38, 0.018]} />
+          <meshStandardMaterial color="#7da9b7" roughness={0.08} metalness={0.4} transparent opacity={0.62} />
+        </mesh>
+      </group>
     </group>
   )
 }
@@ -411,42 +667,50 @@ export function AustralianTree({
   scale?: number
   variant?: number
 }) {
-  const trunkHeight = (2.5 + variant * 0.5) * scale
-  const trunkRadius = 0.12 * scale
-  const canopyRadius = (1.8 + variant * 0.4) * scale
+  const trunkHeight = (2.4 + variant * 0.28) * scale
+  const trunkRadius = 0.095 * scale
+  const canopyRadius = (1.25 + variant * 0.18) * scale
 
-  // Slightly different greens for variety
-  const greens = ["#4a7a3e", "#3d6b35", "#567f48", "#3a5e30"]
+  const greens = ["#5f8f55", "#4f7f49", "#6f9861", "#456f3f"]
   const canopyColor = greens[variant % greens.length]
-  const trunkColor = variant % 2 === 0 ? "#8b7355" : "#7a6548"
+  const trunkColor = variant % 2 === 0 ? "#9a8061" : "#806a4d"
+  const lean = (variant % 2 === 0 ? -0.08 : 0.07) * scale
 
   return (
     <group position={position}>
-      {/* Trunk */}
-      <mesh position={[0, trunkHeight / 2, 0]} castShadow>
-        <cylinderGeometry args={[trunkRadius * 0.7, trunkRadius, trunkHeight, 8]} />
-        <meshStandardMaterial color={trunkColor} roughness={0.9} metalness={0.0} />
+      {/* Tapered trunk with bark-toned branches. */}
+      <mesh position={[lean * 0.5, trunkHeight / 2, 0]} rotation={[0, 0, lean * 0.08]} castShadow>
+        <cylinderGeometry args={[trunkRadius * 0.65, trunkRadius, trunkHeight, 16]} />
+        <meshStandardMaterial color={trunkColor} roughness={0.95} metalness={0.0} />
       </mesh>
+      {[-0.55, 0.35, 0.95].map((angle, i) => (
+        <mesh
+          key={`branch-${i}`}
+          position={[Math.sin(angle) * 0.28 * scale, trunkHeight * (0.62 + i * 0.08), Math.cos(angle) * 0.18 * scale]}
+          rotation={[0.55, angle, 0.9]}
+          castShadow
+        >
+          <cylinderGeometry args={[trunkRadius * 0.28, trunkRadius * 0.42, 0.9 * scale, 12]} />
+          <meshStandardMaterial color={trunkColor} roughness={0.95} metalness={0.0} />
+        </mesh>
+      ))}
 
-      {/* Main canopy – layered spheres for organic shape */}
-      <mesh position={[0, trunkHeight + canopyRadius * 0.5, 0]} castShadow>
-        <sphereGeometry args={[canopyRadius, 12, 10]} />
-        <meshStandardMaterial color={canopyColor} roughness={0.85} metalness={0.0} />
-      </mesh>
-      <mesh
-        position={[canopyRadius * 0.3, trunkHeight + canopyRadius * 0.8, canopyRadius * 0.2]}
-        castShadow
-      >
-        <sphereGeometry args={[canopyRadius * 0.7, 10, 8]} />
-        <meshStandardMaterial color={canopyColor} roughness={0.85} metalness={0.0} />
-      </mesh>
-      <mesh
-        position={[-canopyRadius * 0.35, trunkHeight + canopyRadius * 0.35, -canopyRadius * 0.15]}
-        castShadow
-      >
-        <sphereGeometry args={[canopyRadius * 0.65, 10, 8]} />
-        <meshStandardMaterial color={canopyColor} roughness={0.85} metalness={0.0} />
-      </mesh>
+      {/* Softer eucalyptus canopy: smaller, oval clusters instead of blocky balls. */}
+      {[
+        { pos: [0, trunkHeight + canopyRadius * 0.45, 0] as [number, number, number], size: [1.05, 0.72, 0.9] as [number, number, number] },
+        { pos: [canopyRadius * 0.42, trunkHeight + canopyRadius * 0.65, canopyRadius * 0.15] as [number, number, number], size: [0.72, 0.55, 0.65] as [number, number, number] },
+        { pos: [-canopyRadius * 0.46, trunkHeight + canopyRadius * 0.36, -canopyRadius * 0.12] as [number, number, number], size: [0.72, 0.52, 0.62] as [number, number, number] },
+        { pos: [canopyRadius * 0.05, trunkHeight + canopyRadius * 0.9, -canopyRadius * 0.18] as [number, number, number], size: [0.58, 0.42, 0.52] as [number, number, number] },
+      ].map((cluster, i) => (
+        <mesh key={`canopy-${i}`} position={cluster.pos} scale={cluster.size} castShadow>
+          <sphereGeometry args={[canopyRadius, 24, 18]} />
+          <meshStandardMaterial
+            color={i % 2 === 0 ? canopyColor : new THREE.Color(canopyColor).multiplyScalar(0.88).getStyle()}
+            roughness={0.9}
+            metalness={0.0}
+          />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -570,8 +834,8 @@ export function OutdoorFurniture({
                   <meshStandardMaterial color="#5c5147" roughness={0.6} metalness={0.1} />
                 </mesh>
               ))}
-              {/* Backrest */}
-              <mesh position={[0, 0.72, side * -0.19]} castShadow>
+              {/* Backrest sits away from the table so each chair faces inward. */}
+              <mesh position={[0, 0.72, side * 0.19]} castShadow>
                 <boxGeometry args={[0.42, 0.5, 0.03]} />
                 <meshStandardMaterial color="#5c5147" roughness={0.7} metalness={0.1} />
               </mesh>
@@ -770,10 +1034,14 @@ export function BackyardEnvironment({
   gazeboLength = 3,
   gazeboWidth = 3,
   isAttached = false,
+  visibility = defaultEnvironmentVisibility,
+  onObjectDragChange,
 }: {
   gazeboLength?: number
   gazeboWidth?: number
   isAttached?: boolean
+  visibility?: EnvironmentVisibility
+  onObjectDragChange?: (isDragging: boolean) => void
 }) {
   // Position objects relative to the gazebo (centred at origin)
   const gl = gazeboLength / 1000
@@ -782,94 +1050,106 @@ export function BackyardEnvironment({
   return (
     <group>
       {/* House – behind the gazebo if not attached */}
-      {!isAttached && (
-        <RealisticHouse
-          position={[0, 0, -(gw / 2 + 6)]}
-          rotation={[0, 0, 0]}
-          scale={0.9}
-        />
+      {visibility.house && !isAttached && (
+        <DraggableSceneObject initialPosition={[0, 0, -(gw / 2 + 7.4)]} onDragChange={onObjectDragChange}>
+          <RealisticHouse position={[0, 0, 0]} rotation={[0, 0, 0]} scale={0.9} />
+        </DraggableSceneObject>
       )}
 
       {/* Swimming pool – to the right */}
-      <SwimmingPool
-        position={[gl / 2 + 5, 0, gw / 2 + 1]}
-        rotation={[0, -0.1, 0]}
-      />
+      {visibility.pool && (
+        <DraggableSceneObject initialPosition={[gl / 2 + 7.4, 0, gw / 2 + 4.7]} onDragChange={onObjectDragChange}>
+          <SwimmingPool position={[0, 0, 0]} rotation={[0, -0.38, 0]} />
+        </DraggableSceneObject>
+      )}
 
       {/* Garden shed – back-left corner */}
-      <GardenShed
-        position={[-(gl / 2 + 6), 0, gw / 2 + 4]}
-        rotation={[0, 0.25, 0]}
-      />
+      {visibility.shed && (
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 8.2), 0, gw / 2 + 7.2]} onDragChange={onObjectDragChange}>
+          <GardenShed position={[0, 0, 0]} rotation={[0, 0.55, 0]} />
+        </DraggableSceneObject>
+      )}
 
       {/* Outdoor furniture under/near the patio */}
-      <OutdoorFurniture
-        position={[0.3, 0, 0.2]}
-        rotation={[0, 0.05, 0]}
-      />
+      {visibility.furniture && (
+        <DraggableSceneObject initialPosition={[0.25, 0, 0.15]} onDragChange={onObjectDragChange}>
+          <OutdoorFurniture position={[0, 0, 0]} rotation={[0, 0.18, 0]} />
+        </DraggableSceneObject>
+      )}
 
-      {/* Trees scattered around the yard */}
-      <AustralianTree position={[-(gl / 2 + 8), 0, -(gw / 2 + 2)]} scale={1.1} variant={0} />
-      <AustralianTree position={[gl / 2 + 10, 0, -(gw / 2 + 1)]} scale={0.9} variant={1} />
-      <AustralianTree position={[gl / 2 + 3, 0, gw / 2 + 8]} scale={1.3} variant={2} />
-      <AustralianTree position={[-(gl / 2 + 4), 0, gw / 2 + 9]} scale={0.8} variant={3} />
-      <AustralianTree position={[-(gl / 2 + 12), 0, 3]} scale={1.0} variant={0} />
-      <AustralianTree position={[gl / 2 + 12, 0, 5]} scale={1.15} variant={2} />
+      {/* Smaller boundary trees that keep the patio visible. */}
+      {visibility.trees && (
+        <>
+          <DraggableSceneObject initialPosition={[-(gl / 2 + 11.5), 0, gw / 2 + 10]} onDragChange={onObjectDragChange}>
+            <AustralianTree position={[0, 0, 0]} scale={0.72} variant={0} />
+          </DraggableSceneObject>
+          <DraggableSceneObject initialPosition={[gl / 2 + 12.5, 0, gw / 2 + 9.6]} onDragChange={onObjectDragChange}>
+            <AustralianTree position={[0, 0, 0]} scale={0.78} variant={1} />
+          </DraggableSceneObject>
+          <DraggableSceneObject initialPosition={[gl / 2 + 12, 0, -(gw / 2 + 8.8)]} onDragChange={onObjectDragChange}>
+            <AustralianTree position={[0, 0, 0]} scale={0.66} variant={2} />
+          </DraggableSceneObject>
+        </>
+      )}
 
       {/* Colourbond fences on boundary */}
-      <ColourbondFence
-        start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
-        end={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
-        height={1.8}
-        color="#3e4a47"
-      />
-      <ColourbondFence
-        start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
-        end={[-(gl / 2 + 14), 0, gw / 2 + 12]}
-        height={1.8}
-        color="#3e4a47"
-      />
-      <ColourbondFence
-        start={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
-        end={[gl / 2 + 14, 0, gw / 2 + 12]}
-        height={1.8}
-        color="#3e4a47"
-      />
-      <ColourbondFence
-        start={[-(gl / 2 + 14), 0, gw / 2 + 12]}
-        end={[gl / 2 + 14, 0, gw / 2 + 12]}
-        height={1.8}
-        color="#3e4a47"
-      />
+      {visibility.fences && (
+        <DraggableSceneObject initialPosition={[0, 0, 0]} onDragChange={onObjectDragChange}>
+          <ColourbondFence
+            start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
+            end={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
+            height={1.8}
+            color="#3e4a47"
+          />
+          <ColourbondFence
+            start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
+            end={[-(gl / 2 + 14), 0, gw / 2 + 12]}
+            height={1.8}
+            color="#3e4a47"
+          />
+          <ColourbondFence
+            start={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
+            end={[gl / 2 + 14, 0, gw / 2 + 12]}
+            height={1.8}
+            color="#3e4a47"
+          />
+          <ColourbondFence
+            start={[-(gl / 2 + 14), 0, gw / 2 + 12]}
+            end={[gl / 2 + 14, 0, gw / 2 + 12]}
+            height={1.8}
+            color="#3e4a47"
+          />
+        </DraggableSceneObject>
+      )}
 
       {/* Garden beds */}
-      <GardenBed
-        position={[-(gl / 2 + 2), 0, -(gw / 2 + 3)]}
-        width={5}
-        depth={1.0}
-        rotation={[0, 0.1, 0]}
-      />
-      <GardenBed
-        position={[gl / 2 + 2.5, 0, -(gw / 2 + 4)]}
-        width={3.5}
-        depth={0.9}
-        rotation={[0, -0.15, 0]}
-      />
-      <GardenBed
-        position={[-(gl / 2 + 10), 0, gw / 2 + 2]}
-        width={3}
-        depth={1.1}
-        rotation={[0, Math.PI / 2, 0]}
-      />
+      {visibility.gardenBeds && (
+        <>
+          <DraggableSceneObject initialPosition={[-(gl / 2 + 5.5), 0, -(gw / 2 + 5.4)]} onDragChange={onObjectDragChange}>
+            <GardenBed position={[0, 0, 0]} width={5} depth={1.0} rotation={[0, 0.1, 0]} />
+          </DraggableSceneObject>
+          <DraggableSceneObject initialPosition={[gl / 2 + 5.2, 0, -(gw / 2 + 5.8)]} onDragChange={onObjectDragChange}>
+            <GardenBed position={[0, 0, 0]} width={3.5} depth={0.9} rotation={[0, -0.15, 0]} />
+          </DraggableSceneObject>
+          <DraggableSceneObject initialPosition={[-(gl / 2 + 11.2), 0, gw / 2 + 4.8]} onDragChange={onObjectDragChange}>
+            <GardenBed position={[0, 0, 0]} width={3} depth={1.1} rotation={[0, Math.PI / 2, 0]} />
+          </DraggableSceneObject>
+        </>
+      )}
 
       {/* Clothesline */}
-      <Clothesline position={[-(gl / 2 + 5), 0, gw / 2 + 7]} />
+      {visibility.clothesline && (
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 6.5), 0, gw / 2 + 9.4]} onDragChange={onObjectDragChange}>
+          <Clothesline position={[0, 0, 0]} />
+        </DraggableSceneObject>
+      )}
 
       {/* Driveway */}
-      <Driveway
-        position={[gl / 2 + 8, 0.005, -(gw / 2 + 5)]}
-        rotation={[0, 0.05, 0]}
-      />
+      {visibility.driveway && (
+        <DraggableSceneObject initialPosition={[gl / 2 + 10, 0.005, -(gw / 2 + 5.8)]} onDragChange={onObjectDragChange}>
+          <Driveway position={[0, 0, 0]} rotation={[0, -0.12, 0]} />
+        </DraggableSceneObject>
+      )}
     </group>
   )
 }
