@@ -24,7 +24,7 @@ import { Slider } from "@/components/ui/slider"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
-// Add this near the top of the file where the props are defined
+// Add this near the top of the file where the props are define
 interface GazeboInquiryFormProps {
   agentData?: {
     id: number
@@ -39,7 +39,7 @@ interface GazeboInquiryFormProps {
 const formSchema = z
   .object({
     customerName: z.string().min(2, {
-      message: "Customer Name must be at least 2 characters.",
+      message: "Customer Name must be at least 3 characters.",
     }),
     siteAddress: z.string().min(10, {
       message: "Site Address must be at least 10 characters.",
