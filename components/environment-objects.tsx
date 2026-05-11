@@ -1,6 +1,6 @@
 "use client"
 
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react"
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ThreeEvent } from "@react-three/fiber"
 import * as THREE from "three"
 
@@ -29,6 +29,33 @@ export const defaultEnvironmentVisibility: EnvironmentVisibility = {
 }
 
 
+
+function useRepeatedTexture(url: string, repeat: [number, number], isColorMap = true) {
+  const [texture, setTexture] = useState<THREE.Texture | null>(null)
+  const [repeatX, repeatY] = repeat
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader()
+    loader.load(
+      url,
+      (loadedTexture) => {
+        loadedTexture.wrapS = THREE.RepeatWrapping
+        loadedTexture.wrapT = THREE.RepeatWrapping
+        loadedTexture.repeat.set(repeatX, repeatY)
+        loadedTexture.anisotropy = 16
+        if (isColorMap) {
+          loadedTexture.colorSpace = THREE.SRGBColorSpace
+        }
+        setTexture(loadedTexture)
+      },
+      undefined,
+      () => setTexture(null),
+    )
+  }, [isColorMap, repeatX, repeatY, url])
+
+  return texture
+}
+
 function DraggableSceneObject({
   initialPosition,
   children,
@@ -39,9 +66,12 @@ function DraggableSceneObject({
   onDragChange?: (isDragging: boolean) => void
 }) {
   const [position, setPosition] = useState<[number, number, number]>(initialPosition)
-  const isDraggingRef = useRef(false)
+  const [rotationY, setRotationY] = useState(0)
+  const interactionModeRef = useRef<"move" | "rotate" | null>(null)
   const dragOffsetRef = useRef(new THREE.Vector3())
   const dragPointRef = useRef(new THREE.Vector3())
+  const startPointerXRef = useRef(0)
+  const startRotationYRef = useRef(0)
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), -initialPosition[1]), [initialPosition])
 
   const getGroundPoint = useCallback(
@@ -51,10 +81,10 @@ function DraggableSceneObject({
 
   const stopDragging = useCallback(
     (event: ThreeEvent<PointerEvent>) => {
-      if (!isDraggingRef.current) return
+      if (!interactionModeRef.current) return
 
       event.stopPropagation()
-      isDraggingRef.current = false
+      interactionModeRef.current = null
       event.target.releasePointerCapture?.(event.pointerId)
       onDragChange?.(false)
     },
@@ -64,22 +94,36 @@ function DraggableSceneObject({
   return (
     <group
       position={position}
+      rotation={[0, rotationY, 0]}
+      onDoubleClick={(event) => {
+        event.stopPropagation()
+        setRotationY((current) => current + Math.PI / 12)
+      }}
       onPointerDown={(event) => {
         const point = getGroundPoint(event)
         if (!point) return
 
         event.stopPropagation()
-        isDraggingRef.current = true
+        interactionModeRef.current = event.shiftKey ? "rotate" : "move"
         dragOffsetRef.current.set(position[0] - point.x, 0, position[2] - point.z)
+        startPointerXRef.current = event.nativeEvent.clientX
+        startRotationYRef.current = rotationY
         event.target.setPointerCapture?.(event.pointerId)
         onDragChange?.(true)
       }}
       onPointerMove={(event) => {
-        if (!isDraggingRef.current) return
-        const point = getGroundPoint(event)
-        if (!point) return
+        if (!interactionModeRef.current) return
 
         event.stopPropagation()
+
+        if (interactionModeRef.current === "rotate") {
+          const deltaX = event.nativeEvent.clientX - startPointerXRef.current
+          setRotationY(startRotationYRef.current + deltaX * 0.015)
+          return
+        }
+
+        const point = getGroundPoint(event)
+        if (!point) return
         setPosition([point.x + dragOffsetRef.current.x, initialPosition[1], point.z + dragOffsetRef.current.z])
       }}
       onPointerUp={stopDragging}
@@ -221,6 +265,9 @@ function RoofShape({
   baseY,
   color,
   scale: _scale,
+  map,
+  normalMap,
+  roughnessMap,
 }: {
   width: number
   depth: number
@@ -228,6 +275,9 @@ function RoofShape({
   baseY: number
   color: string
   scale: number
+  map?: THREE.Texture | null
+  normalMap?: THREE.Texture | null
+  roughnessMap?: THREE.Texture | null
 }) {
   const roofGeo = useMemo(() => {
     const hw = width / 2
@@ -251,7 +301,16 @@ function RoofShape({
       0, 5, 3,
     ]
     const geo = new THREE.BufferGeometry()
+    const uvs = new Float32Array([
+      0, 0,
+      1, 0,
+      0.5, 1,
+      0, 0,
+      1, 0,
+      0.5, 1,
+    ])
     geo.setAttribute("position", new THREE.BufferAttribute(vertices, 3))
+    geo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2))
     geo.setIndex(indices)
     geo.computeVertexNormals()
     return geo
@@ -259,7 +318,15 @@ function RoofShape({
 
   return (
     <mesh geometry={roofGeo} position={[0, baseY, 0]} castShadow receiveShadow>
-      <meshStandardMaterial color={color} roughness={0.55} metalness={0.2} side={THREE.DoubleSide} />
+      <meshStandardMaterial
+        map={map ?? undefined}
+        normalMap={normalMap ?? undefined}
+        roughnessMap={roughnessMap ?? undefined}
+        color={color}
+        roughness={0.55}
+        metalness={0.2}
+        side={THREE.DoubleSide}
+      />
     </mesh>
   )
 }
@@ -464,71 +531,126 @@ export function GardenShed({
   position?: [number, number, number]
   rotation?: [number, number, number]
 }) {
-  const shedW = 2.4
-  const shedD = 3.0
-  const shedH = 2.2
-  const roofPeak = 0.5
-  const shedColor = "#8b7d6b"
-  const roofColor = "#5a5e5f"
+  const shedW = 2.6
+  const shedD = 3.2
+  const shedH = 2.15
+  const roofPeak = 0.62
+  const slabThickness = 0.1
+  const wallColor = "#6f7f5a"
+  const trimColor = "#d6d0bf"
+  const roofColor = "#4f5f4f"
+  const shedWallMap = useRepeatedTexture("/textures/roof-basecolor.png", [1.7, 1.15])
+  const shedWallNormal = useRepeatedTexture("/textures/roof-normal.png", [1.7, 1.15], false)
+  const shedRoofMap = useRepeatedTexture("/textures/roof-basecolor.png", [1.25, 1.7])
+  const shedRoofNormal = useRepeatedTexture("/textures/roof-normal.png", [1.25, 1.7], false)
+  const shedRoofRoughness = useRepeatedTexture("/textures/roof-orm.png", [1.25, 1.7], false)
+  const concreteMap = useRepeatedTexture("/textures/concrete-texture.jpg", [1.4, 1.6])
+  const concreteNormal = useRepeatedTexture("/textures/concrete-normal.jpg", [1.4, 1.6], false)
+  const corrugationRidges = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => -shedW / 2 + (i + 0.5) * (shedW / 12)),
+    [shedW],
+  )
 
   return (
     <group position={position} rotation={rotation}>
       {/* Concrete pad */}
-      <mesh position={[0, 0.04, 0]} receiveShadow>
-        <boxGeometry args={[shedW + 0.3, 0.08, shedD + 0.3]} />
-        <meshStandardMaterial color="#c0bbb4" roughness={0.85} metalness={0.05} />
+      <mesh position={[0, slabThickness / 2 - 0.01, 0]} receiveShadow>
+        <boxGeometry args={[shedW + 0.55, slabThickness, shedD + 0.55]} />
+        <meshStandardMaterial
+          map={concreteMap ?? undefined}
+          normalMap={concreteNormal ?? undefined}
+          color={concreteMap ? "#ffffff" : "#bdb8ae"}
+          roughness={0.9}
+          metalness={0.02}
+        />
       </mesh>
 
-      {/* Walls */}
-      <mesh position={[0, shedH / 2 + 0.08, 0]} castShadow receiveShadow>
+      {/* Corrugated metal wall shell */}
+      <mesh position={[0, shedH / 2 + slabThickness, 0]} castShadow receiveShadow>
         <boxGeometry args={[shedW, shedH, shedD]} />
-        <meshStandardMaterial color={shedColor} roughness={0.75} metalness={0.25} />
+        <meshStandardMaterial
+          map={shedWallMap ?? undefined}
+          normalMap={shedWallNormal ?? undefined}
+          color={wallColor}
+          roughness={0.66}
+          metalness={0.34}
+          envMapIntensity={0.55}
+        />
       </mesh>
 
-      {/* Corrugated wall texture strips */}
-      {Array.from({ length: 8 }, (_, i) => (
-        <mesh
-          key={`strip-${i}`}
-          position={[0, 0.35 + i * (shedH / 8), shedD / 2 + 0.005]}
-          castShadow
-        >
-          <boxGeometry args={[shedW - 0.04, 0.015, 0.01]} />
-          <meshStandardMaterial
-            color={i % 2 === 0 ? "#7d7063" : shedColor}
-            roughness={0.6}
-            metalness={0.3}
-          />
+      {/* Raised front ribs add real geometry on top of the normal map. */}
+      {corrugationRidges.map((x, i) => (
+        <mesh key={`shed-front-rib-${i}`} position={[x, shedH / 2 + slabThickness, shedD / 2 + 0.014]} castShadow>
+          <boxGeometry args={[0.035, shedH - 0.12, 0.035]} />
+          <meshStandardMaterial color={i % 2 === 0 ? "#5f704f" : "#7d8c68"} roughness={0.62} metalness={0.35} />
         </mesh>
       ))}
 
-      {/* Gable roof */}
-      <mesh
-        position={[0, shedH + 0.08 + roofPeak / 2, -shedD * 0.25]}
-        rotation={[Math.atan2(roofPeak, shedD / 2), 0, 0]}
-        castShadow
-      >
-        <boxGeometry args={[shedW + 0.2, 0.04, shedD / 2 / Math.cos(Math.atan2(roofPeak, shedD / 2)) + 0.1]} />
-        <meshStandardMaterial color={roofColor} roughness={0.5} metalness={0.35} />
-      </mesh>
-      <mesh
-        position={[0, shedH + 0.08 + roofPeak / 2, shedD * 0.25]}
-        rotation={[-Math.atan2(roofPeak, shedD / 2), 0, 0]}
-        castShadow
-      >
-        <boxGeometry args={[shedW + 0.2, 0.04, shedD / 2 / Math.cos(Math.atan2(roofPeak, shedD / 2)) + 0.1]} />
-        <meshStandardMaterial color={roofColor} roughness={0.5} metalness={0.35} />
-      </mesh>
+      {/* Correctly centred gable roof sitting on the wall top. */}
+      <RoofShape
+        width={shedW + 0.55}
+        depth={shedD + 0.7}
+        peakHeight={roofPeak}
+        baseY={shedH + slabThickness}
+        color={roofColor}
+        scale={1}
+        map={shedRoofMap}
+        normalMap={shedRoofNormal}
+        roughnessMap={shedRoofRoughness}
+      />
 
-      {/* Door */}
-      <mesh position={[0, shedH * 0.45 + 0.08, shedD / 2 + 0.015]} castShadow>
-        <boxGeometry args={[1.0, shedH * 0.85, 0.04]} />
-        <meshStandardMaterial color="#6b5d4f" roughness={0.7} metalness={0.2} />
+      {/* Ridge cap and gutters/fascia for a more realistic shed profile. */}
+      <mesh position={[0, shedH + slabThickness + roofPeak + 0.02, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.045, 0.045, shedD + 0.78, 16]} />
+        <meshStandardMaterial color="#d7d2c3" roughness={0.45} metalness={0.35} />
       </mesh>
-      {/* Door handle */}
-      <mesh position={[0.35, shedH * 0.45 + 0.08, shedD / 2 + 0.05]}>
-        <boxGeometry args={[0.08, 0.03, 0.03]} />
-        <meshStandardMaterial color="#999" metalness={0.6} roughness={0.3} />
-      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={`shed-gutter-${side}`} position={[side * (shedW / 2 + 0.22), shedH + slabThickness + 0.03, 0]} castShadow>
+          <boxGeometry args={[0.12, 0.12, shedD + 0.72]} />
+          <meshStandardMaterial color="#d7d2c3" roughness={0.45} metalness={0.35} />
+        </mesh>
+      ))}
+
+      {/* Door with frame and diagonal bracing */}
+      <group position={[0, 0, shedD / 2 + 0.035]}>
+        <mesh position={[0, shedH * 0.43 + slabThickness, 0]} castShadow>
+          <boxGeometry args={[1.05, shedH * 0.82, 0.045]} />
+          <meshStandardMaterial
+            map={shedWallMap ?? undefined}
+            normalMap={shedWallNormal ?? undefined}
+            color="#566b4d"
+            roughness={0.65}
+            metalness={0.32}
+          />
+        </mesh>
+        {[
+          { pos: [0, shedH * 0.84 + slabThickness, 0.03] as [number, number, number], size: [1.16, 0.07, 0.04] as [number, number, number] },
+          { pos: [0, shedH * 0.03 + slabThickness, 0.03] as [number, number, number], size: [1.16, 0.07, 0.04] as [number, number, number] },
+          { pos: [-0.56, shedH * 0.43 + slabThickness, 0.03] as [number, number, number], size: [0.07, shedH * 0.84, 0.04] as [number, number, number] },
+          { pos: [0.56, shedH * 0.43 + slabThickness, 0.03] as [number, number, number], size: [0.07, shedH * 0.84, 0.04] as [number, number, number] },
+        ].map((trim, i) => (
+          <mesh key={`shed-door-trim-${i}`} position={trim.pos} castShadow>
+            <boxGeometry args={trim.size} />
+            <meshStandardMaterial color={trimColor} roughness={0.55} metalness={0.2} />
+          </mesh>
+        ))}
+        <mesh position={[0.36, shedH * 0.46 + slabThickness, 0.07]} castShadow>
+          <boxGeometry args={[0.08, 0.04, 0.045]} />
+          <meshStandardMaterial color="#c9c2b2" metalness={0.65} roughness={0.22} />
+        </mesh>
+      </group>
+
+      {/* Side window */}
+      <group position={[shedW / 2 + 0.035, 1.35, -0.55]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.72, 0.48, 0.04]} />
+          <meshStandardMaterial color="#d7d2c3" roughness={0.45} metalness={0.25} />
+        </mesh>
+        <mesh position={[0, 0, 0.026]}>
+          <boxGeometry args={[0.62, 0.38, 0.018]} />
+          <meshStandardMaterial color="#7da9b7" roughness={0.08} metalness={0.4} transparent opacity={0.62} />
+        </mesh>
+      </group>
     </group>
   )
 }

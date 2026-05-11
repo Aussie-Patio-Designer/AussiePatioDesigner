@@ -1026,6 +1026,8 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
                             <p>• Rotate with left click or touch drag</p>
                             <p>• Zoom with mouse wheel or pinch</p>
                             <p>• Pan with right click or two-finger drag</p>
+                            <p>• Move scene objects by dragging them</p>
+                            <p>• Rotate scene objects with Shift + drag, or double-click for 15° rotation</p>
                           </CardContent>
                         </Card>
 
