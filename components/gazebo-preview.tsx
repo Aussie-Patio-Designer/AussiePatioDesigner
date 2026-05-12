@@ -227,18 +227,89 @@ function ConcretePad({ position, size }: { position: [number, number, number]; s
   )
 }
 
+function HouseWindow({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Recessed shadow pocket for depth */}
+      <mesh position={[0, 0, 0.018]} castShadow>
+        <boxGeometry args={[1.36, 1.24, 0.035]} />
+        <meshStandardMaterial color="#e5e7eb" roughness={0.72} metalness={0.05} />
+      </mesh>
+
+      {/* Dark inner reveal behind the glass */}
+      <mesh position={[0, 0, -0.002]}>
+        <boxGeometry args={[1.18, 1.04, 0.025]} />
+        <meshStandardMaterial color="#111827" roughness={0.55} metalness={0.1} />
+      </mesh>
+
+      {/* Slightly reflective blue glass */}
+      <mesh position={[0, 0, 0.038]} castShadow>
+        <boxGeometry args={[1.08, 0.94, 0.025]} />
+        <meshPhysicalMaterial
+          color="#7dd3fc"
+          roughness={0.08}
+          metalness={0.0}
+          transmission={0.18}
+          thickness={0.035}
+          transparent
+          opacity={0.72}
+          reflectivity={0.85}
+          clearcoat={1}
+          clearcoatRoughness={0.08}
+        />
+      </mesh>
+
+      {/* Window frame and mullions */}
+      <mesh position={[0, 0.52, 0.065]} castShadow>
+        <boxGeometry args={[1.26, 0.075, 0.055]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.38} metalness={0.18} />
+      </mesh>
+      <mesh position={[0, -0.52, 0.065]} castShadow>
+        <boxGeometry args={[1.26, 0.075, 0.055]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.38} metalness={0.18} />
+      </mesh>
+      <mesh position={[-0.61, 0, 0.065]} castShadow>
+        <boxGeometry args={[0.075, 1.11, 0.055]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.38} metalness={0.18} />
+      </mesh>
+      <mesh position={[0.61, 0, 0.065]} castShadow>
+        <boxGeometry args={[0.075, 1.11, 0.055]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.38} metalness={0.18} />
+      </mesh>
+      <mesh position={[0, 0, 0.075]} castShadow>
+        <boxGeometry args={[0.055, 1.02, 0.06]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.38} metalness={0.18} />
+      </mesh>
+      <mesh position={[0, 0, 0.078]} castShadow>
+        <boxGeometry args={[1.12, 0.045, 0.06]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.38} metalness={0.18} />
+      </mesh>
+
+      {/* External sill */}
+      <mesh position={[0, -0.68, 0.12]} castShadow receiveShadow>
+        <boxGeometry args={[1.46, 0.08, 0.22]} />
+        <meshStandardMaterial color="#d1d5db" roughness={0.64} metalness={0.08} />
+      </mesh>
+    </group>
+  )
+}
+
 function HouseAttachment({
   gazeboLength,
   gazeboWidth,
   gazeboHeight,
   roofHighSide,
   attachmentType,
+  roofCladding,
+  roofColorHex,
 }: {
   gazeboLength: number
   gazeboWidth: number
   gazeboHeight: number
   roofHighSide: number
   attachmentType: AttachmentMethod
+  roofCladding: string
+  roofColorHex: string
 }) {
   const houseDepth = 3.2
   const houseHeight = Math.max(roofHighSide + 0.6, 3.0)
@@ -247,9 +318,11 @@ function HouseAttachment({
   const frontWallZ = -gazeboWidth / 2 + 0.02
   const windowBase = 1.0
   const windowHeight = 1.1
-  const windowWidth = 1.2
   const roofAngle = Math.PI / 9
   const roofThickness = 0.18
+  const houseLength = gazeboLength + 4.5
+  const houseRoofDepth = houseDepth + 1.2
+  const houseRoofRise = Math.sin(roofAngle) * houseRoofDepth
   const gutterColor = "#94a3b8"
   const connectionHeight = Math.max(gazeboHeight, Math.min(roofHighSide, houseHeight - 0.2))
   const highlightHeight = Math.max(0.2, Math.min(0.6, connectionHeight - 0.2))
@@ -259,33 +332,37 @@ function HouseAttachment({
     <group>
       {/* Concrete slab under the sample house */}
       <mesh position={[0, slabThickness / 2 - 0.05, wallCenterZ]} receiveShadow>
-        <boxGeometry args={[gazeboLength + 4, slabThickness, houseDepth]} />
+        <boxGeometry args={[houseLength, slabThickness, houseDepth]} />
         <meshStandardMaterial color="#d1d5db" roughness={0.8} metalness={0.1} />
       </mesh>
 
       {/* House body */}
       <mesh position={[0, houseHeight / 2, wallCenterZ]} castShadow receiveShadow>
-        <boxGeometry args={[gazeboLength + 4, houseHeight, houseDepth]} />
+        <boxGeometry args={[houseLength, houseHeight, houseDepth]} />
         <meshStandardMaterial color="#f5f3f0" roughness={0.9} metalness={0.05} />
       </mesh>
 
-      {/* Simple window band for context */}
+      {/* Detailed front windows with frames, glass, reveals and sills */}
       {Array.from({ length: 3 }).map((_, index) => {
         const spacing = (gazeboLength + 2) / 4
         const x = -((gazeboLength + 2) / 2) + spacing * (index + 1)
         return (
-          <mesh key={`house-window-${index}`} position={[x, windowBase + windowHeight / 2, frontWallZ - 0.05]} castShadow>
-            <boxGeometry args={[windowWidth, windowHeight, 0.08]} />
-            <meshStandardMaterial
-              color="#9ca3af"
-              roughness={0.4}
-              metalness={0.5}
-              emissive="#1f2937"
-              emissiveIntensity={0.08}
-            />
-          </mesh>
+          <HouseWindow
+            key={`house-window-${index}`}
+            position={[x, windowBase + windowHeight / 2, frontWallZ - 0.07]}
+          />
         )
       })}
+
+      {/* House roof uses the same cladding profile logic and selected roof colour as the patio roof. */}
+      <RoofCladdingProfile
+        claddingType={roofCladding}
+        dimensions={[houseLength, houseRoofDepth / Math.cos(roofAngle)]}
+        position={[0, houseHeight + houseRoofRise / 2 + roofThickness / 2, wallCenterZ - 0.08]}
+        rotation={[-Math.PI / 2 + roofAngle, 0, 0]}
+        color={roofColorHex}
+        underneathColor="#e4e3dc"
+      />
 
       {/* Wall attachment highlight */}
       {attachmentType === "wall" && (
@@ -316,15 +393,7 @@ function HouseAttachment({
       {/* Roof penetration detail */}
       {attachmentType === "roof_penetration" && (
         <group>
-          <mesh
-            position={[0, houseHeight + roofThickness / 2, wallCenterZ - houseDepth / 4]}
-            rotation={[roofAngle, 0, 0]}
-            castShadow
-            receiveShadow
-          >
-            <boxGeometry args={[gazeboLength + 4.5, roofThickness, houseDepth + 1.2]} />
-            <meshStandardMaterial color="#cbd5f5" roughness={0.35} metalness={0.4} />
-          </mesh>
+          {/* Penetration flashing sits over the shared cladded house roof. */}
           <mesh position={[0, houseHeight + 0.7, frontWallZ - 0.3]} castShadow>
             <boxGeometry args={[0.6, 0.5, 0.6]} />
             <meshStandardMaterial color="#94a3b8" roughness={0.5} metalness={0.3} />
@@ -719,6 +788,8 @@ function GazeboStructure(props: GazeboPreviewProps) {
           gazeboHeight={scaleHeight}
           roofHighSide={roofHighSide}
           attachmentType={resolvedAttachmentType}
+          roofCladding={roofCladding || "Corrugated"}
+          roofColorHex={roofColorHex}
         />
       )}
 
@@ -1358,7 +1429,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
     <div className="w-full h-full bg-gradient-to-b from-blue-100 to-green-100 rounded-lg overflow-hidden">
       <Canvas
         camera={{
-          position: [-12, 8, -12],
+          position: [12, 8, -12],
           fov: 38,
           near: 0.1,
           far: 200,

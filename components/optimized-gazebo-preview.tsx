@@ -169,7 +169,7 @@ const OptimizedGazeboPreview = forwardRef<any, GazeboPreviewProps>((props, ref) 
   const canvasProps = useMemo(
     () => ({
       camera: {
-        position: [-8, 6, -8] as [number, number, number], // Changed to opposite side
+        position: [8, 6, -8] as [number, number, number], // Start 90° to the right while keeping the front/house side visible
         fov: 35, // Reduced FOV for more isometric-like view
       },
       shadows: true,
