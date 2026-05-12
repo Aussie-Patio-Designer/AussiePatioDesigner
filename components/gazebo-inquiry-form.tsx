@@ -122,13 +122,10 @@ const getPitchOptions = (roofType: "Gable" | "Skillion") =>
 const environmentOptions: { key: keyof EnvironmentVisibility; label: string; description: string }[] = [
   { key: "house", label: "House", description: "Show the reference house behind the patio" },
   { key: "pool", label: "Pool", description: "Show the blue swimming pool" },
-  { key: "shed", label: "Shed", description: "Show the backyard garden shed" },
   { key: "trees", label: "Trees", description: "Show smaller boundary trees" },
   { key: "fences", label: "Fences", description: "Show Colourbond boundary fences" },
   { key: "furniture", label: "Furniture", description: "Show outdoor table and BBQ setting" },
   { key: "gardenBeds", label: "Garden beds", description: "Show landscaping beds" },
-  { key: "clothesline", label: "Clothesline", description: "Show the clothesline" },
-  { key: "driveway", label: "Driveway", description: "Show the concrete driveway" },
 ]
 
 // Simplified roof cladding options - only 2 options
