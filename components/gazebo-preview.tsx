@@ -1414,7 +1414,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
 
           <GazeboStructure {...props} />
 
-          {/* Realistic backyard environment with house, pool, shed, trees, fences */}
+          {/* Realistic backyard environment with house, pool, trees, fences and landscaping */}
           <BackyardEnvironment
             gazeboLength={props.length}
             gazeboWidth={props.width}

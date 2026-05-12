@@ -1,31 +1,26 @@
 "use client"
 
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Html } from "@react-three/drei"
 import type { ThreeEvent } from "@react-three/fiber"
 import * as THREE from "three"
 
 export type EnvironmentVisibility = {
   house: boolean
   pool: boolean
-  shed: boolean
   trees: boolean
   fences: boolean
   furniture: boolean
   gardenBeds: boolean
-  clothesline: boolean
-  driveway: boolean
 }
 
 export const defaultEnvironmentVisibility: EnvironmentVisibility = {
   house: true,
   pool: true,
-  shed: false,
   trees: true,
-  fences: false,
+  fences: true,
   furniture: false,
   gardenBeds: false,
-  clothesline: false,
-  driveway: false,
 }
 
 
@@ -67,6 +62,7 @@ function DraggableSceneObject({
 }) {
   const [position, setPosition] = useState<[number, number, number]>(initialPosition)
   const [rotationY, setRotationY] = useState(0)
+  const [isHovered, setIsHovered] = useState(false)
   const interactionModeRef = useRef<"move" | "rotate" | null>(null)
   const dragOffsetRef = useRef(new THREE.Vector3())
   const dragPointRef = useRef(new THREE.Vector3())
@@ -95,6 +91,15 @@ function DraggableSceneObject({
     <group
       position={position}
       rotation={[0, rotationY, 0]}
+      onPointerOver={(event) => {
+        event.stopPropagation()
+        setIsHovered(true)
+      }}
+      onPointerOut={() => {
+        if (!interactionModeRef.current) {
+          setIsHovered(false)
+        }
+      }}
       onDoubleClick={(event) => {
         event.stopPropagation()
         setRotationY((current) => current + Math.PI / 12)
@@ -109,6 +114,7 @@ function DraggableSceneObject({
         startPointerXRef.current = event.nativeEvent.clientX
         startRotationYRef.current = rotationY
         event.target.setPointerCapture?.(event.pointerId)
+        setIsHovered(false)
         onDragChange?.(true)
       }}
       onPointerMove={(event) => {
@@ -131,6 +137,13 @@ function DraggableSceneObject({
       onLostPointerCapture={stopDragging}
     >
       {children}
+      {isHovered && (
+        <Html center position={[0, 2.6, 0]} style={{ pointerEvents: "none" }}>
+          <div className="w-48 rounded-lg border border-white/50 bg-slate-900/70 px-3 py-2 text-center text-xs font-medium leading-5 text-white shadow-xl backdrop-blur-sm">
+            Drag to move. Shift+drag to rotate. Double-click to turn.
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
@@ -149,10 +162,10 @@ export function RealisticHouse({
 }) {
   const wallColor = "#f0ebe3"
   const trimColor = "#e8e1d5"
-  const roofColor = "#3d3f42"
+  const roofColor = "#BDBFBA" // COLORBOND® Shale Grey-inspired finish
   const windowColor = "#6ba3c7"
   const doorColor = "#5a3a28"
-  const gutterColor = "#7a7d82"
+  const gutterColor = "#8f928d"
 
   const houseWidth = 10 * scale
   const houseDepth = 8 * scale
@@ -183,6 +196,28 @@ export function RealisticHouse({
         color={roofColor}
         scale={scale}
       />
+
+      {/* Raised Colorbond-style roof ribs running down each gable face. */}
+      {[-1, 1].map((side) =>
+        Array.from({ length: 9 }, (_, i) => {
+          const x = side * (0.65 * scale + i * 0.48 * scale)
+          const y = wallHeight + slabThickness + roofPeakExtra * (1 - Math.abs(x) / ((houseWidth + 0.6) / 2)) + 0.025
+          const ribAngle = side > 0 ? -Math.atan(roofPeakExtra / ((houseWidth + 0.6) / 2)) : Math.atan(roofPeakExtra / ((houseWidth + 0.6) / 2))
+
+          return (
+            <mesh key={`house-roof-rib-${side}-${i}`} position={[x, y, 0]} rotation={[0, 0, ribAngle]} castShadow>
+              <boxGeometry args={[0.035 * scale, 0.035 * scale, houseDepth + 0.75]} />
+              <meshStandardMaterial color="#d5d7d2" roughness={0.36} metalness={0.48} />
+            </mesh>
+          )
+        }),
+      )}
+
+      {/* Ridge cap for the Colorbond roof system. */}
+      <mesh position={[0, wallHeight + slabThickness + roofPeakExtra + 0.03, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.055 * scale, 0.055 * scale, houseDepth + 0.75, 16]} />
+        <meshStandardMaterial color="#d5d7d2" roughness={0.35} metalness={0.5} />
+      </mesh>
 
       {/* Gutter strips */}
       {[-1, 1].map((side, i) => (
@@ -1047,6 +1082,11 @@ export function BackyardEnvironment({
   const gl = gazeboLength / 1000
   const gw = gazeboWidth / 1000
 
+  const backFenceZ = -(gw / 2 + 15)
+  const frontFenceZ = gw / 2 + 12
+  const leftFenceX = -(gl / 2 + 14)
+  const rightFenceX = gl / 2 + 14
+
   return (
     <group>
       {/* House – behind the gazebo if not attached */}
@@ -1060,13 +1100,6 @@ export function BackyardEnvironment({
       {visibility.pool && (
         <DraggableSceneObject initialPosition={[gl / 2 + 7.4, 0, gw / 2 + 4.7]} onDragChange={onObjectDragChange}>
           <SwimmingPool position={[0, 0, 0]} rotation={[0, -0.38, 0]} />
-        </DraggableSceneObject>
-      )}
-
-      {/* Garden shed – back-left corner */}
-      {visibility.shed && (
-        <DraggableSceneObject initialPosition={[-(gl / 2 + 8.2), 0, gw / 2 + 7.2]} onDragChange={onObjectDragChange}>
-          <GardenShed position={[0, 0, 0]} rotation={[0, 0.55, 0]} />
         </DraggableSceneObject>
       )}
 
@@ -1096,26 +1129,26 @@ export function BackyardEnvironment({
       {visibility.fences && (
         <DraggableSceneObject initialPosition={[0, 0, 0]} onDragChange={onObjectDragChange}>
           <ColourbondFence
-            start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
-            end={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
+            start={[leftFenceX, 0, backFenceZ]}
+            end={[rightFenceX, 0, backFenceZ]}
             height={1.8}
             color="#3e4a47"
           />
           <ColourbondFence
-            start={[-(gl / 2 + 14), 0, -(gw / 2 + 10)]}
-            end={[-(gl / 2 + 14), 0, gw / 2 + 12]}
+            start={[leftFenceX, 0, backFenceZ]}
+            end={[leftFenceX, 0, frontFenceZ]}
             height={1.8}
             color="#3e4a47"
           />
           <ColourbondFence
-            start={[gl / 2 + 14, 0, -(gw / 2 + 10)]}
-            end={[gl / 2 + 14, 0, gw / 2 + 12]}
+            start={[rightFenceX, 0, backFenceZ]}
+            end={[rightFenceX, 0, frontFenceZ]}
             height={1.8}
             color="#3e4a47"
           />
           <ColourbondFence
-            start={[-(gl / 2 + 14), 0, gw / 2 + 12]}
-            end={[gl / 2 + 14, 0, gw / 2 + 12]}
+            start={[leftFenceX, 0, frontFenceZ]}
+            end={[rightFenceX, 0, frontFenceZ]}
             height={1.8}
             color="#3e4a47"
           />
@@ -1137,19 +1170,6 @@ export function BackyardEnvironment({
         </>
       )}
 
-      {/* Clothesline */}
-      {visibility.clothesline && (
-        <DraggableSceneObject initialPosition={[-(gl / 2 + 6.5), 0, gw / 2 + 9.4]} onDragChange={onObjectDragChange}>
-          <Clothesline position={[0, 0, 0]} />
-        </DraggableSceneObject>
-      )}
-
-      {/* Driveway */}
-      {visibility.driveway && (
-        <DraggableSceneObject initialPosition={[gl / 2 + 10, 0.005, -(gw / 2 + 5.8)]} onDragChange={onObjectDragChange}>
-          <Driveway position={[0, 0, 0]} rotation={[0, -0.12, 0]} />
-        </DraggableSceneObject>
-      )}
     </group>
   )
 }
