@@ -172,15 +172,12 @@ export function RealisticHouse({
   const wallHeight = 2.8 * scale
   const roofPeakExtra = 1.6 * scale
   const slabThickness = 0.15 * scale
-  const roofWidth = houseWidth + 0.9 * scale
-  const roofDepth = houseDepth + 0.95 * scale
+  const roofWidth = houseWidth + 0.7 * scale
+  const roofDepth = houseDepth + 0.7 * scale
   const roofHalfSpan = roofWidth / 2
   const roofSlopeAngle = Math.atan(roofPeakExtra / roofHalfSpan)
-  const houseRoofMap = useRepeatedTexture("/textures/roof-basecolor.png", [3.8, 2.4])
-  const houseRoofNormal = useRepeatedTexture("/textures/roof-normal.png", [3.8, 2.4], false)
-  const houseRoofRoughness = useRepeatedTexture("/textures/roof-orm.png", [3.8, 2.4], false)
   const corrugationRidges = useMemo(
-    () => Array.from({ length: 22 }, (_, i) => -roofHalfSpan + (i + 0.5) * (roofWidth / 22)),
+    () => Array.from({ length: 14 }, (_, i) => -roofHalfSpan + (i + 0.5) * (roofWidth / 14)),
     [roofHalfSpan, roofWidth],
   )
 
@@ -213,7 +210,7 @@ export function RealisticHouse({
 
       {/* Raised Colorbond-style roof ribs following both gable faces. */}
       {corrugationRidges.map((x, i) => {
-        if (Math.abs(x) < 0.12 * scale) return null
+        if (Math.abs(x) < 0.18 * scale) return null
 
         const side = x > 0 ? 1 : -1
         const y = wallHeight + slabThickness + roofPeakExtra * (1 - Math.abs(x) / roofHalfSpan) + 0.026 * scale
@@ -221,42 +218,28 @@ export function RealisticHouse({
 
         return (
           <mesh key={`house-roof-rib-${i}`} position={[x, y, 0]} rotation={[0, 0, ribAngle]} castShadow>
-            <boxGeometry args={[0.03 * scale, 0.026 * scale, roofDepth + 0.03 * scale]} />
-            <meshStandardMaterial color="#d7d9d3" roughness={0.42} metalness={0.36} envMapIntensity={0.45} />
+            <boxGeometry args={[0.026 * scale, 0.018 * scale, roofDepth + 0.02 * scale]} />
+            <meshStandardMaterial color="#c9cbc6" roughness={0.58} metalness={0.22} envMapIntensity={0.25} />
           </mesh>
         )
       })}
 
       {/* Ridge cap for the Colorbond roof system. */}
       <mesh position={[0, wallHeight + slabThickness + roofPeakExtra + 0.03, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.06 * scale, 0.06 * scale, roofDepth + 0.08 * scale, 16]} />
-        <meshStandardMaterial color="#d7d9d3" roughness={0.38} metalness={0.42} envMapIntensity={0.5} />
+        <cylinderGeometry args={[0.055 * scale, 0.055 * scale, roofDepth + 0.04 * scale, 16]} />
+        <meshStandardMaterial color="#c9cbc6" roughness={0.52} metalness={0.25} envMapIntensity={0.3} />
       </mesh>
 
       {/* Fascia boards and eave gutters, placed on the low edges of the gable roof. */}
       {[-1, 1].map((side, i) => (
         <group key={`house-eave-${i}`}>
           <mesh position={[side * (roofWidth / 2 + 0.02 * scale), wallHeight + slabThickness + 0.04 * scale, 0]} castShadow>
-            <boxGeometry args={[0.1 * scale, 0.22 * scale, roofDepth + 0.04 * scale]} />
+            <boxGeometry args={[0.08 * scale, 0.16 * scale, roofDepth + 0.02 * scale]} />
             <meshStandardMaterial color="#d9d7ce" roughness={0.55} metalness={0.12} />
           </mesh>
           <mesh position={[side * (roofWidth / 2 + 0.14 * scale), wallHeight + slabThickness - 0.07 * scale, 0]} castShadow>
-            <boxGeometry args={[0.18 * scale, 0.16 * scale, roofDepth + 0.12 * scale]} />
-            <meshStandardMaterial color={gutterColor} roughness={0.36} metalness={0.48} envMapIntensity={0.45} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Front and rear barge caps finish the roof edges instead of leaving a flat cut. */}
-      {[-1, 1].map((side, i) => (
-        <group key={`house-barge-${i}`} position={[0, wallHeight + slabThickness + roofPeakExtra / 2, side * (roofDepth / 2 + 0.03 * scale)]}>
-          <mesh position={[-roofWidth / 4, 0, 0]} rotation={[0, 0, roofSlopeAngle]} castShadow>
-            <boxGeometry args={[roofHalfSpan + 0.12 * scale, 0.09 * scale, 0.09 * scale]} />
-            <meshStandardMaterial color="#d9d7ce" roughness={0.52} metalness={0.18} />
-          </mesh>
-          <mesh position={[roofWidth / 4, 0, 0]} rotation={[0, 0, -roofSlopeAngle]} castShadow>
-            <boxGeometry args={[roofHalfSpan + 0.12 * scale, 0.09 * scale, 0.09 * scale]} />
-            <meshStandardMaterial color="#d9d7ce" roughness={0.52} metalness={0.18} />
+            <boxGeometry args={[0.14 * scale, 0.11 * scale, roofDepth + 0.04 * scale]} />
+            <meshStandardMaterial color={gutterColor} roughness={0.45} metalness={0.32} envMapIntensity={0.32} />
           </mesh>
         </group>
       ))}
