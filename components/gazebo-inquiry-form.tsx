@@ -163,15 +163,25 @@ export default function GazeboInquiryForm({ agentData }: GazeboInquiryFormProps 
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const storedValue = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
-    if (storedValue !== null) {
-      setIsSidebarCollapsed(storedValue === "true")
+
+    try {
+      const storedValue = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
+      if (storedValue !== null) {
+        setIsSidebarCollapsed(storedValue === "true")
+      }
+    } catch (error) {
+      console.warn("Sidebar preference could not be read from local storage.", error)
     }
   }, [])
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isSidebarCollapsed))
+
+    try {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isSidebarCollapsed))
+    } catch (error) {
+      console.warn("Sidebar preference could not be saved to local storage.", error)
+    }
   }, [isSidebarCollapsed])
 
   // Pure function to extract URL parameters without side effects

@@ -4,8 +4,31 @@ import dynamic from "next/dynamic"
 import { useEffect, useRef, useState } from "react"
 import { ArrowRight, Box, Loader2 } from "lucide-react"
 
+import { ClientErrorBoundary } from "@/components/client-error-boundary"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+
+function DesignerErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
+  return (
+    <Card className="border-red-100 bg-white shadow-xl shadow-red-950/5">
+      <CardContent className="flex min-h-[420px] flex-col items-center justify-center gap-5 p-8 text-center">
+        <div className="rounded-full bg-red-50 p-4 text-red-700">
+          <Box className="size-8" aria-hidden="true" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-slate-950">The designer could not load safely</h2>
+          <p className="max-w-xl text-slate-600">
+            Your design details form is still available, but this browser stopped the interactive designer from loading.
+          </p>
+          <p className="max-w-xl text-xs text-slate-500">{error.message}</p>
+        </div>
+        <Button type="button" variant="outline" onClick={onRetry}>
+          Try loading again
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
 
 function DesignerLoadingState() {
   return (
@@ -38,6 +61,11 @@ export default function LazyGazeboDesigner() {
     const section = sectionRef.current
 
     if (!section || shouldLoadDesigner) {
+      return
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoadDesigner(true)
       return
     }
 
@@ -82,7 +110,14 @@ export default function LazyGazeboDesigner() {
       </div>
 
       {shouldLoadDesigner ? (
-        <GazeboFormWrapper />
+        <ClientErrorBoundary
+          fallback={(error, reset) => <DesignerErrorState error={error} onRetry={reset} />}
+          onError={(error, errorInfo) => {
+            console.error("3D designer failed to render", error, errorInfo)
+          }}
+        >
+          <GazeboFormWrapper />
+        </ClientErrorBoundary>
       ) : (
         <Card className="overflow-hidden border-emerald-100 bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-900 text-white shadow-2xl shadow-slate-950/20">
           <CardContent className="grid min-h-[420px] gap-8 p-8 lg:grid-cols-[0.8fr_1.2fr] lg:p-10">

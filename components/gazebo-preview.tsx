@@ -1336,13 +1336,39 @@ function RoofCladdingProfile({
 
 function LoadingFallback() {
   return (
-    <div className="flex items-center justify-center h-full bg-gradient-to-b from-blue-100 to-green-100">
+    <div className="flex h-full items-center justify-center bg-gradient-to-b from-blue-100 to-green-100">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+        <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
         <p className="text-sm text-gray-600">Loading 3D preview...</p>
       </div>
     </div>
   )
+}
+
+function PreviewUnavailableFallback({ message }: { message: string }) {
+  return (
+    <div className="flex h-full min-h-[420px] items-center justify-center bg-gradient-to-b from-blue-100 to-green-100 p-6">
+      <div className="max-w-md rounded-2xl bg-white/90 p-6 text-center shadow-xl shadow-slate-950/10">
+        <h3 className="text-lg font-semibold text-slate-950">3D preview unavailable</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-600">{message}</p>
+        <p className="mt-3 text-xs text-slate-500">
+          You can still complete the patio details and submit your quote request.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function browserSupportsWebGL() {
+  if (typeof window === "undefined") return false
+
+  try {
+    const canvas = document.createElement("canvas")
+    return !!(window.WebGLRenderingContext && (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")))
+  } catch (error) {
+    console.warn("WebGL support check failed.", error)
+    return false
+  }
 }
 
 // Component to capture screenshot
@@ -1409,6 +1435,11 @@ SceneCapture.displayName = "SceneCapture"
 const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, ref) => {
   const sceneRef = useRef<any>()
   const [isDraggingSceneObject, setIsDraggingSceneObject] = useState(false)
+  const [webglSupport, setWebglSupport] = useState<"checking" | "supported" | "unsupported">("checking")
+
+  useEffect(() => {
+    setWebglSupport(browserSupportsWebGL() ? "supported" : "unsupported")
+  }, [])
 
   useImperativeHandle(ref, () => ({
     captureScreenshot: async (): Promise<string | null> => {
@@ -1424,6 +1455,22 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
       }
     },
   }))
+
+  if (webglSupport === "checking") {
+    return (
+      <div className="h-full w-full overflow-hidden rounded-lg">
+        <LoadingFallback />
+      </div>
+    )
+  }
+
+  if (webglSupport === "unsupported") {
+    return (
+      <div className="h-full w-full overflow-hidden rounded-lg">
+        <PreviewUnavailableFallback message="This browser or device does not currently provide WebGL, which is required for the interactive 3D scene." />
+      </div>
+    )
+  }
 
   return (
     <div className="w-full h-full bg-gradient-to-b from-blue-100 to-green-100 rounded-lg overflow-hidden">
@@ -1445,6 +1492,9 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
           depth: true,
           preserveDrawingBuffer: true, // Keeps screenshot/export support available.
         }}
+        fallback={
+          <PreviewUnavailableFallback message="The 3D preview could not start because this browser failed to create a WebGL drawing context." />
+        }
         onCreated={({ gl }) => {
           gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFSoftShadowMap
