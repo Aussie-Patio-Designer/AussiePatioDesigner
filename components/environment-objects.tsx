@@ -203,6 +203,9 @@ export function RealisticHouse({
         baseY={wallHeight + slabThickness}
         color={roofColor}
         scale={scale}
+        map={houseRoofMap}
+        normalMap={houseRoofNormal}
+        roughnessMap={houseRoofRoughness}
       />
 
       {/* Raised Colorbond-style roof ribs following both gable faces. */}
