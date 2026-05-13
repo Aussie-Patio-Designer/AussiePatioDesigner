@@ -187,7 +187,7 @@ export function RealisticHouse({
         <meshStandardMaterial color={wallColor} roughness={0.85} metalness={0.02} />
       </mesh>
 
-      {/* Roof – gable along width */}
+      {/* Default house roof – clean gable with the original Colorbond-style finish. */}
       <RoofShape
         width={houseWidth + 0.6}
         depth={houseDepth + 0.6}
@@ -197,7 +197,7 @@ export function RealisticHouse({
         scale={scale}
       />
 
-      {/* Raised Colorbond-style roof ribs running down each gable face. */}
+      {/* Subtle raised roof ribs using the original simple roof treatment. */}
       {[-1, 1].map((side) =>
         Array.from({ length: 9 }, (_, i) => {
           const x = side * (0.65 * scale + i * 0.48 * scale)
@@ -219,7 +219,7 @@ export function RealisticHouse({
         <meshStandardMaterial color="#d5d7d2" roughness={0.35} metalness={0.5} />
       </mesh>
 
-      {/* Gutter strips */}
+      {/* Original clean gutter strips. */}
       {[-1, 1].map((side, i) => (
         <mesh
           key={`gutter-${i}`}

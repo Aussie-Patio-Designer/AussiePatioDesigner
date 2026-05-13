@@ -1429,7 +1429,7 @@ const GazeboPreview = forwardRef<GazeboPreviewRef, GazeboPreviewProps>((props, r
     <div className="w-full h-full bg-gradient-to-b from-blue-100 to-green-100 rounded-lg overflow-hidden">
       <Canvas
         camera={{
-          position: [12, 8, -12],
+          position: [12, 8, 12],
           fov: 38,
           near: 0.1,
           far: 200,
