@@ -172,6 +172,14 @@ export function RealisticHouse({
   const wallHeight = 2.8 * scale
   const roofPeakExtra = 1.6 * scale
   const slabThickness = 0.15 * scale
+  const roofWidth = houseWidth + 0.7 * scale
+  const roofDepth = houseDepth + 0.7 * scale
+  const roofHalfSpan = roofWidth / 2
+  const roofSlopeAngle = Math.atan(roofPeakExtra / roofHalfSpan)
+  const corrugationRidges = useMemo(
+    () => Array.from({ length: 14 }, (_, i) => -roofHalfSpan + (i + 0.5) * (roofWidth / 14)),
+    [roofHalfSpan, roofWidth],
+  )
 
   return (
     <group position={position} rotation={rotation}>
@@ -189,46 +197,48 @@ export function RealisticHouse({
 
       {/* Roof – gable along width */}
       <RoofShape
-        width={houseWidth + 0.6}
-        depth={houseDepth + 0.6}
+        width={roofWidth}
+        depth={roofDepth}
         peakHeight={roofPeakExtra}
         baseY={wallHeight + slabThickness}
         color={roofColor}
         scale={scale}
       />
 
-      {/* Raised Colorbond-style roof ribs running down each gable face. */}
-      {[-1, 1].map((side) =>
-        Array.from({ length: 9 }, (_, i) => {
-          const x = side * (0.65 * scale + i * 0.48 * scale)
-          const y = wallHeight + slabThickness + roofPeakExtra * (1 - Math.abs(x) / ((houseWidth + 0.6) / 2)) + 0.025
-          const ribAngle = side > 0 ? -Math.atan(roofPeakExtra / ((houseWidth + 0.6) / 2)) : Math.atan(roofPeakExtra / ((houseWidth + 0.6) / 2))
+      {/* Raised Colorbond-style roof ribs following both gable faces. */}
+      {corrugationRidges.map((x, i) => {
+        if (Math.abs(x) < 0.18 * scale) return null
 
-          return (
-            <mesh key={`house-roof-rib-${side}-${i}`} position={[x, y, 0]} rotation={[0, 0, ribAngle]} castShadow>
-              <boxGeometry args={[0.035 * scale, 0.035 * scale, houseDepth + 0.75]} />
-              <meshStandardMaterial color="#d5d7d2" roughness={0.36} metalness={0.48} />
-            </mesh>
-          )
-        }),
-      )}
+        const side = x > 0 ? 1 : -1
+        const y = wallHeight + slabThickness + roofPeakExtra * (1 - Math.abs(x) / roofHalfSpan) + 0.026 * scale
+        const ribAngle = side > 0 ? -roofSlopeAngle : roofSlopeAngle
+
+        return (
+          <mesh key={`house-roof-rib-${i}`} position={[x, y, 0]} rotation={[0, 0, ribAngle]} castShadow>
+            <boxGeometry args={[0.026 * scale, 0.018 * scale, roofDepth + 0.02 * scale]} />
+            <meshStandardMaterial color="#c9cbc6" roughness={0.58} metalness={0.22} envMapIntensity={0.25} />
+          </mesh>
+        )
+      })}
 
       {/* Ridge cap for the Colorbond roof system. */}
       <mesh position={[0, wallHeight + slabThickness + roofPeakExtra + 0.03, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.055 * scale, 0.055 * scale, houseDepth + 0.75, 16]} />
-        <meshStandardMaterial color="#d5d7d2" roughness={0.35} metalness={0.5} />
+        <cylinderGeometry args={[0.055 * scale, 0.055 * scale, roofDepth + 0.04 * scale, 16]} />
+        <meshStandardMaterial color="#c9cbc6" roughness={0.52} metalness={0.25} envMapIntensity={0.3} />
       </mesh>
 
-      {/* Gutter strips */}
+      {/* Fascia boards and eave gutters, placed on the low edges of the gable roof. */}
       {[-1, 1].map((side, i) => (
-        <mesh
-          key={`gutter-${i}`}
-          position={[0, wallHeight + slabThickness - 0.05, (side * (houseDepth + 0.6)) / 2]}
-          castShadow
-        >
-          <boxGeometry args={[houseWidth + 0.8, 0.1, 0.12]} />
-          <meshStandardMaterial color={gutterColor} roughness={0.4} metalness={0.5} />
-        </mesh>
+        <group key={`house-eave-${i}`}>
+          <mesh position={[side * (roofWidth / 2 + 0.02 * scale), wallHeight + slabThickness + 0.04 * scale, 0]} castShadow>
+            <boxGeometry args={[0.08 * scale, 0.16 * scale, roofDepth + 0.02 * scale]} />
+            <meshStandardMaterial color="#d9d7ce" roughness={0.55} metalness={0.12} />
+          </mesh>
+          <mesh position={[side * (roofWidth / 2 + 0.14 * scale), wallHeight + slabThickness - 0.07 * scale, 0]} castShadow>
+            <boxGeometry args={[0.14 * scale, 0.11 * scale, roofDepth + 0.04 * scale]} />
+            <meshStandardMaterial color={gutterColor} roughness={0.45} metalness={0.32} envMapIntensity={0.32} />
+          </mesh>
+        </group>
       ))}
 
       {/* Front windows (3 evenly spaced) */}
