@@ -1,49 +1,16 @@
 import Link from "next/link"
 import type { Metadata } from "next"
-import { ArrowRight, CheckCircle2, Gauge, Palette, Ruler, Sparkles } from "lucide-react"
+import { ArrowRight, CheckCircle2, Palette, Ruler, Sparkles } from "lucide-react"
 
-import LazyGazeboDesigner from "@/components/lazy-gazebo-designer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { SITE_NAME, SITE_URL } from "@/lib/site"
 
 export const metadata: Metadata = {
-  title: "Free 3D Patio Designer Australia",
+  title: "Aussie Patio Designer | Design your patio in 3D",
   description:
-    "Design a patio or gazebo online in 3D with Australian roof profiles, Colorbond-style colours, real dimensions and quote-ready project details.",
-  keywords: [
-    "free patio designer Australia",
-    "3D patio designer",
-    "patio design tool",
-    "gazebo designer",
-    "Colorbond patio colours",
-    "patio quote Australia",
-  ],
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    type: "website",
-    title: "Free 3D Patio Designer Australia",
-    description:
-      "Plan roof type, Colorbond-style colours, size and layout before requesting a patio quote.",
-    url: SITE_URL,
-    images: [
-      {
-        url: "/og-patio-designer.jpg",
-        width: 1200,
-        height: 630,
-        alt: "3D patio designer for Australian outdoor living projects",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Free 3D Patio Designer Australia",
-    description:
-      "Create a 3D patio concept with roof styles, dimensions and Colorbond-style colours.",
-    images: ["/og-patio-designer.jpg"],
-  },
+    "Create a clear patio or gazebo concept with roof styles, real dimensions and Colorbond-style colours, then use it as a quote-ready brief.",
+  alternates: { canonical: "/" },
 }
 
 const applicationJsonLd = {
@@ -51,147 +18,102 @@ const applicationJsonLd = {
   "@type": "WebApplication",
   name: SITE_NAME,
   url: SITE_URL,
-  applicationCategory: "DesignApplication",
-  operatingSystem: "Web",
-  description:
-    "Australian 3D patio and gazebo design tool for planning roof styles, Colorbond-style colours, dimensions and quote-ready project details.",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "AUD",
-  },
-  areaServed: {
-    "@type": "Country",
-    name: "Australia",
-  },
 }
 
-const benefits = [
+const roofCards = [
   {
-    title: "Better visual quality",
+    title: "The Classic Gable",
+    label: "GABLE ROOF",
+    pitch: "15°-25°",
+    span: "8m",
     description:
-      "Preview roof shape, posts, colours and proportions before you speak with an installer.",
-    icon: Sparkles,
+      "Create a feeling of space and light with a high-pitched traditional roofline.",
   },
   {
-    title: "Real dimensions",
+    title: "Modern Skillion",
+    label: "SKILLION ROOF",
+    pitch: "2°-10°",
+    span: "6m",
     description:
-      "Plan length, width, height and roof pitch so your enquiry is easier to price.",
-    icon: Ruler,
-  },
-  {
-    title: "Colorbond-style palettes",
-    description:
-      "Test roof, post and beam colour combinations for Australian outdoor living.",
-    icon: Palette,
-  },
-  {
-    title: "Faster page load",
-    description:
-      "The landing page is lightweight, and the interactive 3D designer loads only when needed.",
-    icon: Gauge,
+      "A sleek, single-slope design that complements contemporary Australian architecture.",
   },
 ]
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 text-slate-950">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(applicationJsonLd) }}
-      />
+    <main className="bg-[#fdf9ee] text-[#1c1c15]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(applicationJsonLd) }} />
 
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-        <header className="grid gap-8 rounded-[2rem] border border-emerald-100 bg-white/90 p-6 shadow-2xl shadow-emerald-950/5 sm:p-8 lg:grid-cols-[1.05fr_0.95fr] lg:p-10">
-          <div className="flex flex-col justify-center gap-6">
-            <div className="space-y-4">
-              <p className="inline-flex w-fit rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
-                Free Australian patio design tool
-              </p>
-              <h1 className="text-balance text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-                Design your patio in 3D before requesting a quote
-              </h1>
-              <p className="max-w-2xl text-lg leading-8 text-slate-600">
-                Create a clear patio or gazebo concept with roof styles, real dimensions and Colorbond-style colours, then use it as a quote-ready brief.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
+      <section className="relative min-h-[78vh] overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#273136]/90 via-[#273136]/60 to-transparent" />
+        <div className="relative mx-auto flex min-h-[78vh] w-full max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
+          <div className="max-w-2xl text-white">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Free Australian patio design tool</p>
+            <h1 className="mb-6 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">Design your patio in 3D before requesting a quote</h1>
+            <p className="mb-10 text-lg text-white/90">Create a clear patio or gazebo concept with roof styles, real dimensions and Colorbond-style colours, then use it as a quote-ready brief.</p>
+            <div className="flex flex-col gap-4 sm:flex-row">
               <Button asChild size="lg" className="bg-emerald-700 hover:bg-emerald-800">
-                <a href="#designer">
-                  Start designing
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </a>
+                <Link href="/design">Start Designing <ArrowRight className="size-4" /></Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/blog">
-                  Read patio guides
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </Link>
+              <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10 hover:text-white">
+                <Link href="/blog">Read Patio Guides</Link>
               </Button>
             </div>
-
-            <ul className="grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+            <ul className="mt-10 grid grid-cols-1 gap-3 text-sm uppercase tracking-wide text-white/80 sm:grid-cols-2">
               {[
-                "Gable and skillion-style roof planning",
-                "Colorbond-style roof and frame colours",
-                "Fast design brief for installers",
+                "Gable and skillion styles",
+                "Colorbond-style colors",
+                "Fast brief for installers",
                 "No app download required",
               ].map((item) => (
-                <li key={item} className="flex items-center gap-2">
-                  <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
-                  <span>{item}</span>
-                </li>
+                <li key={item} className="flex items-center gap-2"><CheckCircle2 className="size-4 text-amber-300" />{item}</li>
               ))}
             </ul>
           </div>
+        </div>
+      </section>
 
-          <div className="relative min-h-[360px] overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-400 via-teal-500 to-sky-500 p-6 text-white shadow-xl shadow-emerald-950/20">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.35),transparent_28%),linear-gradient(135deg,rgba(15,23,42,0.1),rgba(15,23,42,0.45))]" />
-            <div className="relative flex h-full flex-col justify-between gap-8">
-              <div className="space-y-3">
-                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-50">
-                  Premium preview
-                </p>
-                <h2 className="text-3xl font-bold">3D patio concept in minutes</h2>
-                <p className="max-w-md leading-7 text-emerald-50">
-                  The full 3D editor is lazy-loaded for speed, while this page gives visitors and search engines helpful content immediately.
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {benefits.slice(0, 2).map((benefit) => {
-                  const Icon = benefit.icon
-
-                  return (
-                    <div key={benefit.title} className="rounded-2xl bg-white/15 p-4 backdrop-blur">
-                      <Icon className="mb-3 size-6" aria-hidden="true" />
-                      <h3 className="font-semibold">{benefit.title}</h3>
-                      <p className="mt-1 text-sm text-emerald-50">{benefit.description}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <section className="grid gap-5 md:grid-cols-4">
-          {benefits.map((benefit) => {
-            const Icon = benefit.icon
-
-            return (
-              <Card key={benefit.title} className="border-emerald-100 bg-white/90 shadow-lg shadow-emerald-950/5">
-                <CardContent className="space-y-4 p-6">
-                  <Icon className="size-7 text-emerald-700" aria-hidden="true" />
-                  <h2 className="text-xl font-bold text-slate-950">{benefit.title}</h2>
-                  <p className="leading-7 text-slate-600">{benefit.description}</p>
+      <section className="bg-[#f7f4e8] py-20">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">Architectural Options</p>
+          <h2 className="mt-2 text-center text-3xl font-bold text-[#273136]">Choose Your Structural Foundation</h2>
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            {roofCards.map((card) => (
+              <Card key={card.title} className="border-[#273136]/10 bg-white">
+                <CardContent className="p-8">
+                  <p className="mb-4 inline-block bg-[#273136] px-3 py-1 text-xs font-semibold text-white">{card.label}</p>
+                  <h3 className="text-2xl font-bold text-[#273136]">{card.title}</h3>
+                  <p className="mt-3 text-slate-600">{card.description}</p>
+                  <div className="mt-6 flex gap-6 border-t border-[#273136]/10 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <span>Pitch: {card.pitch}</span>
+                    <span>Max Span: {card.span}</span>
+                  </div>
                 </CardContent>
               </Card>
-            )
-          })}
-        </section>
+            ))}
+          </div>
+        </div>
+      </section>
 
-        <LazyGazeboDesigner />
+      <section className="py-20">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">Precision Planning</p>
+          <h2 className="mt-2 text-3xl font-bold text-[#273136]">3D Patio Concept In Minutes</h2>
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            <Card><CardContent className="p-8"><Sparkles className="mb-4 size-8 text-emerald-700" /><h3 className="text-2xl font-bold">Better Visual Quality</h3></CardContent></Card>
+            <Card className="bg-[#273136] text-white"><CardContent className="p-8"><Ruler className="mb-4 size-8 text-amber-300" /><h3 className="text-2xl font-bold">Real Dimensions</h3></CardContent></Card>
+            <Card><CardContent className="p-8"><Palette className="mb-4 size-8 text-emerald-700" /><h3 className="text-2xl font-bold">Colorbond Palettes</h3></CardContent></Card>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="rounded-xl bg-[#273136] p-12 text-center text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300">Interactive Designer</p>
+          <h2 className="mt-4 text-4xl font-extrabold">Build your quote-ready patio concept</h2>
+          <p className="mx-auto mt-4 max-w-3xl text-white/80">Configure roof style, dimensions, Colorbond-style colours and project details in one place.</p>
+          <Button asChild size="lg" className="mt-8 bg-emerald-700 hover:bg-emerald-800"><Link href="/design">Load 3D Designer</Link></Button>
+        </div>
       </section>
     </main>
   )
