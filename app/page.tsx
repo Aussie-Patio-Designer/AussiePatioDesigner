@@ -2,7 +2,6 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { ArrowRight, CheckCircle2, Gauge, Palette, Ruler, Sparkles } from "lucide-react"
 
-import LazyGazeboDesigner from "@/components/lazy-gazebo-designer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { SITE_NAME, SITE_URL } from "@/lib/site"
@@ -118,14 +117,14 @@ export default function Home() {
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="bg-emerald-700 hover:bg-emerald-800">
-                <a href="#designer">
+                <Link href="/design">
                   Start designing
                   <ArrowRight className="size-4" aria-hidden="true" />
-                </a>
+                </Link>
               </Button>
               <Button asChild size="lg" variant="outline">
                 <Link href="/blog">
-                  Read patio guides
+                  Read guidelines
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
               </Button>
@@ -191,7 +190,42 @@ export default function Home() {
           })}
         </section>
 
-        <LazyGazeboDesigner />
+        <section className="rounded-[2rem] border border-emerald-100 bg-white/90 p-6 shadow-xl shadow-emerald-950/5 sm:p-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">Guidelines</p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Learn before you build</h2>
+            </div>
+            <Button asChild variant="outline">
+              <Link href="/blog">View all guides<ArrowRight className="size-4" aria-hidden="true" /></Link>
+            </Button>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {[
+              {
+                title: "Best patio design ideas for Australian homes in 2026",
+                href: "/blog/best-patio-design-ideas-australia",
+                description: "Roof profile, shade, sizing and layout tips to create a practical quote-ready brief.",
+              },
+              {
+                title: "Colorbond patio colours Australia: best combinations for 2026",
+                href: "/blog/colorbond-patio-colours-australia",
+                description: "Simple combinations for roof, posts and beams that look balanced in Australian light.",
+              },
+            ].map((item) => (
+              <Card key={item.href} className="border-emerald-100 bg-white">
+                <CardContent className="space-y-3 p-6">
+                  <h3 className="text-xl font-semibold text-slate-950">{item.title}</h3>
+                  <p className="text-slate-600">{item.description}</p>
+                  <Link href={item.href} className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:text-emerald-900">
+                    Read guideline
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
       </section>
     </main>
   )
