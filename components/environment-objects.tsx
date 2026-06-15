@@ -1,7 +1,7 @@
 "use client"
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Html } from "@react-three/drei"
+import { Component, Suspense, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Html, useGLTF } from "@react-three/drei"
 import type { ThreeEvent } from "@react-three/fiber"
 import * as THREE from "three"
 
@@ -12,6 +12,8 @@ export type EnvironmentVisibility = {
   fences: boolean
   furniture: boolean
   gardenBeds: boolean
+  car: boolean
+  rubbishBins: boolean
 }
 
 export const defaultEnvironmentVisibility: EnvironmentVisibility = {
@@ -21,6 +23,8 @@ export const defaultEnvironmentVisibility: EnvironmentVisibility = {
   fences: true,
   furniture: false,
   gardenBeds: false,
+  car: true,
+  rubbishBins: true,
 }
 
 
@@ -49,6 +53,70 @@ function useRepeatedTexture(url: string, repeat: [number, number], isColorMap = 
   }, [isColorMap, repeatX, repeatY, url])
 
   return texture
+}
+
+type ModelErrorBoundaryProps = {
+  fallback: ReactNode
+  children: ReactNode
+}
+
+type ModelErrorBoundaryState = {
+  hasError: boolean
+}
+
+class ModelErrorBoundary extends Component<ModelErrorBoundaryProps, ModelErrorBoundaryState> {
+  state: ModelErrorBoundaryState = { hasError: false }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: Error) {
+    console.warn("Optional 3D model could not be loaded; using fallback geometry instead.", error)
+  }
+
+  render() {
+    return this.state.hasError ? this.props.fallback : this.props.children
+  }
+}
+
+function UploadedModel({
+  src,
+  scale = 1,
+  rotation = [0, 0, 0],
+  position = [0, 0, 0],
+}: {
+  src: string
+  scale?: number | [number, number, number]
+  rotation?: [number, number, number]
+  position?: [number, number, number]
+}) {
+  const gltf = useGLTF(src) as { scene: THREE.Group }
+  const scene = useMemo(() => gltf.scene.clone(true), [gltf.scene])
+
+  return <primitive object={scene} position={position} rotation={rotation} scale={scale} />
+}
+
+function OptionalUploadedModel({
+  src,
+  fallback,
+  scale = 1,
+  rotation = [0, 0, 0],
+  position = [0, 0, 0],
+}: {
+  src: string
+  fallback: ReactNode
+  scale?: number | [number, number, number]
+  rotation?: [number, number, number]
+  position?: [number, number, number]
+}) {
+  return (
+    <ModelErrorBoundary fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <UploadedModel src={src} position={position} rotation={rotation} scale={scale} />
+      </Suspense>
+    </ModelErrorBoundary>
+  )
 }
 
 function DraggableSceneObject({
@@ -1052,6 +1120,92 @@ export function Clothesline({
 }
 
 // ─────────────────────────────────────────────
+// UPLOADED GLB MODEL WRAPPERS
+// Place source files in /public/models/house.glb, car.glb and rubbish.glb.
+// Each wrapper has a procedural fallback so the designer still opens before files are uploaded.
+// ─────────────────────────────────────────────
+export function UploadedHouseModel() {
+  return (
+    <OptionalUploadedModel
+      src="/models/house.glb"
+      scale={1}
+      fallback={<RealisticHouse position={[0, 0, 0]} rotation={[0, 0, 0]} scale={0.9} />}
+    />
+  )
+}
+
+function FallbackCar() {
+  return (
+    <group>
+      <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.9, 0.55, 4.1]} />
+        <meshStandardMaterial color="#374151" roughness={0.42} metalness={0.18} />
+      </mesh>
+      <mesh position={[0, 0.88, -0.25]} castShadow>
+        <boxGeometry args={[1.45, 0.55, 1.7]} />
+        <meshStandardMaterial color="#6ba3c7" roughness={0.18} metalness={0.35} transparent opacity={0.78} />
+      </mesh>
+      {[-0.82, 0.82].map((x) =>
+        [-1.35, 1.35].map((z) => (
+          <mesh key={`fallback-car-wheel-${x}-${z}`} position={[x, 0.24, z]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.28, 0.28, 0.18, 24]} />
+            <meshStandardMaterial color="#111827" roughness={0.72} metalness={0.05} />
+          </mesh>
+        )),
+      )}
+    </group>
+  )
+}
+
+export function UploadedCarModel() {
+  return (
+    <OptionalUploadedModel
+      src="/models/car.glb"
+      scale={1}
+      rotation={[0, Math.PI, 0]}
+      fallback={<FallbackCar />}
+    />
+  )
+}
+
+function FallbackRubbishBins() {
+  return (
+    <group>
+      {[
+        { x: -0.45, color: "#1f2937", lid: "#facc15" },
+        { x: 0, color: "#14532d", lid: "#16a34a" },
+        { x: 0.45, color: "#1e3a8a", lid: "#2563eb" },
+      ].map((bin) => (
+        <group key={`fallback-bin-${bin.x}`} position={[bin.x, 0, 0]}>
+          <mesh position={[0, 0.48, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.34, 0.82, 0.42]} />
+            <meshStandardMaterial color={bin.color} roughness={0.58} metalness={0.08} />
+          </mesh>
+          <mesh position={[0, 0.92, -0.02]} castShadow>
+            <boxGeometry args={[0.42, 0.08, 0.5]} />
+            <meshStandardMaterial color={bin.lid} roughness={0.5} metalness={0.05} />
+          </mesh>
+          <mesh position={[0, 0.1, -0.24]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.08, 0.08, 0.08, 16]} />
+            <meshStandardMaterial color="#111827" roughness={0.7} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
+
+export function UploadedRubbishModel() {
+  return (
+    <OptionalUploadedModel
+      src="/models/rubbish.glb"
+      scale={1}
+      fallback={<FallbackRubbishBins />}
+    />
+  )
+}
+
+// ─────────────────────────────────────────────
 // DRIVEWAY
 // ─────────────────────────────────────────────
 export function Driveway({
@@ -1108,7 +1262,7 @@ export function BackyardEnvironment({
       {/* House – behind the gazebo if not attached */}
       {visibility.house && !isAttached && (
         <DraggableSceneObject initialPosition={[0, 0, -(gw / 2 + 7.4)]} onDragChange={onObjectDragChange}>
-          <RealisticHouse position={[0, 0, 0]} rotation={[0, 0, 0]} scale={0.9} />
+          <UploadedHouseModel />
         </DraggableSceneObject>
       )}
 
@@ -1116,6 +1270,21 @@ export function BackyardEnvironment({
       {visibility.pool && (
         <DraggableSceneObject initialPosition={[gl / 2 + 7.4, 0, gw / 2 + 4.7]} onDragChange={onObjectDragChange}>
           <SwimmingPool position={[0, 0, 0]} rotation={[0, -0.38, 0]} />
+        </DraggableSceneObject>
+      )}
+
+      {/* Uploaded car model on a driveway beside the design. */}
+      {visibility.car && (
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 6.7), 0, gw / 2 + 5.9]} onDragChange={onObjectDragChange}>
+          <Driveway position={[0, 0.004, 0]} rotation={[0, 0, 0]} />
+          <UploadedCarModel />
+        </DraggableSceneObject>
+      )}
+
+      {/* Uploaded rubbish/bin model near the side boundary. */}
+      {visibility.rubbishBins && (
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 8.5), 0, -(gw / 2 + 4.3)]} onDragChange={onObjectDragChange}>
+          <UploadedRubbishModel />
         </DraggableSceneObject>
       )}
 
