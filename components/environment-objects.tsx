@@ -1161,6 +1161,7 @@ export function UploadedHouseModel() {
     <OptionalUploadedModel
       src={UPLOADED_MODEL_PATHS.house}
       scale={1}
+      rotation={[0, Math.PI / 2, 0]}
       fitToSize={9.5}
       fallback={null}
     />
@@ -1291,22 +1292,7 @@ export function BackyardEnvironment({
 
       {/* Uploaded rubbish/bin model near the side boundary. */}
       {visibility.rubbishBins && (
-        <DraggableSceneObject initialPosition={[gl / 2 + 5.8, 0, -(gw / 2 + 10.1)]} onDragChange={onObjectDragChange}>
-          <UploadedRubbishModel />
-        </DraggableSceneObject>
-      )}
-
-      {/* Uploaded car model on a driveway beside the design. */}
-      {visibility.car && (
-        <DraggableSceneObject initialPosition={[-(gl / 2 + 6.7), 0, gw / 2 + 5.9]} onDragChange={onObjectDragChange}>
-          <Driveway position={[0, 0.004, 0]} rotation={[0, 0, 0]} />
-          <UploadedCarModel />
-        </DraggableSceneObject>
-      )}
-
-      {/* Uploaded rubbish/bin model near the side boundary. */}
-      {visibility.rubbishBins && (
-        <DraggableSceneObject initialPosition={[gl / 2 + 5.8, 0, -(gw / 2 + 10.1)]} onDragChange={onObjectDragChange}>
+        <DraggableSceneObject initialPosition={[gl / 2 + 4.2, 0, -(gw / 2 + 10.5)]} onDragChange={onObjectDragChange}>
           <UploadedRubbishModel />
         </DraggableSceneObject>
       )}
