@@ -26,7 +26,7 @@ import { Slider } from "@/components/ui/slider"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
-// Add this near the top of the file where the props are define
+// Add this near the top of the file where the props are defineee
 interface GazeboInquiryFormProps {
   agentData?: {
     id: number
