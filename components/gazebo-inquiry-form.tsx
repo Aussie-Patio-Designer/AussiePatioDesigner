@@ -126,6 +126,8 @@ const environmentOptions: { key: keyof EnvironmentVisibility; label: string; des
   { key: "fences", label: "Fences", description: "Show Colourbond boundary fences" },
   { key: "furniture", label: "Furniture", description: "Show outdoor table and BBQ setting" },
   { key: "gardenBeds", label: "Garden beds", description: "Show landscaping beds" },
+  { key: "car", label: "Car", description: "Show your uploaded car model beside the patio" },
+  { key: "rubbishBins", label: "Rubbish bins", description: "Show your uploaded rubbish/bin model near the boundary" },
 ]
 
 // Simplified roof cladding options - only 2 options

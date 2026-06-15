@@ -42,7 +42,7 @@ export default function DesignPage() {
                 Design your patio concept in full detail
               </h1>
               <p className="max-w-3xl text-lg leading-8 text-slate-600">
-                This is the complete interactive design experience. Build a patio or gazebo concept, test colours and dimensions, then submit a clearer brief.
+                The 3D designer now opens automatically on this page. Build a patio or gazebo concept, test colours and dimensions, then submit a clearer quote brief.
               </p>
               <ul className="grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
                 {highlights.map((item) => (
@@ -74,7 +74,7 @@ export default function DesignPage() {
           </div>
         </header>
 
-        <LazyGazeboDesigner />
+        <LazyGazeboDesigner autoLoad />
       </section>
     </main>
   )
