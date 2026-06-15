@@ -430,7 +430,7 @@ export default function Home() {
             <Button
               asChild
               size="lg"
-              className="bg-emerald-700 hover:bg-emerald-800 text-base px-8 py-6 h-auto font-bold"
+              className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white text-base px-8 py-6 h-auto"
             >
               <Link href="/design">
                 Start Designing Free <ArrowRight className="size-5" />

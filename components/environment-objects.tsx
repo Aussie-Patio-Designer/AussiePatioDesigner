@@ -17,14 +17,14 @@ export type EnvironmentVisibility = {
 }
 
 export const defaultEnvironmentVisibility: EnvironmentVisibility = {
-  house: true,
-  pool: true,
-  trees: true,
-  fences: true,
+  house: false,
+  pool: false,
+  trees: false,
+  fences: false,
   furniture: false,
   gardenBeds: false,
-  car: true,
-  rubbishBins: true,
+  car: false,
+  rubbishBins: false,
 }
 
 const MODEL_ASSET_BASE_PATH = "/models"
