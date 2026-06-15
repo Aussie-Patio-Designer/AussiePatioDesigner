@@ -1161,7 +1161,7 @@ export function UploadedHouseModel() {
     <OptionalUploadedModel
       src={UPLOADED_MODEL_PATHS.house}
       scale={1}
-      rotation={[0, Math.PI / 2, 0]}
+      rotation={[0, -Math.PI / 2, 0]}
       fitToSize={9.5}
       fallback={null}
     />
@@ -1261,30 +1261,30 @@ export function BackyardEnvironment({
   const gl = gazeboLength / 1000
   const gw = gazeboWidth / 1000
 
-  const backFenceZ = -(gw / 2 + 15)
-  const frontFenceZ = gw / 2 + 12
-  const leftFenceX = -(gl / 2 + 14)
-  const rightFenceX = gl / 2 + 14
+  const backFenceZ = -(gw / 2 + 10.5)
+  const frontFenceZ = gw / 2 + 8.5
+  const leftFenceX = -(gl / 2 + 9.5)
+  const rightFenceX = gl / 2 + 9.5
 
   return (
     <group>
       {/* House – behind the gazebo if not attached */}
       {visibility.house && !isAttached && (
-        <DraggableSceneObject initialPosition={[0, 0, -(gw / 2 + 10.8)]} onDragChange={onObjectDragChange}>
+        <DraggableSceneObject initialPosition={[0, 0, -(gw / 2 + 8.3)]} onDragChange={onObjectDragChange}>
           <UploadedHouseModel />
         </DraggableSceneObject>
       )}
 
       {/* Swimming pool – to the right */}
       {visibility.pool && (
-        <DraggableSceneObject initialPosition={[gl / 2 + 5.4, 0, 0]} onDragChange={onObjectDragChange}>
+        <DraggableSceneObject initialPosition={[gl / 2 + 4.7, 0, 0.25]} onDragChange={onObjectDragChange}>
           <SwimmingPool position={[0, 0, 0]} rotation={[0, 0, 0]} />
         </DraggableSceneObject>
       )}
 
       {/* Uploaded car model on a driveway beside the design. */}
       {visibility.car && (
-        <DraggableSceneObject initialPosition={[-(gl / 2 + 6.7), 0, gw / 2 + 5.9]} onDragChange={onObjectDragChange}>
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 5.0), 0, gw / 2 + 4.3]} onDragChange={onObjectDragChange}>
           <Driveway position={[0, 0.004, 0]} rotation={[0, 0, 0]} />
           <UploadedCarModel />
         </DraggableSceneObject>
@@ -1292,7 +1292,7 @@ export function BackyardEnvironment({
 
       {/* Uploaded rubbish/bin model near the side boundary. */}
       {visibility.rubbishBins && (
-        <DraggableSceneObject initialPosition={[gl / 2 + 4.2, 0, -(gw / 2 + 10.5)]} onDragChange={onObjectDragChange}>
+        <DraggableSceneObject initialPosition={[gl / 2 + 3.7, 0, -(gw / 2 + 8.1)]} onDragChange={onObjectDragChange}>
           <UploadedRubbishModel />
         </DraggableSceneObject>
       )}
@@ -1307,13 +1307,13 @@ export function BackyardEnvironment({
       {/* Smaller boundary trees that keep the patio visible. */}
       {visibility.trees && (
         <>
-          <DraggableSceneObject initialPosition={[-(gl / 2 + 11.5), 0, gw / 2 + 10]} onDragChange={onObjectDragChange}>
+          <DraggableSceneObject initialPosition={[-(gl / 2 + 7.6), 0, gw / 2 + 6.2]} onDragChange={onObjectDragChange}>
             <AustralianTree position={[0, 0, 0]} scale={0.72} variant={0} />
           </DraggableSceneObject>
-          <DraggableSceneObject initialPosition={[gl / 2 + 12.5, 0, gw / 2 + 9.6]} onDragChange={onObjectDragChange}>
+          <DraggableSceneObject initialPosition={[gl / 2 + 8.0, 0, gw / 2 + 5.8]} onDragChange={onObjectDragChange}>
             <AustralianTree position={[0, 0, 0]} scale={0.78} variant={1} />
           </DraggableSceneObject>
-          <DraggableSceneObject initialPosition={[gl / 2 + 12, 0, -(gw / 2 + 8.8)]} onDragChange={onObjectDragChange}>
+          <DraggableSceneObject initialPosition={[gl / 2 + 7.8, 0, -(gw / 2 + 6.4)]} onDragChange={onObjectDragChange}>
             <AustralianTree position={[0, 0, 0]} scale={0.66} variant={2} />
           </DraggableSceneObject>
         </>
@@ -1352,13 +1352,13 @@ export function BackyardEnvironment({
       {/* Garden beds */}
       {visibility.gardenBeds && (
         <>
-          <DraggableSceneObject initialPosition={[-(gl / 2 + 5.5), 0, -(gw / 2 + 5.4)]} onDragChange={onObjectDragChange}>
+          <DraggableSceneObject initialPosition={[-(gl / 2 + 4.4), 0, -(gw / 2 + 4.6)]} onDragChange={onObjectDragChange}>
             <GardenBed position={[0, 0, 0]} width={5} depth={1.0} rotation={[0, 0.1, 0]} />
           </DraggableSceneObject>
-          <DraggableSceneObject initialPosition={[gl / 2 + 5.2, 0, -(gw / 2 + 5.8)]} onDragChange={onObjectDragChange}>
+          <DraggableSceneObject initialPosition={[gl / 2 + 4.2, 0, -(gw / 2 + 4.9)]} onDragChange={onObjectDragChange}>
             <GardenBed position={[0, 0, 0]} width={3.5} depth={0.9} rotation={[0, -0.15, 0]} />
           </DraggableSceneObject>
-          <DraggableSceneObject initialPosition={[-(gl / 2 + 11.2), 0, gw / 2 + 4.8]} onDragChange={onObjectDragChange}>
+          <DraggableSceneObject initialPosition={[-(gl / 2 + 7.4), 0, gw / 2 + 3.9]} onDragChange={onObjectDragChange}>
             <GardenBed position={[0, 0, 0]} width={3} depth={1.1} rotation={[0, Math.PI / 2, 0]} />
           </DraggableSceneObject>
         </>
