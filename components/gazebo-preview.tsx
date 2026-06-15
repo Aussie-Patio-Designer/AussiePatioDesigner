@@ -1,9 +1,9 @@
 "use client"
 
 import { Canvas, useThree } from "@react-three/fiber"
-import { ContactShadows, Environment, OrbitControls, Plane } from "@react-three/drei"
+import { ContactShadows, Environment, OrbitControls, Plane, Sky } from "@react-three/drei"
 import { Suspense, useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect, useMemo } from "react"
-import { TextureLoader, BackSide } from "three"
+import { TextureLoader } from "three"
 import * as THREE from "three"
 import {
   getEnhancedColorHex,
@@ -36,44 +36,32 @@ export interface GazeboPreviewRef {
   captureScreenshot: () => Promise<string | null>
 }
 
-// Simplified skybox with just a light blue color gradient
+// Realistic sky dome with a solid scene background to avoid black voids when zooming out.
 function SimpleSkybox() {
-  // Create a simple gradient using vertex colors
-  const skyMaterial = useMemo(() => {
-    const canvas = document.createElement("canvas")
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return null
+  const { gl, scene } = useThree()
 
-    canvas.width = 2
-    canvas.height = 2
+  useEffect(() => {
+    const previousBackground = scene.background
+    const skyColor = new THREE.Color("#d8efff")
 
-    // Create vertical gradient from light blue to slightly darker blue
-    const gradient = ctx.createLinearGradient(0, 0, 0, 2)
-    gradient.addColorStop(0, "#a7d9ff") // Light blue at top
-    gradient.addColorStop(1, "#d6eeff") // Very light blue at horizon
+    scene.background = skyColor
+    gl.setClearColor(skyColor, 1)
 
-    ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, 2, 2)
-
-    const texture = new THREE.CanvasTexture(canvas)
-    texture.mapping = THREE.EquirectangularReflectionMapping
-
-    return new THREE.MeshBasicMaterial({
-      map: texture,
-      side: BackSide,
-      toneMapped: false,
-    })
-  }, [])
+    return () => {
+      scene.background = previousBackground
+    }
+  }, [gl, scene])
 
   return (
     <>
-      {/* Simple gradient sky background */}
-      <mesh>
-        <sphereGeometry args={[180, 20, 20]} />
-        <primitive object={skyMaterial} attach="material" />
-      </mesh>
-
-      {/* Subtle environment for minimal reflections */}
+      <Sky
+        distance={450000}
+        sunPosition={[-10, 18, -8]}
+        turbidity={6}
+        rayleigh={1.8}
+        mieCoefficient={0.004}
+        mieDirectionalG={0.82}
+      />
       <Environment background={false} preset="city" intensity={0.45} />
     </>
   )

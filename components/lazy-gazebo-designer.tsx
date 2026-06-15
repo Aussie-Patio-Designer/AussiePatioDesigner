@@ -53,14 +53,14 @@ const GazeboFormWrapper = dynamic(() => import("@/components/gazebo-form-wrapper
   loading: DesignerLoadingState,
 })
 
-export default function LazyGazeboDesigner() {
-  const [shouldLoadDesigner, setShouldLoadDesigner] = useState(false)
+export default function LazyGazeboDesigner({ autoLoad = false }: { autoLoad?: boolean }) {
+  const [shouldLoadDesigner, setShouldLoadDesigner] = useState(autoLoad)
   const sectionRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     const section = sectionRef.current
 
-    if (!section || shouldLoadDesigner) {
+    if (autoLoad || !section || shouldLoadDesigner) {
       return
     }
 
@@ -82,7 +82,7 @@ export default function LazyGazeboDesigner() {
     observer.observe(section)
 
     return () => observer.disconnect()
-  }, [shouldLoadDesigner])
+  }, [autoLoad, shouldLoadDesigner])
 
   return (
     <section id="designer" ref={sectionRef} className="scroll-mt-8 space-y-5">
@@ -95,18 +95,20 @@ export default function LazyGazeboDesigner() {
             Build your quote-ready patio concept
           </h2>
           <p className="max-w-2xl text-slate-600">
-            Configure roof style, dimensions, Colorbond-style colours and project details in one place.
+            Configure roof style, dimensions, Colorbond-style colours and project details in one streamlined workspace.
           </p>
         </div>
-        <Button
-          type="button"
-          size="lg"
-          className="bg-emerald-700 hover:bg-emerald-800"
-          onClick={() => setShouldLoadDesigner(true)}
-        >
-          Load 3D designer
-          <ArrowRight className="size-4" aria-hidden="true" />
-        </Button>
+        {!shouldLoadDesigner && (
+          <Button
+            type="button"
+            size="lg"
+            className="bg-emerald-700 hover:bg-emerald-800"
+            onClick={() => setShouldLoadDesigner(true)}
+          >
+            Load 3D designer
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Button>
+        )}
       </div>
 
       {shouldLoadDesigner ? (
