@@ -198,7 +198,7 @@ export default function Home() {
                 asChild
                 size="lg"
                 variant="outline"
-                className="border-white/30 text-white hover:bg-white/10 hover:text-white text-base px-8 py-6 h-auto"
+                className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white text-base px-8 py-6 h-auto"
               >
                 <Link href="/blog">Read Planning Guides</Link>
               </Button>
