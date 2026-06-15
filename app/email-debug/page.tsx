@@ -1,388 +1,401 @@
-"use client"
+import Image from "next/image"
+import Link from "next/link"
+import type { Metadata } from "next"
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+  Palette,
+  Ruler,
+  Star,
+  Users,
+} from "lucide-react"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, Mail, AlertTriangle, Copy, ExternalLink } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { absoluteUrl } from "@/lib/site"
 
-export default function EmailDebugPage() {
-  const [testEmail, setTestEmail] = useState("")
-  const [testing, setTesting] = useState(false)
-  const [result, setResult] = useState<any>(null)
-  const [configStatus, setConfigStatus] = useState<any>(null)
-  const [checkingConfig, setCheckingConfig] = useState(false)
+export const metadata: Metadata = {
+  title: "Patio Design Blog Australia | Planning Guides for Homeowners",
+  description:
+    "Expert patio planning guides for Australian homeowners. Choose the right roof style, Colorbond® colours and dimensions before you call a builder.",
+  keywords: [
+    "patio design blog Australia",
+    "Australian patio ideas",
+    "Colorbond patio colours",
+    "patio roof styles",
+    "outdoor living planning",
+  ],
+  alternates: { canonical: "/blog" },
+  openGraph: {
+    title: "Patio Design Blog Australia",
+    description:
+      "Practical Australian guides for planning, designing and visualising patios and gazebos.",
+    url: "/blog",
+  },
+}
 
-  const testEmailSystem = async () => {
-    if (!testEmail) {
-      alert("Please enter an email address to test")
-      return
-    }
+const blogPosts = [
+  {
+    title: "Best patio design ideas for Australian homes in 2026",
+    href: "/blog/best-patio-design-ideas-australia",
+    description:
+      "Plan a cooler, more practical outdoor area with roof profile, Colorbond-style colour, sizing, shade and quote preparation tips.",
+  },
+  {
+    title: "Colorbond patio colours Australia: best combinations for 2026",
+    href: "/blog/colorbond-patio-colours-australia",
+    description:
+      "Choose roof, post, beam, gutter and deck colours that feel connected to your home and comfortable in Australian sunlight.",
+  },
+]
 
-    setTesting(true)
-    setResult(null)
+const blogItemListJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "Patio Designer Blog Articles",
+  itemListElement: blogPosts.map((post, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    url: absoluteUrl(post.href),
+    name: post.title,
+    description: post.description,
+  })),
+}
 
-    try {
-      // Test with a sample inquiry
-      const testData = {
-        customerName: "Test Customer",
-        customerEmail: testEmail,
-        siteAddress: "123 Test Street, Test City QLD 4000",
-        roofType: "Gable",
-        roofCladding: "Insulated Panel",
-        roofPitch: 15,
-        length: 3000,
-        width: 3000,
-        height: 2400,
-        hasOverhang: false,
-        overhangSides: [],
-        overhangSize: 0,
-        roofColor: "SURFMIST / BASALT",
-        postBeamColor: "MONUMENT",
-      }
+const heroStats = [
+  { icon: FileText, value: "2", label: "Expert Guides" },
+  { icon: Users, value: "1,000+", label: "Monthly Readers" },
+  { icon: Star, value: "100%", label: "Free to Read" },
+]
 
-      const response = await fetch("/api/inquiries", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(testData),
-      })
+const articles = [
+  {
+    title: "Colorbond Patio Colours Australia: Best Combinations for 2026",
+    excerpt:
+      "Choose roof, post, beam, gutter and deck colours that feel connected to your home and comfortable in Australian sunlight.",
+    category: "Colour Selection",
+    date: "May 6, 2026",
+    readTime: "7 min read",
+    href: "/blog/colorbond-patio-colours-australia",
+    icon: Palette,
+  },
+  {
+    title: "Gable, Hip or Skillion: Choosing the Right Patio Roof Profile",
+    excerpt:
+      "Compare roof styles by airflow, height, visual impact and how each option can tie into your existing home.",
+    category: "Roof Styles",
+    date: "Coming Soon",
+    readTime: "5 min read",
+    icon: Ruler,
+  },
+  {
+    title: "How to Prepare a Quote-Ready Patio Brief",
+    excerpt:
+      "What to include in your patio design brief so installers can give you accurate, comparable quotes first time.",
+    category: "Planning",
+    date: "Coming Soon",
+    readTime: "4 min read",
+    icon: FileText,
+  },
+]
 
-      const data = await response.json()
-      setResult(data)
-    } catch (error) {
-      setResult({
-        success: false,
-        message: "Network error occurred",
-        error: error instanceof Error ? error.message : "Unknown error",
-      })
-    } finally {
-      setTesting(false)
-    }
-  }
+const planningChecklist = [
+  "Measure the available area, including boundary setbacks",
+  "Consider afternoon sun, prevailing rain and views from inside",
+  "Use a 3D preview to test roof styles and Colorbond® colours",
+  "Prepare a brief with dimensions, colours and site details",
+]
 
-  const checkEmailConfig = async () => {
-    setCheckingConfig(true)
-    try {
-      const response = await fetch("/api/test/email")
-      const data = await response.json()
-      setConfigStatus(data)
-    } catch (error) {
-      setConfigStatus({ success: false, message: "Failed to check email configuration" })
-    } finally {
-      setCheckingConfig(false)
-    }
-  }
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    alert("Copied to clipboard!")
-  }
-
+export default function BlogPage() {
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Email Setup Guide & Debug</h1>
-          <p className="text-gray-600">Complete setup guide and testing for Resend email service</p>
+    <main className="min-h-screen bg-[#fdf9ee] text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogItemListJsonLd) }}
+      />
+
+      {/* HERO */}
+      <section className="bg-[#273136] overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-white/50 hover:text-amber-300 transition-colors mb-10"
+          >
+            <ArrowRight className="size-4 rotate-180" />
+            Back to Patio Designer
+          </Link>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-300 mb-5">
+            Aussie Patio Designer Blog
+          </p>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.05] mb-6 max-w-3xl">
+            Design Smarter.{" "}
+            <span className="text-amber-300">Build Better.</span>
+          </h1>
+          <p className="text-xl text-white/70 leading-relaxed mb-10 max-w-2xl">
+            Expert patio planning guides written for Australian homeowners. Choose the right
+            roof, colours and dimensions before you ever call a builder.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 mb-14">
+            <Button
+              asChild
+              size="lg"
+              className="bg-emerald-700 hover:bg-emerald-800 text-base px-8 py-6 h-auto font-bold"
+            >
+              <Link href="/design">
+                Start Designing Your Patio
+                <ArrowRight className="size-5" />
+              </Link>
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-10">
+            {heroStats.map((s, i) => {
+              const Icon = s.icon
+              return (
+                <div
+                  key={s.label}
+                  className={`flex items-center gap-3 ${i < heroStats.length - 1 ? "pr-10 border-r border-white/10" : ""}`}
+                >
+                  <Icon className="size-5 text-amber-300/70" />
+                  <div>
+                    <div className="text-xl font-extrabold text-white">{s.value}</div>
+                    <div className="text-xs text-white/40 uppercase tracking-widest">{s.label}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
+      </section>
 
-        {/* Setup Guide */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Mail className="h-5 w-5" />
-              <span>Resend Setup Guide</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {/* Step 1 */}
-              <div className="border-l-4 border-blue-500 pl-4">
-                <h3 className="font-semibold text-lg mb-2">Step 1: Create Resend Account</h3>
-                <ol className="space-y-2 text-sm">
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">1</span>
-                    <span>Visit</span>
-                    <a
-                      href="https://resend.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline flex items-center space-x-1"
-                    >
-                      <span>resend.com</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">2</span>
-                    <span>Click "Get Started" and sign up with your email</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">3</span>
-                    <span>Choose the free plan (100 emails/day)</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">4</span>
-                    <span>Verify your email address</span>
-                  </li>
-                </ol>
-              </div>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 space-y-16">
 
-              {/* Step 2 */}
-              <div className="border-l-4 border-green-500 pl-4">
-                <h3 className="font-semibold text-lg mb-2">Step 2: Get API Key</h3>
-                <ol className="space-y-2 text-sm">
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">1</span>
-                    <span>Login to Resend dashboard</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">2</span>
-                    <span>Click "API Keys" in the sidebar</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">3</span>
-                    <span>Click "Create API Key"</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">4</span>
-                    <span>Name it "Gazebo App" and select "Full access"</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">5</span>
-                    <span className="font-semibold text-red-600">
-                      IMPORTANT: Copy the API key immediately - you won't see it again!
-                    </span>
-                  </li>
-                </ol>
-                <div className="mt-3 p-3 bg-gray-100 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-2">Your API key will look like this:</p>
-                  <div className="flex items-center space-x-2">
-                    <code className="bg-white px-2 py-1 rounded text-sm">re_xxxxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxx</code>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => copyToClipboard("RESEND_API_KEY")}
-                      className="h-8"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="border-l-4 border-purple-500 pl-4">
-                <h3 className="font-semibold text-lg mb-2">Step 3: Add to Vercel</h3>
-                <ol className="space-y-2 text-sm">
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">1</span>
-                    <span>Go to</span>
-                    <a
-                      href="https://vercel.com/dashboard"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline flex items-center space-x-1"
-                    >
-                      <span>vercel.com/dashboard</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">2</span>
-                    <span>Click on your gazebo project</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">3</span>
-                    <span>Go to Settings → Environment Variables</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">4</span>
-                    <span>Add new variable:</span>
-                  </li>
-                </ol>
-                <div className="mt-3 p-3 bg-gray-100 rounded-lg">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <label className="font-medium">Name:</label>
-                      <div className="flex items-center space-x-2">
-                        <code className="bg-white px-2 py-1 rounded">RESEND_API_KEY</code>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard("RESEND_API_KEY")}
-                          className="h-8"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="font-medium">Value:</label>
-                      <p className="text-gray-600">Paste your API key here</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-2">Select "Production" environment and click Save</p>
-                </div>
-              </div>
-
-              {/* Step 4 */}
-              <div className="border-l-4 border-orange-500 pl-4">
-                <h3 className="font-semibold text-lg mb-2">Step 4: Redeploy</h3>
-                <ol className="space-y-2 text-sm">
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-medium">1</span>
-                    <span>Go to the "Deployments" tab in your Vercel project</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-medium">2</span>
-                    <span>Click the three dots (...) on your latest deployment</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-medium">3</span>
-                    <span>Select "Redeploy" to rebuild with the new environment variable</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-medium">4</span>
-                    <span>Wait for deployment to complete (1-2 minutes)</span>
-                  </li>
-                </ol>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Email Configuration Check */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5" />
-              <span>Step 5: Test Configuration</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Button onClick={checkEmailConfig} disabled={checkingConfig} variant="outline">
-                {checkingConfig ? "Checking..." : "Check Email Configuration"}
-              </Button>
-
-              {configStatus && (
-                <div
-                  className={`p-4 rounded-lg border ${configStatus.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
-                >
-                  <div className="flex items-center space-x-2 mb-2">
-                    {configStatus.success ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-600" />
-                    )}
-                    <span className="font-semibold">{configStatus.message}</span>
-                  </div>
-                  {configStatus.details && <p className="text-sm text-gray-600">{configStatus.details}</p>}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Email Test */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Mail className="h-5 w-5" />
-              <span>Step 6: Send Test Email</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Your Email Address</label>
-                <Input
-                  type="email"
-                  placeholder="Enter your email to receive a test"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
+        {/* FEATURED ARTICLE */}
+        <section>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-700 mb-6">
+            Featured Article
+          </p>
+          <Card className="overflow-hidden border-0 bg-slate-950 text-white shadow-2xl shadow-slate-950/20">
+            <CardContent className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.65fr_1fr] lg:p-10">
+              <Link
+                href="/blog/best-patio-design-ideas-australia"
+                className="relative block min-h-64 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-sky-700"
+              >
+                <Image
+                  src="/images/blog/best-patio-design-ideas-australia.svg"
+                  alt="Modern Australian patio with Colorbond-style roof and outdoor dining area"
+                  width={1600}
+                  height={900}
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 hover:scale-105"
                 />
-              </div>
-
-              <Button onClick={testEmailSystem} disabled={testing || !testEmail}>
-                {testing ? "Sending Test Email..." : "Send Test Email"}
-              </Button>
-
-              {result && (
-                <div
-                  className={`p-4 rounded-lg border ${result.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
-                >
-                  <div className="flex items-center space-x-2 mb-2">
-                    {result.success ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-600" />
-                    )}
-                    <span className="font-semibold">{result.success ? "Test Completed" : "Test Failed"}</span>
-                    {result.emailSent !== undefined && (
-                      <Badge
-                        className={result.emailSent ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
-                      >
-                        {result.emailSent ? "Email Sent ✅" : "Email Not Sent ❌"}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">{result.message}</p>
-                  {result.emailError && <p className="text-sm text-red-600">Email Error: {result.emailError}</p>}
-                  {result.emailSent && (
-                    <p className="text-sm text-green-600 font-medium">
-                      ✅ Check your inbox (and spam folder) for the test email!
-                    </p>
-                  )}
+                <span className="absolute top-4 left-4 rounded-full bg-white/20 backdrop-blur px-3 py-1 text-xs font-bold text-white uppercase tracking-wider">
+                  Featured
+                </span>
+              </Link>
+              <article className="flex flex-col justify-center gap-5 py-2">
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <span className="rounded-full bg-amber-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-300">
+                    SEO Guide
+                  </span>
+                  <span className="flex items-center gap-1.5 text-white/50">
+                    <CalendarDays className="size-4" />
+                    May 6, 2026
+                  </span>
+                  <span className="text-white/50">8 min read</span>
                 </div>
-              )}
+                <div className="space-y-4">
+                  <h2 className="text-3xl sm:text-4xl font-bold leading-tight text-balance">
+                    Best Patio Design Ideas for Australian Homes in 2026
+                  </h2>
+                  <p className="text-lg text-slate-300 leading-relaxed">
+                    Plan a cooler, more useful patio with roof style, sizing, Colorbond® colour
+                    and quote preparation tips for Australian homes.
+                  </p>
+                </div>
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="w-fit bg-white/10 hover:bg-white/20 text-white border-0"
+                >
+                  <Link href="/blog/best-patio-design-ideas-australia">
+                    Read Full Guide
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              </article>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* ARTICLE GRID + SIDEBAR */}
+        <section className="grid gap-8 lg:grid-cols-[1fr_320px]">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-700 mb-3">
+              Latest Articles
+            </p>
+            <h2 className="text-3xl font-bold text-[#273136] mb-8">
+              All Patio Planning Guides
+            </h2>
+            <div className="grid gap-5">
+              {articles.map((post) => {
+                const Icon = post.icon
+                return (
+                  <Card
+                    key={post.title}
+                    className="group border border-slate-100 bg-white shadow-sm hover:-translate-y-0.5 hover:shadow-lg transition-all"
+                  >
+                    <CardContent className="p-6 flex gap-5">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                        <Icon className="size-5 text-emerald-700" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-3 mb-3">
+                          <span className="text-xs font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+                            {post.category}
+                          </span>
+                          <span className="text-xs text-slate-400 flex items-center gap-1">
+                            <CalendarDays className="size-3" />
+                            {post.date}
+                          </span>
+                          <span className="text-xs text-slate-400">{post.readTime}</span>
+                        </div>
+                        {"href" in post && post.href ? (
+                          <h3 className="text-lg font-bold text-[#273136] mb-2 leading-snug">
+                            <Link
+                              href={post.href}
+                              className="hover:text-emerald-700 transition-colors"
+                            >
+                              {post.title}
+                            </Link>
+                          </h3>
+                        ) : (
+                          <h3 className="text-lg font-bold text-[#273136] mb-2 leading-snug">
+                            {post.title}
+                          </h3>
+                        )}
+                        <p className="text-slate-500 text-sm leading-relaxed mb-4">{post.excerpt}</p>
+                        {"href" in post && post.href ? (
+                          <Link
+                            href={post.href}
+                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-900 transition-colors"
+                          >
+                            Read article <ArrowRight className="size-4" />
+                          </Link>
+                        ) : (
+                          <span className="text-sm text-slate-400 italic">Coming soon</span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Troubleshooting */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5" />
-              <span>Troubleshooting</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <h4 className="font-semibold text-yellow-800 mb-2">Common Issues:</h4>
-                <ul className="text-yellow-700 text-sm space-y-1">
-                  <li>
-                    • <strong>API key not working:</strong> Make sure you copied the entire key correctly
-                  </li>
-                  <li>
-                    • <strong>Still no emails:</strong> Check your spam/junk folder
-                  </li>
-                  <li>
-                    • <strong>Configuration shows "not configured":</strong> Redeploy after adding the API key
-                  </li>
-                  <li>
-                    • <strong>Rate limit errors:</strong> Free plan has 100 emails/day limit
-                  </li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="font-semibold text-blue-800 mb-2">Need Help?</h4>
-                <p className="text-blue-700 text-sm">
-                  If you're still having issues, check the Vercel deployment logs or contact support. The inquiry system
-                  works without email - customers just won't get automatic confirmations.
+          {/* SIDEBAR */}
+          <aside className="space-y-6">
+            <Card className="border border-emerald-100 bg-white shadow-sm">
+              <CardContent className="p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-700 mb-3">
+                  Quick Checklist
                 </p>
-              </div>
+                <h3 className="text-xl font-bold text-[#273136] mb-5">
+                  Before You Choose a Design
+                </h3>
+                <ul className="space-y-4">
+                  {planningChecklist.map((tip) => (
+                    <li key={tip} className="flex gap-3 text-sm text-slate-600 leading-snug">
+                      <CheckCircle2 className="mt-0.5 size-4 flex-none text-emerald-600" />
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 bg-[#273136] text-white shadow-xl shadow-[#273136]/20">
+              <CardContent className="p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-300 mb-3">
+                  Free Design Tool
+                </p>
+                <h3 className="text-xl font-bold mb-3">Try the Free 3D Patio Designer</h3>
+                <p className="text-white/70 text-sm leading-relaxed mb-6">
+                  Visualise your roof style, Colorbond® colours and real dimensions before
+                  requesting any quote.
+                </p>
+                <Button
+                  asChild
+                  className="w-full bg-emerald-700 hover:bg-emerald-600 font-bold"
+                >
+                  <Link href="/design">
+                    Start Designing Free
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </aside>
+        </section>
+
+        {/* PLANNING TIPS */}
+        <section className="rounded-3xl bg-[#f7f4e8] p-10">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-700 mb-3">
+                Before You Start
+              </p>
+              <h2 className="text-3xl font-bold text-[#273136] mb-4">
+                Smart planning saves time and money
+              </h2>
+              <p className="text-slate-500 leading-relaxed">
+                Knowing your roof style, preferred colours and exact dimensions before you
+                contact an installer means sharper quotes, less back-and-forth and a finished
+                patio that looks exactly as you imagined.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Roof Styles", detail: "Gable & Skillion" },
+                { label: "Colour Palettes", detail: "Full Colorbond® range" },
+                { label: "Dimensions", detail: "Real mm accuracy" },
+                { label: "Quote Brief", detail: "Export-ready PDF" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="bg-white rounded-2xl p-5 border border-white shadow-sm"
+                >
+                  <div className="text-sm font-bold text-[#273136]">{item.label}</div>
+                  <div className="text-xs text-slate-500 mt-1">{item.detail}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
-    </div>
+
+      {/* FINAL CTA */}
+      <section className="bg-gradient-to-r from-emerald-700 to-emerald-900 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-5 tracking-tight">
+            Ready to Design Your Patio?
+          </h2>
+          <p className="text-white/80 text-xl mb-10 max-w-2xl mx-auto">
+            Use our free 3D tool to visualise your roof style, colours and dimensions before
+            requesting a quote.
+          </p>
+          <Button
+            asChild
+            size="lg"
+            className="bg-white text-emerald-800 hover:bg-white/90 text-base px-10 py-7 h-auto font-extrabold shadow-2xl"
+          >
+            <Link href="/design">
+              Start Designing Free
+              <ArrowRight className="size-5" />
+            </Link>
+          </Button>
+        </div>
+      </section>
+    </main>
   )
 }
