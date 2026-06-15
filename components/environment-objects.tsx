@@ -1162,7 +1162,7 @@ export function UploadedHouseModel() {
       src={UPLOADED_MODEL_PATHS.house}
       scale={1}
       fitToSize={9.5}
-      fallback={<RealisticHouse position={[0, 0, 0]} rotation={[0, 0, 0]} scale={0.9} />}
+      fallback={null}
     />
   )
 }
@@ -1234,7 +1234,7 @@ export function UploadedRubbishModel() {
     <OptionalUploadedModel
       src={UPLOADED_MODEL_PATHS.rubbish}
       scale={1}
-      fitToSize={0.9}
+      fitToSize={1.8}
       fallback={<FallbackRubbishBins />}
     />
   )
@@ -1318,7 +1318,7 @@ export function BackyardEnvironment({
 
       {/* Uploaded rubbish/bin model near the side boundary. */}
       {visibility.rubbishBins && (
-        <DraggableSceneObject initialPosition={[-(gl / 2 + 8.5), 0, -(gw / 2 + 6.2)]} onDragChange={onObjectDragChange}>
+        <DraggableSceneObject initialPosition={[gl / 2 + 5.8, 0, -(gw / 2 + 10.1)]} onDragChange={onObjectDragChange}>
           <UploadedRubbishModel />
         </DraggableSceneObject>
       )}
