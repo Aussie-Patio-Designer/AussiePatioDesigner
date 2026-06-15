@@ -92,16 +92,39 @@ function UploadedModel({
   scale = 1,
   rotation = [0, 0, 0],
   position = [0, 0, 0],
+  fitToSize,
 }: {
   src: string
   scale?: number | [number, number, number]
   rotation?: [number, number, number]
   position?: [number, number, number]
+  fitToSize?: number
 }) {
   const gltf = useGLTF(src) as { scene: THREE.Group }
-  const scene = useMemo(() => gltf.scene.clone(true), [gltf.scene])
+  const { scene, modelOffset, normalizedScale } = useMemo(() => {
+    const clonedScene = gltf.scene.clone(true)
+    const bounds = new THREE.Box3().setFromObject(clonedScene)
+    const size = bounds.getSize(new THREE.Vector3())
+    const center = bounds.getCenter(new THREE.Vector3())
+    const maxDimension = Math.max(size.x, size.y, size.z) || 1
+    const fitScale = fitToSize ? fitToSize / maxDimension : 1
 
-  return <primitive object={scene} position={position} rotation={rotation} scale={scale} />
+    return {
+      scene: clonedScene,
+      modelOffset: [-center.x, -bounds.min.y, -center.z] as [number, number, number],
+      normalizedScale: fitScale,
+    }
+  }, [fitToSize, gltf.scene])
+
+  const finalScale = Array.isArray(scale)
+    ? ([scale[0] * normalizedScale, scale[1] * normalizedScale, scale[2] * normalizedScale] as [number, number, number])
+    : scale * normalizedScale
+
+  return (
+    <group position={position} rotation={rotation} scale={finalScale}>
+      <primitive object={scene} position={modelOffset} />
+    </group>
+  )
 }
 
 function OptionalUploadedModel({
@@ -110,17 +133,19 @@ function OptionalUploadedModel({
   scale = 1,
   rotation = [0, 0, 0],
   position = [0, 0, 0],
+  fitToSize,
 }: {
   src: string
   fallback: ReactNode
   scale?: number | [number, number, number]
   rotation?: [number, number, number]
   position?: [number, number, number]
+  fitToSize?: number
 }) {
   return (
     <ModelErrorBoundary fallback={fallback}>
       <Suspense fallback={fallback}>
-        <UploadedModel src={src} position={position} rotation={rotation} scale={scale} />
+        <UploadedModel src={src} position={position} rotation={rotation} scale={scale} fitToSize={fitToSize} />
       </Suspense>
     </ModelErrorBoundary>
   )
@@ -1136,6 +1161,7 @@ export function UploadedHouseModel() {
     <OptionalUploadedModel
       src={UPLOADED_MODEL_PATHS.house}
       scale={1}
+      fitToSize={9.5}
       fallback={<RealisticHouse position={[0, 0, 0]} rotation={[0, 0, 0]} scale={0.9} />}
     />
   )
@@ -1170,6 +1196,7 @@ export function UploadedCarModel() {
       src={UPLOADED_MODEL_PATHS.car}
       scale={1}
       rotation={[0, Math.PI, 0]}
+      fitToSize={4.5}
       fallback={<FallbackCar />}
     />
   )
@@ -1207,6 +1234,7 @@ export function UploadedRubbishModel() {
     <OptionalUploadedModel
       src={UPLOADED_MODEL_PATHS.rubbish}
       scale={1}
+      fitToSize={0.9}
       fallback={<FallbackRubbishBins />}
     />
   )
@@ -1268,7 +1296,7 @@ export function BackyardEnvironment({
     <group>
       {/* House – behind the gazebo if not attached */}
       {visibility.house && !isAttached && (
-        <DraggableSceneObject initialPosition={[0, 0, -(gw / 2 + 7.4)]} onDragChange={onObjectDragChange}>
+        <DraggableSceneObject initialPosition={[0, 0, -(gw / 2 + 10.8)]} onDragChange={onObjectDragChange}>
           <UploadedHouseModel />
         </DraggableSceneObject>
       )}
@@ -1290,7 +1318,7 @@ export function BackyardEnvironment({
 
       {/* Uploaded rubbish/bin model near the side boundary. */}
       {visibility.rubbishBins && (
-        <DraggableSceneObject initialPosition={[-(gl / 2 + 8.5), 0, -(gw / 2 + 4.3)]} onDragChange={onObjectDragChange}>
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 8.5), 0, -(gw / 2 + 6.2)]} onDragChange={onObjectDragChange}>
           <UploadedRubbishModel />
         </DraggableSceneObject>
       )}
