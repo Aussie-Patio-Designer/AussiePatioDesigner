@@ -535,7 +535,7 @@ function WindowUnit({
 // ─────────────────────────────────────────────
 export function SwimmingPool({
   position = [8, 0, 5] as [number, number, number],
-  rotation = [0, -0.15, 0] as [number, number, number],
+  rotation = [0, 0, 0] as [number, number, number],
 }: {
   position?: [number, number, number]
   rotation?: [number, number, number]
@@ -1202,40 +1202,13 @@ export function UploadedCarModel() {
   )
 }
 
-function FallbackRubbishBins() {
-  return (
-    <group>
-      {[
-        { x: -0.45, color: "#1f2937", lid: "#facc15" },
-        { x: 0, color: "#14532d", lid: "#16a34a" },
-        { x: 0.45, color: "#1e3a8a", lid: "#2563eb" },
-      ].map((bin) => (
-        <group key={`fallback-bin-${bin.x}`} position={[bin.x, 0, 0]}>
-          <mesh position={[0, 0.48, 0]} castShadow receiveShadow>
-            <boxGeometry args={[0.34, 0.82, 0.42]} />
-            <meshStandardMaterial color={bin.color} roughness={0.58} metalness={0.08} />
-          </mesh>
-          <mesh position={[0, 0.92, -0.02]} castShadow>
-            <boxGeometry args={[0.42, 0.08, 0.5]} />
-            <meshStandardMaterial color={bin.lid} roughness={0.5} metalness={0.05} />
-          </mesh>
-          <mesh position={[0, 0.1, -0.24]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <cylinderGeometry args={[0.08, 0.08, 0.08, 16]} />
-            <meshStandardMaterial color="#111827" roughness={0.7} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  )
-}
-
 export function UploadedRubbishModel() {
   return (
     <OptionalUploadedModel
       src={UPLOADED_MODEL_PATHS.rubbish}
       scale={1}
       fitToSize={1.8}
-      fallback={<FallbackRubbishBins />}
+      fallback={null}
     />
   )
 }
@@ -1303,8 +1276,23 @@ export function BackyardEnvironment({
 
       {/* Swimming pool – to the right */}
       {visibility.pool && (
-        <DraggableSceneObject initialPosition={[gl / 2 + 7.4, 0, gw / 2 + 4.7]} onDragChange={onObjectDragChange}>
-          <SwimmingPool position={[0, 0, 0]} rotation={[0, -0.38, 0]} />
+        <DraggableSceneObject initialPosition={[gl / 2 + 5.4, 0, 0]} onDragChange={onObjectDragChange}>
+          <SwimmingPool position={[0, 0, 0]} rotation={[0, 0, 0]} />
+        </DraggableSceneObject>
+      )}
+
+      {/* Uploaded car model on a driveway beside the design. */}
+      {visibility.car && (
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 6.7), 0, gw / 2 + 5.9]} onDragChange={onObjectDragChange}>
+          <Driveway position={[0, 0.004, 0]} rotation={[0, 0, 0]} />
+          <UploadedCarModel />
+        </DraggableSceneObject>
+      )}
+
+      {/* Uploaded rubbish/bin model near the side boundary. */}
+      {visibility.rubbishBins && (
+        <DraggableSceneObject initialPosition={[gl / 2 + 5.8, 0, -(gw / 2 + 10.1)]} onDragChange={onObjectDragChange}>
+          <UploadedRubbishModel />
         </DraggableSceneObject>
       )}
 
