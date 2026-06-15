@@ -1296,6 +1296,21 @@ export function BackyardEnvironment({
         </DraggableSceneObject>
       )}
 
+      {/* Uploaded car model on a driveway beside the design. */}
+      {visibility.car && (
+        <DraggableSceneObject initialPosition={[-(gl / 2 + 6.7), 0, gw / 2 + 5.9]} onDragChange={onObjectDragChange}>
+          <Driveway position={[0, 0.004, 0]} rotation={[0, 0, 0]} />
+          <UploadedCarModel />
+        </DraggableSceneObject>
+      )}
+
+      {/* Uploaded rubbish/bin model near the side boundary. */}
+      {visibility.rubbishBins && (
+        <DraggableSceneObject initialPosition={[gl / 2 + 5.8, 0, -(gw / 2 + 10.1)]} onDragChange={onObjectDragChange}>
+          <UploadedRubbishModel />
+        </DraggableSceneObject>
+      )}
+
       {/* Outdoor furniture under/near the patio */}
       {visibility.furniture && (
         <DraggableSceneObject initialPosition={[0.25, 0, 0.15]} onDragChange={onObjectDragChange}>
