@@ -27,6 +27,13 @@ export const defaultEnvironmentVisibility: EnvironmentVisibility = {
   rubbishBins: true,
 }
 
+const MODEL_ASSET_BASE_PATH = "/models"
+const UPLOADED_MODEL_PATHS = {
+  house: `${MODEL_ASSET_BASE_PATH}/house.glb`,
+  car: `${MODEL_ASSET_BASE_PATH}/car.glb`,
+  rubbish: `${MODEL_ASSET_BASE_PATH}/rubbish.glb`,
+} as const
+
 
 
 function useRepeatedTexture(url: string, repeat: [number, number], isColorMap = true) {
@@ -1127,7 +1134,7 @@ export function Clothesline({
 export function UploadedHouseModel() {
   return (
     <OptionalUploadedModel
-      src="/models/house.glb"
+      src={UPLOADED_MODEL_PATHS.house}
       scale={1}
       fallback={<RealisticHouse position={[0, 0, 0]} rotation={[0, 0, 0]} scale={0.9} />}
     />
@@ -1160,7 +1167,7 @@ function FallbackCar() {
 export function UploadedCarModel() {
   return (
     <OptionalUploadedModel
-      src="/models/car.glb"
+      src={UPLOADED_MODEL_PATHS.car}
       scale={1}
       rotation={[0, Math.PI, 0]}
       fallback={<FallbackCar />}
@@ -1198,7 +1205,7 @@ function FallbackRubbishBins() {
 export function UploadedRubbishModel() {
   return (
     <OptionalUploadedModel
-      src="/models/rubbish.glb"
+      src={UPLOADED_MODEL_PATHS.rubbish}
       scale={1}
       fallback={<FallbackRubbishBins />}
     />
