@@ -166,6 +166,9 @@ export function RealisticHouse({
   const windowColor = "#6ba3c7"
   const doorColor = "#5a3a28"
   const gutterColor = "#8f928d"
+  const houseRoofMap = useRepeatedTexture("/textures/roof-basecolor.png", [1.6, 1.8])
+  const houseRoofNormal = useRepeatedTexture("/textures/roof-normal.png", [1.6, 1.8], false)
+  const houseRoofRoughness = useRepeatedTexture("/textures/roof-orm.png", [1.6, 1.8], false)
 
   const houseWidth = 10 * scale
   const houseDepth = 8 * scale
