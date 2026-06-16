@@ -1198,7 +1198,7 @@ export function UploadedCarModel() {
       scale={1}
       rotation={[0, Math.PI, 0]}
       fitToSize={4.5}
-      fallback={<FallbackCar />}
+      fallback={null}
     />
   )
 }
